@@ -55,4 +55,6 @@
 - Safari/Firefox：録音・採点・グラフは可。録音中の自動文字起こしは非対応（手入力 or 外部APIで対応）
 
 ## 公開
-未公開（社長の動作確認後にデプロイ予定）。デプロイ時は静的ホスティングに `index.html` を置くだけ。
+- **本番URL**：https://shoichiokada225-sys.github.io/oral-exam-app/ （GitHub Pages）
+- リポジトリ：https://github.com/shoichiokada225-sys/oral-exam-app
+- 再デプロイ：`main` に push するだけ（GitHub Pagesが自動ビルド）。push は `! git push` で実行。

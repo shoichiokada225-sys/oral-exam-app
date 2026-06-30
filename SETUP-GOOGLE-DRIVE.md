@@ -8,12 +8,14 @@
 
 ---
 
-## 事前メモ：アプリのURL（オリジン）を決める
-Googleは「どのURLからのアクセスを許可するか」を登録する必要があります。
-- **ローカルでお試し**：`http://localhost:8765`
-- **本番公開後**：例 `https://shoichiokada225-sys.github.io`（GitHub Pagesの場合。末尾の `/...` は付けず、ドメインまで）
+## 事前メモ：アプリのURL（オリジン）
+このアプリは GitHub Pages に公開済みです。
+- **本番アプリURL**：`https://shoichiokada225-sys.github.io/oral-exam-app/`
+- **登録するオリジン（手順6で使う）**：`https://shoichiokada225-sys.github.io`
+  （末尾の `/oral-exam-app/` は付けず、ドメインまで）
+- ローカルでも試す場合の追加オリジン：`http://localhost:8765`
 
-この2つを後の手順6で登録します（両方入れておけば、お試しも本番も動きます）。
+手順6で上記オリジンを登録します（本番だけなら1つ、ローカルも使うなら両方）。
 
 ---
 
@@ -43,8 +45,8 @@ https://console.cloud.google.com/ にGoogleアカウントでログイン。
 
 ### 6. 承認済みの JavaScript 生成元（オリジン）を登録
 「承認済みのJavaScript生成元」に **＋ URIを追加** で以下を入れる：
-- `http://localhost:8765` （お試し用）
-- （本番公開後）公開URLのドメイン。例 `https://shoichiokada225-sys.github.io`
+- `https://shoichiokada225-sys.github.io` （本番・必須）
+- `http://localhost:8765` （ローカルでも試す場合のみ）
 
 > 「承認済みのリダイレクトURI」は **空のままでOK**（このアプリはトークン方式で使います）。
 
