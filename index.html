@@ -483,6 +483,21 @@ function getAll(){try{const r=localStorage.getItem(SKEY);return r?JSON.parse(r).
 function saveAll(arr){localStorage.setItem(SKEY,JSON.stringify({sessions:arr}))}
 function getStt(){try{return JSON.parse(localStorage.getItem(STTKEY))||{}}catch{return{}}}
 function getGoogleCfg(){try{return JSON.parse(localStorage.getItem(GKEY))||{}}catch{return{}}}
+// URLパラメータ（?gurl=&gtoken=&gfolder=&gauto=1）からGoogle設定を取り込む（他端末のワンタップ設定用）
+function applyUrlConfig(){
+  try{
+    const p=new URLSearchParams(location.search);
+    if(!p.has('gurl')&&!p.has('gtoken')&&!p.has('gfolder')&&!p.has('gauto'))return false;
+    const g=getGoogleCfg();
+    if(p.has('gurl'))g.url=(p.get('gurl')||'').trim();
+    if(p.has('gtoken'))g.token=(p.get('gtoken')||'').trim();
+    if(p.has('gfolder'))g.folder=(p.get('gfolder')||'').trim();
+    if(p.has('gauto'))g.auto=(p.get('gauto')==='1'||p.get('gauto')==='true');
+    localStorage.setItem(GKEY,JSON.stringify(g));
+    try{history.replaceState(null,'',location.pathname)}catch(e){} // 合言葉をアドレスバーから消す
+    return true;
+  }catch(e){return false}
+}
 
 /* ==============================================================
    IndexedDB（音声Blob保存）
@@ -531,7 +546,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('sttEndpoint').value=s.endpoint||'';
   document.getElementById('sttModel').value=s.model||'';
   document.getElementById('sttKey').value=s.key||'';
+  const gImported=applyUrlConfig();
   setLang(lang);
+  if(gImported)setTimeout(()=>toast(t('gCfgSaved')),400);
   window.addEventListener('beforeunload',e=>{if(active){e.preventDefault();e.returnValue=''}});
 });
 
