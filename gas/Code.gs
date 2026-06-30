@@ -4,7 +4,8 @@
  * 使い方（詳細は SETUP-GOOGLE-DRIVE.md）:
  *  1. https://script.google.com/ で「新しいプロジェクト」を作成
  *  2. このコードを全て貼り付け
- *  3. 下の TOKEN を、アプリの設定に入れる「合言葉」と同じ値に書き換える
+ *  3. （任意）下の TOKEN に合言葉を設定すると、その値をアプリの設定にも入れる必要があります。
+ *       合言葉が不要なら TOKEN = '' のまま（空）でOK。
  *  4. 「デプロイ」→「新しいデプロイ」→ 種類=ウェブアプリ
  *       実行するユーザー = 自分
  *       アクセスできるユーザー = 全員
@@ -14,14 +15,15 @@
  * あなたのドライブの「(保存先フォルダ)/(受験者_日付)/」に音声ファイルを作成します。
  */
 
-// ▼▼▼ 必ず書き換えてください（アプリの設定の「合言葉」と同じ値に） ▼▼▼
-var TOKEN = 'oral-exam-2026-CHANGE-ME';
-// ▲▲▲ ここを変更 ▲▲▲
+// ▼▼▼ 合言葉（任意）。設定するとアプリ側にも同じ値が必要。不要なら '' のまま ▼▼▼
+var TOKEN = '';
+// ▲▲▲ 例: var TOKEN = 'ooiri-koutou-2026'; のように設定すると保護できます ▲▲▲
 
 function doPost(e) {
   try {
     var body = JSON.parse(e.postData.contents);
-    if (body.token !== TOKEN) return json({ ok: false, error: 'bad-token' });
+    // TOKENを設定している場合のみ照合（空なら合言葉チェックなし）
+    if (TOKEN && body.token !== TOKEN) return json({ ok: false, error: 'bad-token' });
     if (body.ping) return json({ ok: true, ping: true });
 
     var rootName = body.folder || '口頭試問音声';
