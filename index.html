@@ -343,6 +343,7 @@ gTitle:'Googleドライブに自動保存（任意）',gNote:'録音した音声
 gUrl:'ウェブアプリURL（GAS）',gToken:'合言葉（任意・空でも可）',gFolder:'保存先フォルダ名',gSaveId:'設定を保存',gCfgSaved:'設定を保存しました',gTest:'接続テスト',gAuto:'録音を自動でドライブに保存する',
 gConnected:'● 接続OK：自動保存できます',gDisconnected:'○ 未接続（設定を保存して接続テスト）',gNeedCfg:'ウェブアプリURLを入力して保存してください',gTestOk:'接続OK：ドライブに保存できます',gTestFail:'接続に失敗しました',
 clUp:'☁ ドライブへ保存中…',clDone:'☁ ドライブ保存済み',clFail:'⚠ ドライブ保存失敗（タップで再試行）',gAutoNoCfg:'先にウェブアプリURLを保存してください',
+gBadUrl:'保存先URLが不正です（Google Apps Scriptのhttpsのみ許可）',gConfirmCfg:'このリンクは録音の保存先を次のURLに設定します。信頼できる場合のみ適用してください：',
 bkTitle:'データの引き継ぎ（バックアップ／復元）',bkNote:'この端末の全データ（試問項目・録音音声・文字起こし・採点）を1つのファイルに書き出し、別のPCやスマホで読み込んで引き継げます。読み込みは既存データと統合（同じ試問は新しい方を採用）します。',
 bkExport:'バックアップを書き出す',bkImport:'バックアップを読み込む',bkExporting:'書き出し中...',bkExported:'バックアップを書き出しました',bkConfirm:'バックアップを取り込み、この端末のデータと統合します。よろしいですか？',bkImported:'件を取り込みました',bkFail:'読み込みに失敗しました',bkBadFile:'バックアップファイルの形式が正しくありません',
 sttTitle:'AI文字起こし設定（任意）',sttNote:'録音した音声を自動で文字起こしするための外部API設定です。未設定でも、録音中の自動文字起こし（ブラウザ）と手入力で利用できます。キーはこの端末内にのみ保存されます。',
@@ -371,6 +372,7 @@ gTitle:'Auto-save to Google Drive (optional)',gNote:'Auto-saves recordings to yo
 gUrl:'Web App URL (GAS)',gToken:'Passphrase (optional)',gFolder:'Destination folder name',gSaveId:'Save settings',gCfgSaved:'Settings saved',gTest:'Test connection',gAuto:'Auto-save recordings to Drive',
 gConnected:'● OK: ready to save to Drive',gDisconnected:'○ Not set (save settings, then test)',gNeedCfg:'Enter the Web App URL, then save',gTestOk:'OK: can save to Drive',gTestFail:'Connection failed',
 clUp:'☁ Saving to Drive…',clDone:'☁ Saved to Drive',clFail:'⚠ Drive save failed (tap to retry)',gAutoNoCfg:'Save the Web App URL first',
+gBadUrl:'Invalid destination URL (only Google Apps Script https allowed)',gConfirmCfg:'This link will set where recordings are uploaded to the URL below. Apply only if you trust it:',
 bkTitle:'Data Transfer (Backup / Restore)',bkNote:'Export all data on this device (items, recordings, transcripts, scores) to a single file, then load it on another PC or phone. Import merges with existing data (newer exam wins).',
 bkExport:'Export Backup',bkImport:'Import Backup',bkExporting:'Exporting...',bkExported:'Backup exported',bkConfirm:'Import this backup and merge with data on this device?',bkImported:'item(s) imported',bkFail:'Import failed',bkBadFile:'Invalid backup file format',
 sttTitle:'AI Transcription (optional)',sttNote:'External API to auto-transcribe recordings. Without it, you can still use the in-browser live transcript and manual entry. The key is stored only on this device.',
@@ -399,6 +401,7 @@ gTitle:'Tự lưu lên Google Drive (tùy chọn)',gNote:'Tự động lưu ghi 
 gUrl:'URL Web App (GAS)',gToken:'Mật khẩu (tùy chọn)',gFolder:'Tên thư mục lưu',gSaveId:'Lưu cài đặt',gCfgSaved:'Đã lưu cài đặt',gTest:'Kiểm tra kết nối',gAuto:'Tự động lưu ghi âm lên Drive',
 gConnected:'● OK: sẵn sàng lưu lên Drive',gDisconnected:'○ Chưa đặt (lưu rồi kiểm tra)',gNeedCfg:'Nhập URL Web App rồi lưu',gTestOk:'OK: có thể lưu lên Drive',gTestFail:'Kết nối thất bại',
 clUp:'☁ Đang lưu lên Drive…',clDone:'☁ Đã lưu lên Drive',clFail:'⚠ Lưu lên Drive thất bại (chạm để thử lại)',gAutoNoCfg:'Hãy lưu URL Web App trước',
+gBadUrl:'URL lưu không hợp lệ (chỉ cho phép https của Google Apps Script)',gConfirmCfg:'Liên kết này sẽ đặt nơi tải ghi âm lên URL dưới đây. Chỉ áp dụng nếu bạn tin tưởng:',
 bkTitle:'Chuyển dữ liệu (Sao lưu / Khôi phục)',bkNote:'Xuất toàn bộ dữ liệu trên thiết bị này (mục, ghi âm, văn bản, điểm) ra một tệp, rồi nạp ở PC hoặc điện thoại khác. Nhập sẽ hợp nhất với dữ liệu hiện có (bản mới hơn được giữ).',
 bkExport:'Xuất sao lưu',bkImport:'Nạp sao lưu',bkExporting:'Đang xuất...',bkExported:'Đã xuất sao lưu',bkConfirm:'Nạp bản sao lưu này và hợp nhất với dữ liệu trên thiết bị?',bkImported:'mục đã nạp',bkFail:'Nạp thất bại',bkBadFile:'Định dạng tệp sao lưu không hợp lệ',
 sttTitle:'Ghi chữ AI (tùy chọn)',sttNote:'API ngoài để tự động ghi chữ. Không có vẫn dùng được ghi chữ trực tiếp và nhập tay. Khóa chỉ lưu trên thiết bị này.',
@@ -427,6 +430,7 @@ gTitle:'Simpan otomatis ke Google Drive (opsional)',gNote:'Otomatis menyimpan re
 gUrl:'URL Web App (GAS)',gToken:'Kata sandi (opsional)',gFolder:'Nama folder tujuan',gSaveId:'Simpan pengaturan',gCfgSaved:'Pengaturan disimpan',gTest:'Tes koneksi',gAuto:'Simpan otomatis rekaman ke Drive',
 gConnected:'● OK: siap simpan ke Drive',gDisconnected:'○ Belum diatur (simpan lalu tes)',gNeedCfg:'Isi URL Web App lalu simpan',gTestOk:'OK: bisa simpan ke Drive',gTestFail:'Koneksi gagal',
 clUp:'☁ Menyimpan ke Drive…',clDone:'☁ Tersimpan di Drive',clFail:'⚠ Gagal simpan ke Drive (ketuk untuk coba lagi)',gAutoNoCfg:'Simpan URL Web App dulu',
+gBadUrl:'URL tujuan tidak valid (hanya https Google Apps Script yang diizinkan)',gConfirmCfg:'Tautan ini akan mengatur tujuan unggah rekaman ke URL berikut. Terapkan hanya jika Anda percaya:',
 bkTitle:'Pindah Data (Cadangan / Pulihkan)',bkNote:'Ekspor semua data di perangkat ini (item, rekaman, transkrip, nilai) ke satu file, lalu muat di PC atau ponsel lain. Impor akan menggabungkan dengan data yang ada (ujian lebih baru dipakai).',
 bkExport:'Ekspor Cadangan',bkImport:'Impor Cadangan',bkExporting:'Mengekspor...',bkExported:'Cadangan diekspor',bkConfirm:'Impor cadangan ini dan gabungkan dengan data di perangkat?',bkImported:'item diimpor',bkFail:'Impor gagal',bkBadFile:'Format file cadangan tidak valid',
 sttTitle:'Transkripsi AI (opsional)',sttNote:'API eksternal untuk transkrip otomatis. Tanpa itu, tetap bisa pakai transkrip langsung dan input manual. Kunci hanya disimpan di perangkat ini.',
@@ -484,12 +488,27 @@ function saveAll(arr){localStorage.setItem(SKEY,JSON.stringify({sessions:arr}))}
 function getStt(){try{return JSON.parse(localStorage.getItem(STTKEY))||{}}catch{return{}}}
 function getGoogleCfg(){try{return JSON.parse(localStorage.getItem(GKEY))||{}}catch{return{}}}
 // URLパラメータ（?gurl=&gtoken=&gfolder=&gauto=1）からGoogle設定を取り込む（他端末のワンタップ設定用）
+// セキュリティ: 保存先はGASのhttpsのみ許可し、保存先変更時はユーザーの明示確認を必須化
+//（悪意あるリンクで録音の送信先を攻撃者サーバに差し替える情報流出を防ぐ）
+function isAllowedDriveUrl(u){
+  try{const pu=new URL(u);return pu.protocol==='https:'&&(pu.hostname==='script.google.com'||pu.hostname==='script.googleusercontent.com')}catch(e){return false}
+}
 function applyUrlConfig(){
   try{
     const p=new URLSearchParams(location.search);
     if(!p.has('gurl')&&!p.has('gtoken')&&!p.has('gfolder')&&!p.has('gauto'))return false;
     const g=getGoogleCfg();
-    if(p.has('gurl'))g.url=(p.get('gurl')||'').trim();
+    let url=g.url;
+    if(p.has('gurl')){
+      const u=(p.get('gurl')||'').trim();
+      if(!isAllowedDriveUrl(u)){toast(t('gBadUrl'),1);return false} // Google以外/非httpsは拒否
+      url=u;
+    }
+    // 保存先（送信先）が変わる場合は必ずユーザー確認（リンクを開くだけのサイレント設定を防ぐ）
+    if(url&&url!==g.url){
+      if(!confirm(t('gConfirmCfg')+'\n\n'+url))return false;
+    }
+    g.url=url;
     if(p.has('gtoken'))g.token=(p.get('gtoken')||'').trim();
     if(p.has('gfolder'))g.folder=(p.get('gfolder')||'').trim();
     if(p.has('gauto'))g.auto=(p.get('gauto')==='1'||p.get('gauto')==='true');
