@@ -1137,13 +1137,15 @@ async function gasUpload(session,itemId){
 async function maybeAutoUpload(itemId){
   const g=getGoogleCfg();
   if(!g.auto||!g.url)return;
+  const sess=cur; // 対象セッションを固定（アップロード中にcurが切り替わっても取り違えない）
+  if(!sess)return;
   setCloud(itemId,'up');
   try{
-    const res=await gasUpload(cur,itemId);
-    cur.items[itemId]=cur.items[itemId]||{};
-    cur.items[itemId].driveFileId=res&&res.id;cur.items[itemId].driveLink=res&&res.link;
-    saveDraft();setCloud(itemId,'done');
-  }catch(e){setCloud(itemId,'fail')}
+    const res=await gasUpload(sess,itemId);
+    sess.items[itemId]=sess.items[itemId]||{};
+    sess.items[itemId].driveFileId=res&&res.id;sess.items[itemId].driveLink=res&&res.link;
+    if(cur===sess){saveDraft();setCloud(itemId,'done')} // 表示更新は同じセッションを開いている時だけ
+  }catch(e){if(cur===sess)setCloud(itemId,'fail')}
 }
 function setCloud(itemId,state){
   const el=document.getElementById('cl-'+itemId);if(!el)return;
