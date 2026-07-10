@@ -4,7 +4,8 @@
 各質問項目を **録音 → 後から文字起こし → 採点** する流れを単一HTMLで実現する。
 
 ## 特徴
-- **単一ファイル**（`index.html`）。ビルド不要、GitHub Pages / Vercel で静的公開可能
+- **静的ファイルのみ**。ビルド不要、GitHub Pages / Vercel で静的公開可能（file://直開きでも動作）
+- **作業カタログから出題**：設定タブ「📚 作業カタログから質問を追加」で、カテゴリ（7分類）→ 作業（大項目・44作業）→ 質問（小項目：目的/注意点/よくあるミス）を選んで試問項目に追加できる。出典は睦沢農場「業務の目的と注意点」pptx。各質問には**模範解答**が付き、試問・採点画面で折りたたみ表示（採点者の照合用。データは `js/works-qa.js`）
 - **5タブ構成**：試問（録音）／採点／履歴／グラフ／設定
 - **多言語**：日本語・英語・ベトナム語・インドネシア語
 - データは端末内に保存（メタ・文字起こし・採点 = localStorage、音声 = IndexedDB）
@@ -49,6 +50,29 @@
 採点画面の「AI文字起こし」ボタンで録音音声を自動文字起こしできる。
 - 既定エンドポイント：`https://api.openai.com/v1/audio/transcriptions`、モデル：`whisper-1`
 - **APIキーはこの端末の localStorage にのみ保存**（コードに直書きしない設計）
+
+## ファイル構成（レイヤ）
+
+```
+index.html      マークアップのみ
+styles.css      スタイル一式
+js/util.js      汎用ユーティリティ（toast/esc/Blob変換/sanitizeId）
+js/i18n.js      UI文言辞書（ja/en/vi/id）・t()・音声認識言語
+js/works-qa.js  作業カタログ（睦沢pptx由来44作業。修正時は pig-farm-evaluation 側と揃える）
+js/data.js      静的データ層：デフォルト試問項目・カタログのアクセサ/質問生成
+js/store.js     永続化層：localStorage/IndexedDB・セッション・バックアップ
+js/media.js     録音（MediaRecorder/WebSpeech）・GASドライブ保存・AI文字起こし
+js/ui.js        描画層：試問カード/採点/履歴/グラフ/CSV/設定/カタログモーダル
+js/app.js       アプリ層：初期化・タブ・セッションフロー
+```
+
+読み込みは util → i18n → works-qa → data → store → media → ui → app の順（後のレイヤほど前に依存する）。
+
+## テスト実行
+
+```bash
+node smoke.js   # Playwright（フェイクマイクで録音フローまで検証、31項目）
+```
 
 ## 技術メモ
 - 音声は `MediaRecorder`（webm/opus、非対応時 mp4）で録音し、`IndexedDB` に `セッションID_項目ID` で保存
