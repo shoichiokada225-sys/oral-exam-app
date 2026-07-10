@@ -41,8 +41,11 @@ function doPost(e) {
   }
 }
 
-// ブラウザで開いたときの簡易確認用
-function doGet() {
+// ブラウザで開いたときの簡易確認用（TOKEN設定時は ?token= の照合を要求）
+function doGet(e) {
+  // TOKENを設定している場合のみ照合（空なら合言葉チェックなし＝従来通り）
+  var token = (e && e.parameter && e.parameter.token) || '';
+  if (TOKEN && token !== TOKEN) return json({ ok: false, error: 'bad-token' });
   return json({ ok: true, msg: 'oral-exam drive endpoint is alive' });
 }
 
