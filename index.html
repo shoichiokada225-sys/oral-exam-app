@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="口頭試問の録音・文字起こし・採点を1つで行う評価システム">
+<meta name="theme-color" content="#2e5d7d">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>口頭試問 評価システム</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" integrity="sha384-vsrfeLOOY6KuIYKDlmVH5UiBmgIdB1oEf7p01YgWHuqmOHfZr374+odEv96n9tNC" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <style>
@@ -18,7 +22,7 @@ html{font-size:16px;-webkit-text-size-adjust:100%}
 body{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;background:var(--bg);color:var(--txt);line-height:1.6;min-height:100vh;padding-bottom:80px}
 
 /* ヘッダー */
-.hdr{background:var(--pri);color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 6px rgba(0,0,0,.15)}
+.hdr{background:var(--pri);color:#fff;min-height:48px;padding:8px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 6px rgba(0,0,0,.15)}
 .hdr h1{font-size:1rem;font-weight:700;flex:1;text-align:center}
 .lsw{display:flex;gap:2px;flex-shrink:0}
 .lsw button{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.7);padding:4px 8px;border-radius:6px;font-size:.7rem;font-weight:700;cursor:pointer}
@@ -171,6 +175,42 @@ audio{width:100%;margin:6px 0;height:40px}
 
 .qc.warn{border-left-color:var(--s1);animation:shake .4s}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+
+/* 進捗ナビ（試問・採点） */
+.prog{position:sticky;top:48px;z-index:90;background:var(--bg);padding:8px 0 4px;margin-bottom:8px}
+.pmeta{display:flex;justify-content:space-between;align-items:center;font-size:.8rem;font-weight:700;color:var(--pri-d);margin-bottom:5px}
+.pbar{height:6px;background:#dde4e9;border-radius:3px;overflow:hidden}
+.pbar>i{display:block;height:100%;width:0;background:var(--pri);border-radius:3px;transition:width .3s}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:8px 0 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;min-height:40px;padding:8px 14px;border:1px solid var(--bdr);border-radius:20px;background:#fff;font-size:.78rem;font-weight:700;color:var(--sub);cursor:pointer;white-space:nowrap}
+.chip.done{border-color:var(--pri);color:var(--pri);background:var(--pri-l)}
+.stit{scroll-margin-top:132px}
+
+/* 採点：常時表示の保存バー＋自動保存表示 */
+.savebar{position:sticky;bottom:64px;z-index:80;padding-top:6px;background:linear-gradient(to bottom,transparent,var(--bg) 40%)}
+.autost{display:block;text-align:right;font-size:.72rem;font-weight:700;color:var(--s5);min-height:16px;opacity:0;transition:opacity .3s;margin-bottom:2px}
+
+/* 履歴：検索＋月グループ */
+.hsearch{flex:1 1 100%;padding:10px 12px;border:1px solid var(--bdr);border-radius:8px;font-size:.95rem;background:#fff;outline:0}
+.hsearch:focus{border-color:var(--pri)}
+.mgrp{font-size:.78rem;font-weight:700;color:var(--sub);letter-spacing:.04em;margin:8px 2px 0}
+
+/* 設定：アコーディオン */
+details.acc{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);margin-bottom:12px}
+details.acc summary{list-style:none;cursor:pointer;min-height:48px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.95rem;font-weight:700;color:var(--pri-d)}
+details.acc summary::-webkit-details-marker{display:none}
+details.acc summary::after{content:'＋';color:var(--sub);font-weight:400;flex-shrink:0}
+details.acc[open] summary::after{content:'－'}
+details.acc .accb{padding:0 16px 16px}
+.accb p{font-size:.78rem;color:var(--sub);margin-bottom:10px}
+.accb label{display:block;font-size:.8rem;font-weight:600;color:var(--sub);margin:8px 0 3px}
+.accb input{width:100%;padding:9px 11px;border:1px solid var(--bdr);border-radius:8px;font-size:.9rem;outline:0}
+.accb input:focus{border-color:var(--pri)}
+
+/* アクセシビリティ */
+:focus-visible{outline:3px solid var(--pri);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 @media(min-width:640px){.pg{padding:24px}.sb{min-height:52px;font-size:1.2rem}}
 </style>
 </head>
@@ -197,6 +237,11 @@ audio{width:100%;margin:6px 0;height:40px}
     <label data-t="labelExaminee">受験者名</label>
     <input type="text" id="fEe" data-ph="phEe" placeholder="例：佐藤花子">
   </div>
+  <div class="prog" id="examProg" style="display:none">
+    <div class="pmeta"><span id="epLbl"></span><span id="epCnt"></span></div>
+    <div class="pbar"><i id="epBar"></i></div>
+    <div class="chips" id="epChips"></div>
+  </div>
   <div id="examCards"></div>
   <div class="bg">
     <button class="b b1" onclick="saveSession()" data-t="btnSaveSession">試問を保存</button>
@@ -218,7 +263,8 @@ audio{width:100%;margin:6px 0;height:40px}
 
 <!-- 履歴 -->
 <div id="pgHi" class="pg">
-  <div class="hctrl">
+  <div class="hctrl" style="flex-wrap:wrap">
+    <input type="search" id="hQ" class="hsearch" oninput="drawHist()" data-ph="searchPh" placeholder="受験者名で検索">
     <select id="hFil" onchange="drawHist()"><option value="" data-t="filterAllEe">全員</option></select>
     <button class="b b3" onclick="doCSV()" style="flex:0 0 auto;padding:10px 16px;font-size:.85rem" data-t="btnCSV">CSV出力</button>
   </div>
@@ -233,6 +279,7 @@ audio{width:100%;margin:6px 0;height:40px}
   </div>
   <div id="chArea">
     <div class="chb"><h3 data-t="chLine">平均点の推移</h3><canvas id="cvL"></canvas></div>
+    <div class="chb"><h3 data-t="chSec">セクション別平均（直近）</h3><canvas id="cvS"></canvas></div>
     <div class="chb"><h3 data-t="chRadar">項目別レーダーチャート（直近）</h3><canvas id="cvR"></canvas></div>
   </div>
   <div id="chNone" class="nd" style="display:none"></div>
@@ -240,8 +287,9 @@ audio{width:100%;margin:6px 0;height:40px}
 
 <!-- 設定 -->
 <div id="pgCfg" class="pg">
-  <div class="cfg-box">
-    <h3 data-t="gTitle">Googleドライブに自動保存（任意）</h3>
+  <details class="acc">
+    <summary data-t="gTitle">Googleドライブに自動保存（任意）</summary>
+    <div class="accb">
     <p data-t="gNote">録音した音声を、あなたのGoogleドライブへ自動保存します。Google Apps Script（GAS）の小さなウェブアプリを経由する方式です。設定手順は別紙 SETUP-GOOGLE-DRIVE.md を参照（コードは用意済み・貼り付けてデプロイするだけ）。</p>
     <label data-t="gUrl">ウェブアプリURL（GAS）</label>
     <input type="text" id="gUrl" placeholder="https://script.google.com/macros/s/.../exec">
@@ -257,16 +305,20 @@ audio{width:100%;margin:6px 0;height:40px}
     <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:.88rem;color:var(--txt);cursor:pointer">
       <input type="checkbox" id="gAuto" onchange="toggleAuto()" style="width:auto"> <span data-t="gAuto">録音を自動でドライブに保存する</span>
     </label>
-  </div>
-  <div class="cfg-box">
-    <h3 data-t="bkTitle">データの引き継ぎ（バックアップ／復元）</h3>
+    </div>
+  </details>
+  <details class="acc">
+    <summary data-t="bkTitle">データの引き継ぎ（バックアップ／復元）</summary>
+    <div class="accb">
     <p data-t="bkNote">この端末の全データ（試問項目・録音音声・文字起こし・採点）を1つのファイルに書き出し、別のPCやスマホで読み込んで引き継げます。読み込みは既存データと統合（同じ試問は新しい方を採用）します。</p>
     <button class="b b1" style="width:100%" id="bkExportBtn" onclick="exportBackup()" data-t="bkExport">バックアップを書き出す</button>
     <button class="b b3" style="width:100%;margin-top:10px" onclick="document.getElementById('bkFile').click()" data-t="bkImport">バックアップを読み込む</button>
     <input type="file" id="bkFile" accept="application/json,.json" style="display:none" onchange="importBackup(this)">
-  </div>
-  <div class="cfg-box">
-    <h3 data-t="sttTitle">AI文字起こし設定（任意）</h3>
+    </div>
+  </details>
+  <details class="acc">
+    <summary data-t="sttTitle">AI文字起こし設定（任意）</summary>
+    <div class="accb">
     <p data-t="sttNote">録音した音声を自動で文字起こしするための外部API設定です。未設定でも、録音中の自動文字起こし（ブラウザ）と手入力で利用できます。キーはこの端末内にのみ保存されます。</p>
     <label data-t="sttEndpoint">エンドポイントURL</label>
     <input type="text" id="sttEndpoint" placeholder="https://api.openai.com/v1/audio/transcriptions">
@@ -275,7 +327,8 @@ audio{width:100%;margin:6px 0;height:40px}
     <label data-t="sttKey">APIキー</label>
     <input type="password" id="sttKey" placeholder="sk-...">
     <button class="b b1" style="width:100%;margin-top:12px" onclick="saveStt()" data-t="sttSave">API設定を保存</button>
-  </div>
+    </div>
+  </details>
   <div class="stit" data-t="cfgItemsTitle">試問項目</div>
   <div id="cfgArea"></div>
   <div class="cfg-add">
@@ -292,10 +345,10 @@ audio{width:100%;margin:6px 0;height:40px}
 <div class="mo" id="modal" onclick="if(event.target===this)closeMo()">
   <div class="mc" id="moBody"></div>
 </div>
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <!-- タブ -->
-<nav class="tabs">
+<nav class="tabs" aria-label="メインナビゲーション">
   <button class="on" data-pg="pgExam" onclick="swTab(this)">
     <svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
     <span data-t="tabExam">試問</span>
@@ -350,7 +403,8 @@ sttTitle:'AI文字起こし設定（任意）',sttNote:'録音した音声を自
 sttEndpoint:'エンドポイントURL',sttModel:'モデル名',sttKey:'APIキー',sttSave:'API設定を保存',sttSaved:'API設定を保存しました',
 cfgItemsTitle:'試問項目',addSec:'＋ セクション追加',addItem:'＋ 質問を追加',saveCfg:'項目を保存',resetCfg:'初期設定に戻す',
 cfgSaved:'項目を保存しました',cfgReset:'初期設定に戻しました',cResetCfg:'試問項目を初期設定に戻しますか？',
-secName:'セクション名',itemName:'質問の見出し',itemDesc:'質問文'},
+secName:'セクション名',itemName:'質問の見出し',itemDesc:'質問文',
+progRec:'録音済み',progScore:'採点済み',draftSaved:'✓ 自動保存済み',searchPh:'受験者名・試問者名で検索',chSec:'セクション別平均（直近）'},
 
 en:{appTitle:'Oral Exam System',tabExam:'Exam',tabScore:'Score',tabHi:'History',tabCh:'Charts',tabCfg:'Settings',
 labelDate:'Date',labelExaminer:'Examiner',labelExaminee:'Examinee',phEr:'e.g. Taro Yamada',phEe:'e.g. Hanako Sato',
@@ -379,7 +433,8 @@ sttTitle:'AI Transcription (optional)',sttNote:'External API to auto-transcribe 
 sttEndpoint:'Endpoint URL',sttModel:'Model',sttKey:'API key',sttSave:'Save API settings',sttSaved:'API settings saved',
 cfgItemsTitle:'Exam items',addSec:'+ Add Section',addItem:'+ Add Question',saveCfg:'Save Items',resetCfg:'Reset to Default',
 cfgSaved:'Items saved',cfgReset:'Reset to default',cResetCfg:'Reset items to default?',
-secName:'Section name',itemName:'Question title',itemDesc:'Question text'},
+secName:'Section name',itemName:'Question title',itemDesc:'Question text',
+progRec:'Recorded',progScore:'Scored',draftSaved:'✓ Auto-saved',searchPh:'Search by name',chSec:'Section Averages (Latest)'},
 
 vi:{appTitle:'Hệ thống Vấn đáp',tabExam:'Vấn đáp',tabScore:'Chấm',tabHi:'Lịch sử',tabCh:'Biểu đồ',tabCfg:'Cài đặt',
 labelDate:'Ngày',labelExaminer:'Người hỏi',labelExaminee:'Thí sinh',phEr:'VD: Yamada',phEe:'VD: Sato',
@@ -408,7 +463,8 @@ sttTitle:'Ghi chữ AI (tùy chọn)',sttNote:'API ngoài để tự động ghi
 sttEndpoint:'URL Endpoint',sttModel:'Mô hình',sttKey:'Khóa API',sttSave:'Lưu cài đặt API',sttSaved:'Đã lưu',
 cfgItemsTitle:'Mục vấn đáp',addSec:'+ Thêm mục',addItem:'+ Thêm câu hỏi',saveCfg:'Lưu',resetCfg:'Mặc định',
 cfgSaved:'Đã lưu',cfgReset:'Đã đặt lại',cResetCfg:'Đặt lại mặc định?',
-secName:'Tên mục',itemName:'Tiêu đề câu hỏi',itemDesc:'Nội dung câu hỏi'},
+secName:'Tên mục',itemName:'Tiêu đề câu hỏi',itemDesc:'Nội dung câu hỏi',
+progRec:'Đã ghi',progScore:'Đã chấm',draftSaved:'✓ Đã tự lưu',searchPh:'Tìm theo tên',chSec:'TB theo mục (gần nhất)'},
 
 id:{appTitle:'Sistem Ujian Lisan',tabExam:'Ujian',tabScore:'Nilai',tabHi:'Riwayat',tabCh:'Grafik',tabCfg:'Pengaturan',
 labelDate:'Tanggal',labelExaminer:'Penguji',labelExaminee:'Peserta',phEr:'Cth: Yamada',phEe:'Cth: Sato',
@@ -437,7 +493,8 @@ sttTitle:'Transkripsi AI (opsional)',sttNote:'API eksternal untuk transkrip otom
 sttEndpoint:'URL Endpoint',sttModel:'Model',sttKey:'Kunci API',sttSave:'Simpan API',sttSaved:'Tersimpan',
 cfgItemsTitle:'Item ujian',addSec:'+ Tambah Bagian',addItem:'+ Tambah Pertanyaan',saveCfg:'Simpan',resetCfg:'Default',
 cfgSaved:'Tersimpan',cfgReset:'Direset',cResetCfg:'Reset ke default?',
-secName:'Nama bagian',itemName:'Judul pertanyaan',itemDesc:'Teks pertanyaan'}
+secName:'Nama bagian',itemName:'Judul pertanyaan',itemDesc:'Teks pertanyaan',
+progRec:'Terekam',progScore:'Dinilai',draftSaved:'✓ Tersimpan otomatis',searchPh:'Cari nama',chSec:'Rata-rata per bagian (terbaru)'}
 };
 
 /* ==============================================================
@@ -569,6 +626,10 @@ document.addEventListener('DOMContentLoaded',()=>{
   setLang(lang);
   if(gImported)setTimeout(()=>toast(t('gCfgSaved')),400);
   window.addEventListener('beforeunload',e=>{if(active){e.preventDefault();e.returnValue=''}});
+  // PWA: オフライン利用・ホーム画面インストール（https/localhostのみ。file://直開きでは何もしない）
+  if('serviceWorker' in navigator&&(location.protocol==='https:'||['localhost','127.0.0.1'].includes(location.hostname))){
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  }
 });
 
 function newSession(){
@@ -591,10 +652,10 @@ function buildExamCards(){
   const el=document.getElementById('examCards');
   const secs=getSections(),items=getItems();
   let h='';
-  secs.forEach(sec=>{
+  secs.forEach((sec,si)=>{
     const secItems=items.filter(it=>it.secId===sec.id);
     if(!secItems.length)return;
-    h+=`<div class="stit">${esc(sec.name)}</div>`;
+    h+=`<div class="stit" id="sec-i${si}">${esc(sec.name)}</div>`;
     secItems.forEach((it,ii)=>{
       const rec=cur&&cur.items[it.id];
       const has=rec&&rec.hasAudio;
@@ -621,6 +682,32 @@ function buildExamCards(){
       const b=await getAudio(cur.id+'_'+it.id);
       if(b){const au=document.getElementById('au-'+it.id);if(au){const u=URL.createObjectURL(b);examUrls.push(u);au.src=u;au.style.display='block'}}
     }
+  });
+  updateExamProg();
+}
+
+/* 試問タブ：録音進捗バー＋セクションジャンプ */
+function updateExamProg(){
+  const box=document.getElementById('examProg');if(!box)return;
+  const items=getItems(),secs=getSections();
+  const m=items.length;
+  if(!m){box.style.display='none';return}
+  box.style.display='block';
+  const done=it=>cur&&cur.items[it.id]&&cur.items[it.id].hasAudio;
+  const n=items.filter(done).length;
+  document.getElementById('epLbl').textContent=t('progRec');
+  document.getElementById('epCnt').textContent=n+' / '+m;
+  document.getElementById('epBar').style.width=Math.round(n/m*100)+'%';
+  const chips=document.getElementById('epChips');chips.innerHTML='';
+  secs.forEach((sec,si)=>{
+    const secItems=items.filter(it=>it.secId===sec.id);
+    if(!secItems.length)return;
+    const d=secItems.filter(done).length;
+    const b=document.createElement('button');
+    b.type='button';b.className='chip'+(d===secItems.length?' done':'');
+    b.textContent=sec.name+' '+d+'/'+secItems.length;
+    b.onclick=()=>{const a=document.getElementById('sec-i'+si);if(a)a.scrollIntoView({behavior:'smooth',block:'start'})};
+    chips.appendChild(b);
   });
 }
 
@@ -656,6 +743,7 @@ async function toggleRec(itemId){
       if(au){const u=URL.createObjectURL(blob);examUrls.push(u);au.src=u;au.style.display='block'}
       const card=document.getElementById('q-'+itemId);if(card)card.classList.add('done');
       const rs=document.getElementById('rs-'+itemId);if(rs){rs.textContent='● '+t('recDone');rs.classList.add('ok')}
+      updateExamProg();
       const lv=document.getElementById('lv-'+itemId);
       if(lv){lv.querySelector('.lvtxt').textContent=cur.items[itemId].draft;lv.style.display=cur.items[itemId].draft?'block':'none'}
       maybeAutoUpload(itemId); // Googleドライブ自動保存（設定時のみ）
@@ -748,6 +836,7 @@ async function resetExam(){
    ============================================================== */
 function swTab(btn){
   if(active){toast(t('recStop'),1);return}
+  if(curScore)persistScoreDraft(false); // 採点途中の入力をタブ移動前に自動退避
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('on'));btn.classList.add('on');
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
   document.getElementById(btn.dataset.pg).classList.add('on');
@@ -808,13 +897,33 @@ function captureScoreForm(){
   });
   const ov=document.getElementById('scOv');if(ov)curScore.overall=ov.value;
 }
+/* 採点の途中経過を自動保存（statusは変えない＝タブ移動・中断・誤操作で入力が消えない） */
+let scSaveTimer=null;
+function queueScoreDraft(){clearTimeout(scSaveTimer);scSaveTimer=setTimeout(()=>persistScoreDraft(true),800)}
+function persistScoreDraft(showHint){
+  clearTimeout(scSaveTimer);
+  if(!curScore)return;
+  captureScoreForm();
+  const all=getAll();const idx=all.findIndex(s=>s.id===curScore.id);
+  if(idx<0)return;
+  all[idx]=curScore;saveAll(all);
+  if(showHint){const el=document.getElementById('scAutoSt');if(el){el.textContent=t('draftSaved');el.style.opacity='1';setTimeout(()=>{el.style.opacity='0'},1600)}}
+}
+function updateScoreProg(){
+  if(!curScore)return;
+  const scorable=getItems().filter(it=>curScore.items[it.id]&&curScore.items[it.id].hasAudio).length;
+  const n=document.querySelectorAll('#scDetail .sb.sel').length;
+  const c=document.getElementById('spCnt'),b=document.getElementById('spBar');
+  if(c)c.textContent=n+' / '+scorable;
+  if(b)b.style.width=(scorable?Math.round(Math.min(n,scorable)/scorable*100):0)+'%';
+}
 async function renderScoreDetail(r){
   releaseScoreUrls();
   document.getElementById('scList').style.display='none';
   document.querySelector('#pgScore .hctrl').style.display='none';
   const det=document.getElementById('scDetail');det.style.display='block';
   const secs=getSections(),items=getItems();
-  let h=`<div class="cd meta"><div style="font-size:.85rem;color:var(--sub)">${r.date}　${t('erLbl')}: ${esc(r.examiner)}</div><div style="font-size:1.1rem;font-weight:700;margin-top:2px">${esc(r.examinee)}</div></div>`;
+  let h=`<div class="cd meta"><div style="font-size:.85rem;color:var(--sub)">${r.date}　${t('erLbl')}: ${esc(r.examiner)}</div><div style="font-size:1.1rem;font-weight:700;margin-top:2px">${esc(r.examinee)}</div><div class="pmeta" style="margin-top:10px"><span>${t('progScore')}</span><span id="spCnt"></span></div><div class="pbar"><i id="spBar"></i></div></div>`;
   secs.forEach(sec=>{
     const secItems=items.filter(it=>it.secId===sec.id);
     if(!secItems.length)return;
@@ -837,8 +946,10 @@ async function renderScoreDetail(r){
     });
   });
   h+=`<div class="cd oasec"><h3>${t('overall')}</h3><textarea id="scOv" class="oata" rows="4" placeholder="${t('phOv')}">${esc(r.overall||'')}</textarea></div>`;
-  h+=`<div class="bg"><button class="b b1" onclick="saveScore()">${t('btnSaveScore')}</button><button class="b b3" onclick="backToScoreList()">${t('btnBack')}</button></div>`;
+  h+=`<div class="savebar"><span class="autost" id="scAutoSt"></span><div class="bg" style="margin:0"><button class="b b1" onclick="saveScore()">${t('btnSaveScore')}</button><button class="b b3" onclick="backToScoreList()">${t('btnBack')}</button></div></div>`;
   det.innerHTML=h;
+  det.querySelectorAll('textarea').forEach(el=>el.addEventListener('input',queueScoreDraft));
+  updateScoreProg();
   window.scrollTo({top:0,behavior:'smooth'});
   // 音声URL
   for(const it of items){
@@ -848,8 +959,8 @@ async function renderScoreDetail(r){
     }
   }
 }
-function pickScore(id,s,btn){btn.parentElement.querySelectorAll('.sb').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel');const c=document.getElementById('sc-'+id);if(c)c.classList.add('scored')}
-function backToScoreList(){curScore=null;releaseScoreUrls();document.getElementById('scDetail').style.display='none';drawScoreList()}
+function pickScore(id,s,btn){btn.parentElement.querySelectorAll('.sb').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel');const c=document.getElementById('sc-'+id);if(c)c.classList.add('scored');updateScoreProg();queueScoreDraft()}
+function backToScoreList(){persistScoreDraft(false);curScore=null;releaseScoreUrls();document.getElementById('scDetail').style.display='none';drawScoreList()}
 function releaseScoreUrls(){curScoreUrls.forEach(u=>{try{URL.revokeObjectURL(u)}catch(e){}});curScoreUrls=[]}
 
 async function aiTranscribe(itemId){
@@ -876,6 +987,7 @@ async function aiTranscribe(itemId){
 }
 
 function saveScore(){
+  clearTimeout(scSaveTimer);
   const r=curScore;if(!r)return;
   const items=getItems();
   const miss=[];
@@ -918,15 +1030,22 @@ function avg(r){const v=scoredVals(r);return v.length?(v.reduce((a,b)=>a+b,0)/v.
 /* ==============================================================
    履歴
    ============================================================== */
+function fmtMonth(ym){const[y,m]=ym.split('-');return lang==='ja'?y+'年'+(+m)+'月':y+'-'+m}
 function drawHist(){
   const f=document.getElementById('hFil').value;let all=getAll();if(f)all=all.filter(e=>e.examinee===f);
+  const q=(document.getElementById('hQ').value||'').trim().toLowerCase();
+  if(q)all=all.filter(e=>((e.examinee||'')+' '+(e.examiner||'')).toLowerCase().includes(q));
   all.sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.createdAt||'').localeCompare(a.createdAt||''));
   const c=document.getElementById('hList');
   if(!all.length){c.innerHTML=`<div class="nd">${t('noData')}</div>`;return}
-  c.innerHTML=all.map(r=>{
+  let h='',pm='';
+  all.forEach(r=>{
+    const ym=(r.date||'').slice(0,7);
+    if(ym&&ym!==pm){h+=`<div class="mgrp">${esc(fmtMonth(ym))}</div>`;pm=ym}
     const sc=r.status==='scored';
-    return `<div class="hi" onclick="showDet('${r.id}')"><div class="hii"><div class="hid">${r.date}　${t('erLbl')}: ${esc(r.examiner)}</div><div class="hin">${esc(r.examinee)}</div><span class="badge ${sc?'scored':'rec'}">${sc?t('stScored'):t('stRec')}</span></div><div class="hia">${sc?avg(r):'–'}</div></div>`;
-  }).join('');
+    h+=`<div class="hi" onclick="showDet('${r.id}')"><div class="hii"><div class="hid">${r.date}　${t('erLbl')}: ${esc(r.examiner)}</div><div class="hin">${esc(r.examinee)}</div><span class="badge ${sc?'scored':'rec'}">${sc?t('stScored'):t('stRec')}</span></div><div class="hia">${sc?avg(r):'–'}</div></div>`;
+  });
+  c.innerHTML=h;
 }
 
 async function showDet(id){
@@ -998,7 +1117,7 @@ function doCSV(){
 /* ==============================================================
    グラフ
    ============================================================== */
-let cL=null,cR=null;
+let cL=null,cR=null,cS=null;
 function drawCharts(){
   const who=document.getElementById('chSel').value,area=document.getElementById('chArea'),none=document.getElementById('chNone');
   if(!who){area.style.display='none';none.style.display='block';none.textContent=t('selEe');return}
@@ -1010,6 +1129,15 @@ function drawCharts(){
   if(cL)cL.destroy();
   cL=new Chart(document.getElementById('cvL'),{type:'line',data:{labels:all.map(e=>e.date),datasets:[{label:t('chAvg'),data:all.map(e=>parseFloat(avg(e))),borderColor:'#2e5d7d',backgroundColor:'rgba(46,93,125,.1)',fill:true,tension:.3,pointRadius:5,pointBackgroundColor:'#2e5d7d'}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{min:1,max:5,ticks:{stepSize:1}}},plugins:{legend:{display:false}}}});
   const lat=all[all.length-1];
+  // セクション別平均（直近の採点済み試問）
+  const secLabels=[],secData=[];
+  getSections().forEach(sec=>{
+    const si=items.filter(it=>it.secId===sec.id);if(!si.length)return;
+    const vs=si.map(it=>lat.items[it.id]&&lat.items[it.id].score).filter(x=>x!=null);
+    if(vs.length){secLabels.push(sec.name);secData.push(+(vs.reduce((a,b)=>a+b,0)/vs.length).toFixed(2))}
+  });
+  if(cS)cS.destroy();
+  cS=new Chart(document.getElementById('cvS'),{type:'bar',data:{labels:secLabels,datasets:[{data:secData,backgroundColor:'rgba(46,93,125,.75)',borderRadius:6,barThickness:22}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,scales:{x:{min:0,max:5,ticks:{stepSize:1}}},plugins:{legend:{display:false}}}});
   if(cR)cR.destroy();
   cR=new Chart(document.getElementById('cvR'),{type:'radar',data:{labels:items.map(it=>{const n=it.name;return n.length>6?n.slice(0,6)+'…':n}),datasets:[{label:lat.date,data:items.map(it=>(lat.items[it.id]&&lat.items[it.id].score)||0),borderColor:'#2e5d7d',backgroundColor:'rgba(46,93,125,.2)',pointBackgroundColor:'#2e5d7d'}]},options:{responsive:true,maintainAspectRatio:false,scales:{r:{min:0,max:5,ticks:{stepSize:1,font:{size:10}},pointLabels:{font:{size:11}}}},plugins:{legend:{display:true,position:'bottom'}}}});
 }
