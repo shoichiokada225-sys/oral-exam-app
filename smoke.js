@@ -153,6 +153,10 @@ function ok(name, cond) {
   await page.click('.lsw button:nth-child(1)'); // JP
   await page.waitForTimeout(200);
 
+  console.log('[9] esc() の属性値エスケープ（格納型XSS回帰）');
+  ok('esc が5文字を全てエスケープ', await page.evaluate(() => esc('&<>"\'') === '&amp;&lt;&gt;&quot;&#39;'));
+  ok('esc 出力で属性値から脱出不能', await page.evaluate(() => !/["'<>]/.test(esc('" onfocus="alert(1)" x=\''))));
+
   ok('ページエラーなし', errors.length === 0);
   if (errors.length) console.log(errors.join('\n'));
 
