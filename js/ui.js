@@ -123,11 +123,13 @@ function persistScoreDraft(showHint){
 }
 function updateScoreProg(){
   if(!curScore)return;
-  const scorable=getItems().filter(it=>curScore.items[it.id]&&curScore.items[it.id].hasAudio).length;
-  const n=document.querySelectorAll('#scDetail .sb.sel').length;
+  // 採点対象=録音あり or 既に点が付いている項目（分子も同じ母集団で数え、1/0のような表示を防ぐ）
+  const ids=getItems().filter(it=>{const r=curScore.items[it.id];return r&&(r.hasAudio||r.score!=null)}).map(it=>it.id);
+  const scorable=ids.length;
+  const n=ids.filter(id=>document.querySelector('.sb[data-id="'+id+'"].sel')).length;
   const c=document.getElementById('spCnt'),b=document.getElementById('spBar');
   if(c)c.textContent=n+' / '+scorable;
-  if(b)b.style.width=(scorable?Math.round(Math.min(n,scorable)/scorable*100):0)+'%';
+  if(b)b.style.width=(scorable?Math.round(n/scorable*100):0)+'%';
 }
 async function renderScoreDetail(r){
   releaseScoreUrls();
@@ -303,6 +305,16 @@ function doCSV(){
    グラフ
    ============================================================== */
 let cL=null,cR=null,cS=null;
+/* グラフ色はCSS変数から取得（ダークモードでも視認できる色に自動追従） */
+function chartTheme(){
+  const cs=getComputedStyle(document.documentElement);
+  const acc=(cs.getPropertyValue('--chart')||'#2e5d7d').trim();
+  const grid=(cs.getPropertyValue('--chart-grid')||'rgba(0,0,0,.08)').trim();
+  const txt=(cs.getPropertyValue('--sub')||'#666').trim();
+  Chart.defaults.color=txt;
+  Chart.defaults.borderColor=grid;
+  return{acc,fill:acc+'26',grid,txt}; // fill=アクセントの15%透過（8桁hex）
+}
 function drawCharts(){
   const who=document.getElementById('chSel').value,area=document.getElementById('chArea'),none=document.getElementById('chNone');
   if(!who){area.style.display='none';none.style.display='block';none.textContent=t('selEe');return}
@@ -311,8 +323,9 @@ function drawCharts(){
   area.style.display='block';none.style.display='none';
   all.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
   const items=getItems();
+  const th=chartTheme();
   if(cL)cL.destroy();
-  cL=new Chart(document.getElementById('cvL'),{type:'line',data:{labels:all.map(e=>e.date),datasets:[{label:t('chAvg'),data:all.map(e=>parseFloat(avg(e))),borderColor:'#2e5d7d',backgroundColor:'rgba(46,93,125,.1)',fill:true,tension:.3,pointRadius:5,pointBackgroundColor:'#2e5d7d'}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{min:1,max:5,ticks:{stepSize:1}}},plugins:{legend:{display:false}}}});
+  cL=new Chart(document.getElementById('cvL'),{type:'line',data:{labels:all.map(e=>e.date),datasets:[{label:t('chAvg'),data:all.map(e=>parseFloat(avg(e))),borderColor:th.acc,backgroundColor:th.fill,fill:true,tension:.3,pointRadius:5,pointBackgroundColor:th.acc}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{min:1,max:5,ticks:{stepSize:1}}},plugins:{legend:{display:false}}}});
   const lat=all[all.length-1];
   // セクション別平均（直近の採点済み試問）
   const secLabels=[],secData=[];
@@ -322,9 +335,9 @@ function drawCharts(){
     if(vs.length){secLabels.push(sec.name);secData.push(+(vs.reduce((a,b)=>a+b,0)/vs.length).toFixed(2))}
   });
   if(cS)cS.destroy();
-  cS=new Chart(document.getElementById('cvS'),{type:'bar',data:{labels:secLabels,datasets:[{data:secData,backgroundColor:'rgba(46,93,125,.75)',borderRadius:6,barThickness:22}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,scales:{x:{min:0,max:5,ticks:{stepSize:1}}},plugins:{legend:{display:false}}}});
+  cS=new Chart(document.getElementById('cvS'),{type:'bar',data:{labels:secLabels,datasets:[{data:secData,backgroundColor:th.acc+'c0',borderRadius:6,barThickness:22}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,scales:{x:{min:0,max:5,ticks:{stepSize:1}}},plugins:{legend:{display:false}}}});
   if(cR)cR.destroy();
-  cR=new Chart(document.getElementById('cvR'),{type:'radar',data:{labels:items.map(it=>{const n=it.name;return n.length>6?n.slice(0,6)+'…':n}),datasets:[{label:lat.date,data:items.map(it=>(lat.items[it.id]&&lat.items[it.id].score)||0),borderColor:'#2e5d7d',backgroundColor:'rgba(46,93,125,.2)',pointBackgroundColor:'#2e5d7d'}]},options:{responsive:true,maintainAspectRatio:false,scales:{r:{min:0,max:5,ticks:{stepSize:1,font:{size:10}},pointLabels:{font:{size:11}}}},plugins:{legend:{display:true,position:'bottom'}}}});
+  cR=new Chart(document.getElementById('cvR'),{type:'radar',data:{labels:items.map(it=>{const n=it.name;return n.length>6?n.slice(0,6)+'…':n}),datasets:[{label:lat.date,data:items.map(it=>(lat.items[it.id]&&lat.items[it.id].score)||0),borderColor:th.acc,backgroundColor:th.fill,pointBackgroundColor:th.acc}]},options:{responsive:true,maintainAspectRatio:false,scales:{r:{min:0,max:5,ticks:{stepSize:1,font:{size:10}},pointLabels:{font:{size:11}},grid:{color:th.grid},angleLines:{color:th.grid}}},plugins:{legend:{display:true,position:'bottom'}}}});
 }
 
 /* ==============================================================

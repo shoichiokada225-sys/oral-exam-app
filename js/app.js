@@ -5,7 +5,7 @@
 function setLang(l){
   if(active){toast(t('recStop'),1);return} // 録音中は切替不可（カード再描画でUIが壊れるため）
   lang=l;localStorage.setItem(LKEY,l);document.documentElement.lang=l;
-  document.querySelectorAll('.lsw button').forEach(b=>b.classList.toggle('on',b.textContent.trim()==={ja:'JP',en:'EN',vi:'VI',id:'ID'}[l]));
+  document.querySelectorAll('.lsw button').forEach(b=>{const on=b.textContent.trim()==={ja:'JP',en:'EN',vi:'VI',id:'ID'}[l];b.classList.toggle('on',on);b.setAttribute('aria-pressed',on?'true':'false')});
   applyT();buildExamCards();buildCfgUI();
   // 開いている採点画面・一覧を再描画（入力中の採点は退避してから再描画）
   if(document.getElementById('pgScore').classList.contains('on')){if(curScore){captureScoreForm();renderScoreDetail(curScore)}else{drawScoreList()}}
@@ -32,6 +32,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   setLang(lang);
   if(gImported)setTimeout(()=>toast(t('gCfgSaved')),400);
   window.addEventListener('beforeunload',e=>{if(active){e.preventDefault();e.returnValue=''}});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.getElementById('modal').classList.contains('show'))closeMo()});
+  // OSのライト/ダーク切替に合わせてグラフの配色を引き直す
+  try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(document.getElementById('pgCh').classList.contains('on'))drawCharts()})}catch(e){}
   // PWA: オフライン利用・ホーム画面インストール（https/localhostのみ。file://直開きでは何もしない）
   if('serviceWorker' in navigator&&(location.protocol==='https:'||['localhost','127.0.0.1'].includes(location.hostname))){
     navigator.serviceWorker.register('sw.js').catch(()=>{});

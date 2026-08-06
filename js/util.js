@@ -2,7 +2,7 @@
 /* ==============================================================
    ユーティリティ
    ============================================================== */
-function toast(msg,err){const el=document.getElementById('toast');el.textContent=msg;el.style.background=err?'#d32f2f':'#333';el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2600)}
+function toast(msg,err){const el=document.getElementById('toast');el.textContent=msg;el.classList.toggle('err',!!err);el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2600)}
 function esc(s){if(s==null)return'';return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
 function blobToB64(blob){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]||'');r.onerror=()=>rej(r.error);r.readAsDataURL(blob)})}
