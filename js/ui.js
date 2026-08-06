@@ -53,6 +53,7 @@ function updateExamProg(){
   document.getElementById('epLbl').textContent=t('progRec');
   document.getElementById('epCnt').textContent=n+' / '+m;
   document.getElementById('epBar').style.width=Math.round(n/m*100)+'%';
+  box.classList.toggle('complete',n===m); // 全問録音でバーが完了色に
   const chips=document.getElementById('epChips');chips.innerHTML='';
   secs.forEach((sec,si)=>{
     const secItems=items.filter(it=>it.secId===sec.id);
@@ -132,7 +133,7 @@ function updateScoreProg(){
   const n=ids.filter(id=>document.querySelector('.sb[data-id="'+id+'"].sel')).length;
   const c=document.getElementById('spCnt'),b=document.getElementById('spBar');
   if(c)c.textContent=n+' / '+scorable;
-  if(b)b.style.width=(scorable?Math.round(n/scorable*100):0)+'%';
+  if(b){b.style.width=(scorable?Math.round(n/scorable*100):0)+'%';const card=b.closest('.cd');if(card)card.classList.toggle('complete',scorable>0&&n===scorable)}
   // 採点中のリアルタイム平均（1つ以上採点したら表示・評価色つき）
   const av=document.getElementById('spAvg');
   if(av){
@@ -327,7 +328,10 @@ function chartTheme(){
   Chart.defaults.color=txt;
   Chart.defaults.borderColor=grid;
   Chart.defaults.font.family=getComputedStyle(document.body).fontFamily;
-  return{acc,fill:acc+'26',grid,txt}; // fill=アクセントの15%透過（8桁hex）
+  // 評価5段階の色（セクション別バーを点数で色分けするために使う）
+  const sc=[1,2,3,4,5].map(i=>(cs.getPropertyValue('--s'+i)||'#888').trim());
+  const pick=v=>v>=4.5?sc[4]:v>=3.5?sc[3]:v>=2.5?sc[2]:v>=1.5?sc[1]:sc[0];
+  return{acc,fill:acc+'26',grid,txt,pick}; // fill=アクセントの15%透過（8桁hex）
 }
 function drawCharts(){
   const who=document.getElementById('chSel').value,area=document.getElementById('chArea'),none=document.getElementById('chNone');
@@ -352,7 +356,7 @@ function drawCharts(){
     if(vs.length){secLabels.push(sec.name);secData.push(+(vs.reduce((a,b)=>a+b,0)/vs.length).toFixed(2))}
   });
   if(cS)cS.destroy();
-  cS=new Chart(document.getElementById('cvS'),{type:'bar',data:{labels:secLabels,datasets:[{data:secData,backgroundColor:th.acc+'c0',borderRadius:6,barThickness:22}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,scales:{x:{min:0,max:5,ticks:{stepSize:1}}},plugins:{legend:{display:false}}}});
+  cS=new Chart(document.getElementById('cvS'),{type:'bar',data:{labels:secLabels,datasets:[{data:secData,backgroundColor:secData.map(v=>th.pick(v)+'cc'),borderRadius:6,barThickness:22}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,scales:{x:{min:0,max:5,ticks:{stepSize:1}}},plugins:{legend:{display:false}}}});
   if(cR)cR.destroy();
   cR=new Chart(document.getElementById('cvR'),{type:'radar',data:{labels:items.map(it=>{const n=it.name;return n.length>6?n.slice(0,6)+'…':n}),datasets:[{label:lat.date,data:items.map(it=>(lat.items[it.id]&&lat.items[it.id].score)||0),borderColor:th.acc,backgroundColor:th.fill,pointBackgroundColor:th.acc}]},options:{responsive:true,maintainAspectRatio:false,scales:{r:{min:0,max:5,ticks:{stepSize:1,font:{size:10}},pointLabels:{font:{size:11}},grid:{color:th.grid},angleLines:{color:th.grid}}},plugins:{legend:{display:true,position:'bottom'}}}});
 }

@@ -35,7 +35,9 @@ progRec:'録音済み',progScore:'採点済み',draftSaved:'✓ 自動保存済�
 catAdd:'📚 作業カタログから質問を追加',catAddTitle:'作業カタログから追加',catSelLbl:'カテゴリ（大分類）',workSelLbl:'作業（大項目）',qaSelLbl:'追加する質問（小項目）',selCatPh:'-- カテゴリを選択 --',selWorkPh:'-- 作業を選択 --',ansLbl:'模範解答（参考）',btnCatConfirm:'選んだ質問を追加',catAdded:'問を追加しました',eNoQa:'質問を選んでください',
 qnPurpose:'目的の説明',qnCaution:'注意点の説明',qnMistakes:'よくあるミスと対策',
 qtPurpose:'「{work}」は何のために行う作業ですか。目的を説明してください。',qtCaution:'「{work}」を行うときに注意すべき点を説明してください。',qtMistakes:'「{work}」でよくあるミス・失敗と、それを防ぐ方法を説明してください。',
-catFeeding:'飼養管理',catHygiene:'衛生管理',catBreeding:'繁殖管理',catFarrowing:'分娩管理',catFacility:'施設管理',catRecord:'記録管理',catShipping:'出荷管理'},
+catFeeding:'飼養管理',catHygiene:'衛生管理',catBreeding:'繁殖管理',catFarrowing:'分娩管理',catFacility:'施設管理',catRecord:'記録管理',catShipping:'出荷管理',
+thAuto:'テーマ：自動',thLight:'テーマ：ライト',thDark:'テーマ：ダーク',
+tOffline:'オフラインです（記録は端末内に保存されます）',tOnline:'通信が復帰しました'},
 
 en:{appTitle:'Oral Exam System',tabExam:'Exam',tabScore:'Score',tabHi:'History',tabCh:'Charts',tabCfg:'Settings',
 labelDate:'Date',labelExaminer:'Examiner',labelExaminee:'Examinee',phEr:'e.g. Taro Yamada',phEe:'e.g. Hanako Sato',
@@ -69,7 +71,9 @@ progRec:'Recorded',progScore:'Scored',draftSaved:'✓ Auto-saved',searchPh:'Sear
 catAdd:'📚 Add questions from task catalog',catAddTitle:'Add from task catalog',catSelLbl:'Category',workSelLbl:'Task',qaSelLbl:'Questions to add',selCatPh:'-- Select category --',selWorkPh:'-- Select task --',ansLbl:'Model answer (reference)',btnCatConfirm:'Add selected questions',catAdded:' question(s) added',eNoQa:'Select at least one question',
 qnPurpose:'Purpose',qnCaution:'Precautions',qnMistakes:'Common mistakes',
 qtPurpose:'What is the purpose of "{work}"? Please explain.',qtCaution:'What should you be careful about when doing "{work}"?',qtMistakes:'What are common mistakes in "{work}" and how do you prevent them?',
-catFeeding:'Feeding',catHygiene:'Hygiene',catBreeding:'Breeding',catFarrowing:'Farrowing',catFacility:'Facility',catRecord:'Records',catShipping:'Shipping'},
+catFeeding:'Feeding',catHygiene:'Hygiene',catBreeding:'Breeding',catFarrowing:'Farrowing',catFacility:'Facility',catRecord:'Records',catShipping:'Shipping',
+thAuto:'Theme: Auto',thLight:'Theme: Light',thDark:'Theme: Dark',
+tOffline:'Offline — data is saved on this device',tOnline:'Back online'},
 
 vi:{appTitle:'Hệ thống Vấn đáp',tabExam:'Vấn đáp',tabScore:'Chấm',tabHi:'Lịch sử',tabCh:'Biểu đồ',tabCfg:'Cài đặt',
 labelDate:'Ngày',labelExaminer:'Người hỏi',labelExaminee:'Thí sinh',phEr:'VD: Yamada',phEe:'VD: Sato',
@@ -103,7 +107,9 @@ progRec:'Đã ghi',progScore:'Đã chấm',draftSaved:'✓ Đã tự lưu',searc
 catAdd:'📚 Thêm câu hỏi từ danh mục công việc',catAddTitle:'Thêm từ danh mục công việc',catSelLbl:'Nhóm',workSelLbl:'Công việc',qaSelLbl:'Câu hỏi cần thêm',selCatPh:'-- Chọn nhóm --',selWorkPh:'-- Chọn công việc --',ansLbl:'Đáp án mẫu (tham khảo)',btnCatConfirm:'Thêm câu hỏi đã chọn',catAdded:' câu hỏi đã thêm',eNoQa:'Hãy chọn ít nhất một câu hỏi',
 qnPurpose:'Mục đích',qnCaution:'Điểm cần chú ý',qnMistakes:'Lỗi thường gặp',
 qtPurpose:'Công việc "{work}" nhằm mục đích gì? Hãy giải thích.',qtCaution:'Khi làm "{work}" cần chú ý điều gì?',qtMistakes:'Những lỗi thường gặp trong "{work}" là gì và làm sao để tránh?',
-catFeeding:'Nuôi dưỡng',catHygiene:'Vệ sinh',catBreeding:'Sinh sản',catFarrowing:'Đẻ',catFacility:'Thiết bị',catRecord:'Ghi chép',catShipping:'Xuất chuồng'},
+catFeeding:'Nuôi dưỡng',catHygiene:'Vệ sinh',catBreeding:'Sinh sản',catFarrowing:'Đẻ',catFacility:'Thiết bị',catRecord:'Ghi chép',catShipping:'Xuất chuồng',
+thAuto:'Giao diện: Tự động',thLight:'Giao diện: Sáng',thDark:'Giao diện: Tối',
+tOffline:'Ngoại tuyến — dữ liệu được lưu trên thiết bị',tOnline:'Đã có mạng trở lại'},
 
 id:{appTitle:'Sistem Ujian Lisan',tabExam:'Ujian',tabScore:'Nilai',tabHi:'Riwayat',tabCh:'Grafik',tabCfg:'Pengaturan',
 labelDate:'Tanggal',labelExaminer:'Penguji',labelExaminee:'Peserta',phEr:'Cth: Yamada',phEe:'Cth: Sato',
@@ -137,7 +143,9 @@ progRec:'Terekam',progScore:'Dinilai',draftSaved:'✓ Tersimpan otomatis',search
 catAdd:'📚 Tambah pertanyaan dari katalog tugas',catAddTitle:'Tambah dari katalog tugas',catSelLbl:'Kategori',workSelLbl:'Tugas',qaSelLbl:'Pertanyaan yang ditambahkan',selCatPh:'-- Pilih kategori --',selWorkPh:'-- Pilih tugas --',ansLbl:'Jawaban model (referensi)',btnCatConfirm:'Tambah pertanyaan terpilih',catAdded:' pertanyaan ditambahkan',eNoQa:'Pilih minimal satu pertanyaan',
 qnPurpose:'Tujuan',qnCaution:'Hal yang diperhatikan',qnMistakes:'Kesalahan umum',
 qtPurpose:'Apa tujuan pekerjaan "{work}"? Jelaskan.',qtCaution:'Apa yang harus diperhatikan saat melakukan "{work}"?',qtMistakes:'Apa kesalahan umum dalam "{work}" dan bagaimana mencegahnya?',
-catFeeding:'Pemberian pakan',catHygiene:'Kebersihan',catBreeding:'Reproduksi',catFarrowing:'Kelahiran',catFacility:'Fasilitas',catRecord:'Pencatatan',catShipping:'Pengiriman'}
+catFeeding:'Pemberian pakan',catHygiene:'Kebersihan',catBreeding:'Reproduksi',catFarrowing:'Kelahiran',catFacility:'Fasilitas',catRecord:'Pencatatan',catShipping:'Pengiriman',
+thAuto:'Tema: Otomatis',thLight:'Tema: Terang',thDark:'Tema: Gelap',
+tOffline:'Offline — data disimpan di perangkat ini',tOnline:'Kembali online'}
 };
 
 const LKEY='oral_exam_lang';

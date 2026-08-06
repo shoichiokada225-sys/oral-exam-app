@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="口頭試問の録音・文字起こし・採点を1つで行う評価システム">
+<meta property="og:title" content="口頭試問 評価システム">
+<meta property="og:description" content="録音・文字起こし・採点を1つで行う口頭試問評価システム">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://shoichiokada225-sys.github.io/oral-exam-app/">
+<meta property="og:image" content="https://shoichiokada225-sys.github.io/oral-exam-app/icon-512.png">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#2e5d7d" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#132c3d" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="manifest.webmanifest">
@@ -22,6 +28,7 @@
     <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z"/><path stroke-linecap="round" stroke-linejoin="round" d="M18 11a6 6 0 0 1-12 0M12 17v3"/></svg>
   </div>
   <h1 data-t="appTitle">口頭試問 評価システム</h1>
+  <button class="thbtn" id="thBtn" onclick="cycleTheme()" aria-label="Theme" title="Theme"></button>
   <div class="lsw" role="group" aria-label="Language">
     <button class="on" onclick="setLang('ja')" aria-pressed="true" lang="ja">JP</button>
     <button onclick="setLang('en')" aria-pressed="false" lang="en">EN</button>

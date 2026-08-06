@@ -16,6 +16,37 @@ function applyT(){
 }
 
 /* ==============================================================
+   テーマ（自動→ライト→ダークの3段切替。localStorageに保存）
+   ============================================================== */
+const TKEY='oral_exam_theme';
+let theme=localStorage.getItem(TKEY)||'auto';
+const THICONS={
+  auto:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></svg>',
+  light:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/></svg>',
+  dark:'<svg viewBox="0 0 24 24"><path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11z"/></svg>'
+};
+function applyTheme(mode){
+  if(mode==='auto')delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme=mode;
+  const b=document.getElementById('thBtn');
+  if(b){b.innerHTML=THICONS[mode];const lbl=t(mode==='auto'?'thAuto':mode==='light'?'thLight':'thDark');b.title=lbl;b.setAttribute('aria-label',lbl)}
+  // アドレスバー色をテーマに追従
+  const dark=mode==='dark'||(mode==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);
+  document.querySelectorAll('meta[name="theme-color"]').forEach(m=>{
+    if(mode==='auto')m.content=(m.media||'').includes('dark')?'#132c3d':'#2e5d7d';
+    else m.content=dark?'#132c3d':'#2e5d7d';
+  });
+  // グラフはCSS変数を描画時に読むため引き直す
+  if(document.getElementById('pgCh').classList.contains('on'))drawCharts();
+}
+function cycleTheme(){
+  theme={auto:'light',light:'dark',dark:'auto'}[theme]||'auto';
+  localStorage.setItem(TKEY,theme);
+  applyTheme(theme);
+  toast(document.getElementById('thBtn').title);
+}
+
+/* ==============================================================
    初期化
    ============================================================== */
 document.addEventListener('DOMContentLoaded',()=>{
@@ -33,8 +64,12 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(gImported)setTimeout(()=>toast(t('gCfgSaved')),400);
   window.addEventListener('beforeunload',e=>{if(active){e.preventDefault();e.returnValue=''}});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.getElementById('modal').classList.contains('show'))closeMo()});
-  // OSのライト/ダーク切替に合わせてグラフの配色を引き直す
-  try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(document.getElementById('pgCh').classList.contains('on'))drawCharts()})}catch(e){}
+  applyTheme(theme);
+  // OSのライト/ダーク切替に合わせてメタ色・グラフ配色を引き直す（自動モード時）
+  try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>applyTheme(theme))}catch(e){}
+  // オフライン/復帰の通知（現場の電波切れでも記録は端末内に残ることを伝える）
+  window.addEventListener('offline',()=>toast(t('tOffline'),1));
+  window.addEventListener('online',()=>toast(t('tOnline')));
   // PWA: オフライン利用・ホーム画面インストール（https/localhostのみ。file://直開きでは何もしない）
   if('serviceWorker' in navigator&&(location.protocol==='https:'||['localhost','127.0.0.1'].includes(location.hostname))){
     navigator.serviceWorker.register('sw.js').catch(()=>{});

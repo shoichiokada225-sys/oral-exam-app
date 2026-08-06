@@ -33,8 +33,11 @@
   --toast-bg:#242c34;--toast-tx:#fff;
   --ease:cubic-bezier(.33,1,.68,1);
 }
+/* 手動テーマ切替（data-theme）: light固定はOSダークでも常にライト */
+:root[data-theme=light]{color-scheme:light}
+:root[data-theme=dark]{color-scheme:dark}
 @media(prefers-color-scheme:dark){
-  :root{
+  :root:not([data-theme=light]){
     --pri:#7fb3d3;--pri-l:#12303f;--pri-d:#a8cde3;
     --btn-pri:#2e6a92;--btn-pri-h:#397da9;
     --chart:#7fb3d3;--chart-grid:rgba(255,255,255,.1);
@@ -48,6 +51,21 @@
     --sh-lg:0 4px 12px rgba(0,0,0,.4),0 16px 48px rgba(0,0,0,.55);
     --toast-bg:#e7edf2;--toast-tx:#141d25;
   }
+}
+/* ※上のダークブロックと同内容（手動でダーク固定した場合用） */
+:root[data-theme=dark]{
+  --pri:#7fb3d3;--pri-l:#12303f;--pri-d:#a8cde3;
+  --btn-pri:#2e6a92;--btn-pri-h:#397da9;
+  --chart:#7fb3d3;--chart-grid:rgba(255,255,255,.1);
+  --bg:#0e141a;--card:#19232c;--card-2:#141d25;
+  --txt:#e7edf2;--sub:#93a2af;--bdr:#2a3945;--bdr-s:#37485a;
+  --s5:#34a94a;--s4:#4caf50;--s3:#f0a422;--s2:#ee7b2f;--s1:#e05252;
+  --s1-l:#3a2020;--s2-l:#3a2b1c;--s5-l:#1c3322;
+  --rec:#ff6b6b;--rec-l:#3a2020;
+  --sh:0 1px 1px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.3),0 6px 18px rgba(0,0,0,.28);
+  --sh-hover:0 2px 4px rgba(0,0,0,.35),0 6px 14px rgba(0,0,0,.35),0 14px 34px rgba(0,0,0,.32);
+  --sh-lg:0 4px 12px rgba(0,0,0,.4),0 16px 48px rgba(0,0,0,.55);
+  --toast-bg:#e7edf2;--toast-tx:#141d25;
 }
 
 /* ---- ベース ---- */
@@ -80,7 +98,8 @@ body{
   content:'';position:absolute;left:0;right:0;bottom:0;height:1px;
   background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);
 }
-@media(prefers-color-scheme:dark){.hdr{background:linear-gradient(150deg,#132c3d,#1b3e57 55%,#234d69)}}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]) .hdr{background:linear-gradient(150deg,#132c3d,#1b3e57 55%,#234d69)}}
+:root[data-theme=dark] .hdr{background:linear-gradient(150deg,#132c3d,#1b3e57 55%,#234d69)}
 .brand{display:flex;align-items:center;flex-shrink:0;position:relative}
 .brand svg{
   width:32px;height:32px;fill:none;stroke:#fff;stroke-width:1.8;padding:6px;
@@ -89,7 +108,18 @@ body{
   box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 1px 4px rgba(0,0,0,.18);
 }
 .hdr h1{font-size:1rem;font-weight:700;flex:1;text-align:left;letter-spacing:.03em;text-shadow:0 1px 2px rgba(0,0,0,.18);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:2px;position:relative}
-@media(max-width:359px){.hdr h1{font-size:.88rem}}
+@media(max-width:429px){.hdr h1{font-size:.9rem;letter-spacing:0}}
+@media(max-width:359px){.hdr h1{font-size:.82rem}}
+/* テーマ切替ボタン（自動→ライト→ダーク） */
+.thbtn{
+  flex-shrink:0;min-width:32px;min-height:32px;padding:0;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.16);border:1px solid rgba(255,255,255,.22);border-radius:10px;
+  color:rgba(255,255,255,.85);cursor:pointer;position:relative;
+  transition:background .18s var(--ease),color .18s var(--ease);
+}
+.thbtn:hover{background:rgba(255,255,255,.16);color:#fff}
+.thbtn svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .lsw{
   display:flex;gap:2px;flex-shrink:0;position:relative;
   background:rgba(0,0,0,.16);border:1px solid rgba(255,255,255,.22);border-radius:10px;padding:2px;
@@ -298,9 +328,12 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
   transition:border-color .15s,box-shadow .15s;
 }
 @media(prefers-color-scheme:dark){
-  .hctrl select,.chc select,.catrow select{
+  :root:not([data-theme=light]) .hctrl select,:root:not([data-theme=light]) .chc select,:root:not([data-theme=light]) .catrow select{
     background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%2393a2af" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>');
   }
+}
+:root[data-theme=dark] .hctrl select,:root[data-theme=dark] .chc select,:root[data-theme=dark] .catrow select{
+  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%2393a2af" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>');
 }
 .hctrl select{
   flex:1;min-height:44px;padding-top:10px;padding-bottom:10px;padding-left:12px;border:1.5px solid var(--bdr-s);border-radius:var(--r-s);
@@ -445,6 +478,10 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
   background-size:200% 100%;animation:shimmer 2.4s infinite linear;
 }
 @keyframes shimmer{from{background-position:180% 0}to{background-position:-80% 0}}
+/* 全問録音/採点完了：バーが評価グリーンに変わり✓が付く（試問・採点共通） */
+.complete .pbar>i{background:linear-gradient(90deg,var(--s5),var(--s4))}
+.complete .pmeta{color:var(--s5)}
+.complete .pmeta>span:last-child::after{content:' ✓';font-weight:900}
 .chips{
   display:flex;gap:7px;overflow-x:auto;padding:8px 0 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none;
   scroll-snap-type:x proximity;
@@ -553,7 +590,7 @@ details.ans .ansb{padding:0 13px 11px;font-size:.84rem;line-height:1.75;white-sp
   body{background:#fff;color:#000;padding-bottom:0}
   .hdr{position:static;background:#fff!important;color:#000;box-shadow:none;border-bottom:2px solid #000}
   .hdr h1{color:#000;text-shadow:none}
-  .hdr .lsw,.brand,.tabs,.bg,.savebar,.recbtn,.aibtn,.hctrl button,.ma,.b{display:none!important}
+  .hdr .lsw,.thbtn,.brand,.tabs,.bg,.savebar,.recbtn,.aibtn,.hctrl button,.ma,.b,.toast{display:none!important}
   .cd,.hi,.chb,.chc{box-shadow:none;border:1px solid #999;break-inside:avoid}
   .pbar>i::after{animation:none}
   audio{display:none}
