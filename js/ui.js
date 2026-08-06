@@ -313,6 +313,7 @@ function chartTheme(){
   const txt=(cs.getPropertyValue('--sub')||'#666').trim();
   Chart.defaults.color=txt;
   Chart.defaults.borderColor=grid;
+  Chart.defaults.font.family=getComputedStyle(document.body).fontFamily;
   return{acc,fill:acc+'26',grid,txt}; // fill=アクセントの15%透過（8桁hex）
 }
 function drawCharts(){

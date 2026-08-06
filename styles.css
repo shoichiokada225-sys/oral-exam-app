@@ -58,6 +58,7 @@ body{
   padding-bottom:calc(var(--tabs-h) + 28px + env(safe-area-inset-bottom,0px));
   font-feature-settings:"palt";
   -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  accent-color:var(--btn-pri);
 }
 ::selection{background:var(--pri-l);color:var(--txt)}
 
@@ -173,7 +174,8 @@ body{
 .qc.scored{border-left-color:var(--s5)}
 .qc .en{
   display:inline-block;font-size:.72rem;font-weight:700;color:var(--pri);letter-spacing:.06em;
-  background:var(--pri-l);border-radius:6px;padding:2px 9px;margin-bottom:2px;
+  background:var(--pri-l);border:1px solid color-mix(in srgb,var(--pri) 25%,transparent);
+  border-radius:7px;padding:2px 9px;margin-bottom:2px;font-variant-numeric:tabular-nums;
 }
 .qc .enm{font-size:1.06rem;font-weight:700;margin:6px 0 4px;line-height:1.45}
 .qc .ed{
@@ -276,16 +278,32 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
   z-index:400;pointer-events:none;white-space:nowrap;max-width:92%;text-align:center;
   box-shadow:var(--sh-lg);
 }
+.toast::before{content:'✓';font-weight:900;margin-right:7px;color:var(--s4)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .toast.err{background:var(--s1);color:#fff}
+.toast.err::before{content:'！';color:#fff}
 
 /* ---- リスト（採点待ち/履歴） ---- */
 .hctrl{display:flex;gap:8px;margin-bottom:16px}
-.hctrl select{
-  flex:1;min-height:44px;padding:10px 12px;border:1.5px solid var(--bdr-s);border-radius:var(--r-s);
-  font-size:.9rem;background:var(--card);color:var(--txt);outline:0;font-family:inherit;
+
+/* セレクト共通: ネイティブ矢印を廃し、テーマ追従のシェブロンで統一 */
+.hctrl select,.chc select,.catrow select{
+  appearance:none;-webkit-appearance:none;
+  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%235b6773" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>');
+  background-repeat:no-repeat;background-position:right 12px center;background-size:16px;
+  padding-right:38px;cursor:pointer;
+  transition:border-color .15s,box-shadow .15s;
 }
-.hctrl select:focus{border-color:var(--pri)}
+@media(prefers-color-scheme:dark){
+  .hctrl select,.chc select,.catrow select{
+    background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%2393a2af" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>');
+  }
+}
+.hctrl select{
+  flex:1;min-height:44px;padding-top:10px;padding-bottom:10px;padding-left:12px;border:1.5px solid var(--bdr-s);border-radius:var(--r-s);
+  font-size:.9rem;background-color:var(--card);color:var(--txt);outline:0;font-family:inherit;
+}
+.hctrl select:focus{border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-l)}
 .hlist{display:flex;flex-direction:column;gap:9px}
 .hi{
   background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);
@@ -299,14 +317,18 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
 .hi .hid{font-size:.78rem;color:var(--sub)}
 .hi .hin{font-weight:700;font-size:1rem;margin-top:1px}
 .hi .hia{font-size:1.45rem;font-weight:700;color:var(--pri);min-width:52px;text-align:right;font-variant-numeric:tabular-nums}
-.badge{display:inline-block;font-size:.66rem;font-weight:700;padding:2.5px 9px;border-radius:10px;margin-top:4px;letter-spacing:.02em}
+.badge{
+  display:inline-flex;align-items:center;gap:5px;font-size:.66rem;font-weight:700;
+  padding:2.5px 10px 2.5px 8px;border-radius:10px;margin-top:4px;letter-spacing:.02em;
+}
+.badge::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
 .badge.rec{background:var(--s2-l);color:var(--s2)}
 .badge.scored{background:var(--s5-l);color:var(--s5)}
 
 /* ---- モーダル ---- */
 .mo{
-  display:none;position:fixed;inset:0;background:rgba(10,20,30,.55);
-  backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+  display:none;position:fixed;inset:0;background:rgba(10,20,30,.58);
+  backdrop-filter:blur(6px) saturate(1.1);-webkit-backdrop-filter:blur(6px) saturate(1.1);
   z-index:300;overflow-y:auto;padding:24px 12px calc(24px + env(safe-area-inset-bottom,0px));
 }
 .mo.show{display:block;animation:moFade .18s ease-out}
@@ -334,14 +356,17 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
 /* ---- グラフ ---- */
 .chc{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);padding:16px;margin-bottom:16px;box-shadow:var(--sh)}
 .chc select{
-  width:100%;min-height:46px;padding:10px 12px;border:1.5px solid var(--bdr-s);border-radius:var(--r-s);
-  font-size:.95rem;background:var(--card);color:var(--txt);outline:0;font-family:inherit;
+  width:100%;min-height:46px;padding-top:10px;padding-bottom:10px;padding-left:12px;border:1.5px solid var(--bdr-s);border-radius:var(--r-s);
+  font-size:.95rem;background-color:var(--card);color:var(--txt);outline:0;font-family:inherit;
 }
-.chc select:focus{border-color:var(--pri)}
+.chc select:focus{border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-l)}
 .chb{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);padding:16px;margin-bottom:16px;box-shadow:var(--sh)}
 .chb h3{font-size:.88rem;margin-bottom:12px;color:var(--sub);font-weight:700;letter-spacing:.02em}
 .chb canvas{width:100%!important;max-height:300px}
-.nd{text-align:center;color:var(--sub);padding:48px 16px;font-size:.95rem;line-height:1.8}
+.nd{
+  text-align:center;color:var(--sub);padding:48px 16px;font-size:.95rem;line-height:1.8;
+  border:2px dashed var(--bdr-s);border-radius:var(--r);background:var(--card-2);
+}
 .nd::before{content:'';display:block;width:52px;height:52px;margin:0 auto 12px;border-radius:50%;background:var(--pri-l);
   background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%232e5d7d" opacity=".55"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-8 14H7v-6h4v6zm6 0h-4V7h4v10z"/></svg>');
   background-repeat:no-repeat;background-position:center;background-size:26px}
@@ -412,7 +437,12 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
   background-size:200% 100%;animation:shimmer 2.4s infinite linear;
 }
 @keyframes shimmer{from{background-position:180% 0}to{background-position:-80% 0}}
-.chips{display:flex;gap:7px;overflow-x:auto;padding:8px 0 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.chips{
+  display:flex;gap:7px;overflow-x:auto;padding:8px 0 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none;
+  scroll-snap-type:x proximity;
+  -webkit-mask-image:linear-gradient(90deg,#000 92%,transparent);mask-image:linear-gradient(90deg,#000 92%,transparent);
+}
+.chips .chip{scroll-snap-align:start}
 .chips::-webkit-scrollbar{display:none}
 .chip{
   flex:0 0 auto;min-height:40px;padding:8px 15px;border:1.5px solid var(--bdr-s);border-radius:20px;
@@ -436,7 +466,11 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
   font-size:.95rem;background:var(--card);color:var(--txt);outline:0;font-family:inherit;transition:border-color .15s,box-shadow .15s;
 }
 .hsearch:focus{border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-l)}
-.mgrp{font-size:.76rem;font-weight:700;color:var(--sub);letter-spacing:.06em;margin:10px 2px 0;text-transform:uppercase}
+.mgrp{
+  display:flex;align-items:center;gap:10px;
+  font-size:.76rem;font-weight:700;color:var(--sub);letter-spacing:.06em;margin:12px 2px 2px;text-transform:uppercase;
+}
+.mgrp::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--bdr-s),transparent)}
 
 /* ---- 設定：アコーディオン ---- */
 details.acc{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);box-shadow:var(--sh);margin-bottom:12px;overflow:hidden}
@@ -447,9 +481,12 @@ details.acc summary{
 }
 details.acc summary:hover{background:var(--card-2)}
 details.acc summary::-webkit-details-marker{display:none}
-details.acc summary::after{content:'＋';color:var(--sub);font-weight:400;flex-shrink:0;font-size:1.1rem;transition:transform .2s}
-details.acc[open] summary::after{content:'－'}
-details.acc .accb{padding:0 16px 16px}
+details.acc summary::after{content:'＋';color:var(--sub);font-weight:400;flex-shrink:0;font-size:1.1rem;transition:transform .25s var(--ease)}
+details.acc[open] summary::after{transform:rotate(45deg)}
+details.acc[open] summary{border-bottom:1px solid var(--bdr)}
+details.acc .accb{animation:accIn .25s var(--ease)}
+@keyframes accIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+details.acc .accb{padding:12px 16px 16px}
 .accb p{font-size:.78rem;color:var(--sub);margin-bottom:10px;line-height:1.7}
 .accb label{display:block;font-size:.8rem;font-weight:700;color:var(--sub);margin:10px 0 4px}
 .accb input{width:100%;min-height:42px;padding:9px 12px;border:1.5px solid var(--bdr-s);border-radius:var(--r-s);font-size:.9rem;outline:0;background:var(--card);color:var(--txt);font-family:inherit;transition:border-color .15s}
@@ -468,10 +505,10 @@ details.ans .ansb{padding:0 13px 11px;font-size:.84rem;line-height:1.75;white-sp
 .catrow{margin-bottom:13px}
 .catrow label{display:block;font-size:.8rem;font-weight:700;color:var(--sub);margin-bottom:5px}
 .catrow select{
-  width:100%;min-height:46px;padding:10px 12px;border:1.5px solid var(--bdr-s);border-radius:var(--r-s);
-  font-size:.95rem;background:var(--card);color:var(--txt);outline:0;font-family:inherit;
+  width:100%;min-height:46px;padding-top:10px;padding-bottom:10px;padding-left:12px;border:1.5px solid var(--bdr-s);border-radius:var(--r-s);
+  font-size:.95rem;background-color:var(--card);color:var(--txt);outline:0;font-family:inherit;
 }
-.catrow select:focus{border-color:var(--pri)}
+.catrow select:focus{border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-l)}
 .qa-check{
   display:flex;gap:11px;align-items:flex-start;padding:11px 13px;border:1.5px solid var(--bdr-s);
   border-radius:var(--r-s);margin-bottom:9px;cursor:pointer;transition:border-color .15s,background .15s;
@@ -486,6 +523,12 @@ details.ans .ansb{padding:0 13px 11px;font-size:.84rem;line-height:1.75;white-sp
 /* 設定画面の模範解答編集 */
 .cfg-item .ans-lbl{font-size:.72rem;font-weight:700;color:var(--pri-d);margin:7px 0 3px}
 
+/* ---- 入力欄ホバー（フォーカス前の気配） ---- */
+.meta input:hover:not(:focus),.hsearch:hover:not(:focus),
+.accb input:hover:not(:focus),.cfg-box input:hover:not(:focus),
+.qc textarea:hover:not(:focus),.oata:hover:not(:focus),
+.cfg-item input:hover:not(:focus),.cfg-item textarea:hover:not(:focus){border-color:var(--sub)}
+
 /* ---- スクロールバー（デスクトップ） ---- */
 @media(pointer:fine){
   ::-webkit-scrollbar{width:10px;height:10px}
@@ -499,7 +542,10 @@ details.ans .ansb{padding:0 13px 11px;font-size:.84rem;line-height:1.75;white-sp
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 @media(min-width:640px){
   .pg{padding:24px 24px 8px}
+  .cd{padding:20px;margin-bottom:14px}
   .sb{min-height:58px;font-size:1.25rem}
   .sb .sl{font-size:.6rem}
   .hdr h1{font-size:1.1rem}
+  .hlist{gap:10px}
+  .mc{padding:24px 22px}
 }
