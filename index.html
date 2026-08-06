@@ -12,6 +12,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#2e5d7d" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#132c3d" media="(prefers-color-scheme: dark)">
+<script>/* 手動テーマの初回ペイント前適用（FOUC防止・CSSより先に実行） */
+try{var _th=localStorage.getItem('oral_exam_theme');if(_th==='light'||_th==='dark')document.documentElement.dataset.theme=_th}catch(e){}</script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>口頭試問 評価システム</title>

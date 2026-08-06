@@ -46,7 +46,7 @@ function updateExamProg(){
   const box=document.getElementById('examProg');if(!box)return;
   const items=getItems(),secs=getSections();
   const m=items.length;
-  if(!m){box.style.display='none';return}
+  if(!m){box.style.display='none';box.classList.remove('complete');return}
   box.style.display='block';
   const done=it=>cur&&cur.items[it.id]&&cur.items[it.id].hasAudio;
   const n=items.filter(done).length;

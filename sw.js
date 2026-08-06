@@ -4,7 +4,7 @@
  *  - 静的アセットとChart.js CDNはキャッシュ優先
  *  - GAS(script.google.com)やAPI等の外部リクエストには一切関与しない
  */
-const VER = 'oral-exam-v8';
+const VER = 'oral-exam-v9';
 const ASSETS = [
   './',
   './index.html',
@@ -39,7 +39,8 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
-  const isCdn = url.href.startsWith('https://cdn.jsdelivr.net/');
+  const isCdn = url.href.startsWith('https://cdn.jsdelivr.net/')
+    || url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com'; // Webフォントもオフライン用にキャッシュ
   if (url.origin !== location.origin && !isCdn) return; // GAS/外部APIは素通し
 
   if (req.mode === 'navigate') {
