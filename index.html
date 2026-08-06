@@ -37,19 +37,20 @@
   </div>
 </header>
 
+<main>
 <!-- 試問（録音） -->
 <div id="pgExam" class="pg on">
   <div class="cd meta">
-    <label data-t="labelDate">試問日</label>
+    <label for="fDate" data-t="labelDate">試問日</label>
     <input type="date" id="fDate">
-    <label data-t="labelExaminer">試問者名</label>
+    <label for="fEr" data-t="labelExaminer">試問者名</label>
     <input type="text" id="fEr" data-ph="phEr" placeholder="例：山田太郎">
-    <label data-t="labelExaminee">受験者名</label>
+    <label for="fEe" data-t="labelExaminee">受験者名</label>
     <input type="text" id="fEe" data-ph="phEe" placeholder="例：佐藤花子">
   </div>
   <div class="prog" id="examProg" style="display:none">
     <div class="pmeta"><span id="epLbl"></span><span id="epCnt"></span></div>
-    <div class="pbar"><i id="epBar"></i></div>
+    <div class="pbar" aria-hidden="true"><i id="epBar"></i></div>
     <div class="chips" id="epChips"></div>
   </div>
   <div id="examCards"></div>
@@ -84,13 +85,13 @@
 <!-- グラフ -->
 <div id="pgCh" class="pg">
   <div class="chc">
-    <label style="font-size:.85rem;font-weight:600;color:var(--sub);display:block;margin-bottom:6px" data-t="selEe">受験者を選択</label>
+    <label for="chSel" style="font-size:.85rem;font-weight:600;color:var(--sub);display:block;margin-bottom:6px" data-t="selEe">受験者を選択</label>
     <select id="chSel" onchange="drawCharts()"><option value="" data-t="selPh">-- 選択してください --</option></select>
   </div>
   <div id="chArea">
-    <div class="chb"><h3 data-t="chLine">平均点の推移</h3><canvas id="cvL"></canvas></div>
-    <div class="chb"><h3 data-t="chSec">セクション別平均（直近）</h3><canvas id="cvS"></canvas></div>
-    <div class="chb"><h3 data-t="chRadar">項目別レーダーチャート（直近）</h3><canvas id="cvR"></canvas></div>
+    <div class="chb"><h2 data-t="chLine">平均点の推移</h2><canvas id="cvL" role="img"></canvas></div>
+    <div class="chb"><h2 data-t="chSec">セクション別平均（直近）</h2><canvas id="cvS" role="img"></canvas></div>
+    <div class="chb"><h2 data-t="chRadar">項目別レーダーチャート（直近）</h2><canvas id="cvR" role="img"></canvas></div>
   </div>
   <div id="chNone" class="nd" style="display:none"></div>
 </div>
@@ -101,11 +102,11 @@
     <summary data-t="gTitle">Googleドライブに自動保存（任意）</summary>
     <div class="accb">
     <p data-t="gNote">録音した音声を、あなたのGoogleドライブへ自動保存します。Google Apps Script（GAS）の小さなウェブアプリを経由する方式です。設定手順は別紙 SETUP-GOOGLE-DRIVE.md を参照（コードは用意済み・貼り付けてデプロイするだけ）。</p>
-    <label data-t="gUrl">ウェブアプリURL（GAS）</label>
+    <label for="gUrl" data-t="gUrl">ウェブアプリURL（GAS）</label>
     <input type="text" id="gUrl" placeholder="https://script.google.com/macros/s/.../exec">
-    <label data-t="gToken">合言葉（GASと同じ値）</label>
+    <label for="gToken" data-t="gToken">合言葉（GASと同じ値）</label>
     <input type="password" id="gToken" placeholder="例：oral-exam-2026">
-    <label data-t="gFolder">保存先フォルダ名</label>
+    <label for="gFolder" data-t="gFolder">保存先フォルダ名</label>
     <input type="text" id="gFolder" placeholder="口頭試問音声">
     <div style="display:flex;gap:8px;margin-top:12px">
       <button class="b b1" style="flex:1" onclick="saveGoogleCfg()" data-t="gSaveId">設定を保存</button>
@@ -130,11 +131,11 @@
     <summary data-t="sttTitle">AI文字起こし設定（任意）</summary>
     <div class="accb">
     <p data-t="sttNote">録音した音声を自動で文字起こしするための外部API設定です。未設定でも、録音中の自動文字起こし（ブラウザ）と手入力で利用できます。キーはこの端末内にのみ保存されます。</p>
-    <label data-t="sttEndpoint">エンドポイントURL</label>
+    <label for="sttEndpoint" data-t="sttEndpoint">エンドポイントURL</label>
     <input type="text" id="sttEndpoint" placeholder="https://api.openai.com/v1/audio/transcriptions">
-    <label data-t="sttModel">モデル名</label>
+    <label for="sttModel" data-t="sttModel">モデル名</label>
     <input type="text" id="sttModel" placeholder="whisper-1">
-    <label data-t="sttKey">APIキー</label>
+    <label for="sttKey" data-t="sttKey">APIキー</label>
     <input type="password" id="sttKey" placeholder="sk-...">
     <button class="b b1" style="width:100%;margin-top:12px" onclick="saveStt()" data-t="sttSave">API設定を保存</button>
     </div>
@@ -153,14 +154,16 @@
   </div>
 </div>
 
+</main>
+
 <div class="mo" id="modal" onclick="if(event.target===this)closeMo()">
-  <div class="mc" id="moBody"></div>
+  <div class="mc" id="moBody" role="dialog" aria-modal="true"></div>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <!-- タブ -->
-<nav class="tabs" aria-label="メインナビゲーション">
-  <button class="on" data-pg="pgExam" onclick="swTab(this)">
+<nav class="tabs" id="mainNav" aria-label="メインナビゲーション">
+  <button class="on" data-pg="pgExam" aria-current="page" onclick="swTab(this)">
     <svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
     <span data-t="tabExam">試問</span>
   </button>

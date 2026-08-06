@@ -9,7 +9,7 @@ function buildExamCards(){
   secs.forEach((sec,si)=>{
     const secItems=items.filter(it=>it.secId===sec.id);
     if(!secItems.length)return;
-    h+=`<div class="stit" id="sec-i${si}">${esc(sec.name)}</div>`;
+    h+=`<h2 class="stit" id="sec-i${si}">${esc(sec.name)}</h2>`;
     secItems.forEach((it,ii)=>{
       const rec=cur&&cur.items[it.id];
       const has=rec&&rec.hasAudio;
@@ -85,7 +85,7 @@ function drawScoreList(){
   if(!all.length){c.innerHTML=`<div class="nd">${fil==='all'?t('noData'):t('noUnscored')}</div>`;return}
   c.innerHTML=all.map(r=>{
     const sc=r.status==='scored';
-    return `<div class="hi" onclick="openScore('${sanitizeId(r.id)}')"><div class="hii"><div class="hid">${esc(r.date)}　${t('erLbl')}: ${esc(r.examiner)}</div><div class="hin">${esc(r.examinee)}</div><span class="badge ${sc?'scored':'rec'}">${sc?t('stScored'):t('stRec')}</span></div><div class="hia ${sc?avgCls(avg(r)):''}">${sc?avg(r):'–'}</div></div>`;
+    return `<button type="button" class="hi" onclick="openScore('${sanitizeId(r.id)}')"><span class="hii"><span class="hid">${esc(r.date)}　${t('erLbl')}: ${esc(r.examiner)}</span><span class="hin">${esc(r.examinee)}</span><span class="badge ${sc?'scored':'rec'}">${sc?t('stScored'):t('stRec')}</span></span><span class="hia ${sc?avgCls(avg(r)):''}">${sc?avg(r):'–'}</span></button>`;
   }).join('');
 }
 
@@ -155,7 +155,7 @@ async function renderScoreDetail(r){
   secs.forEach(sec=>{
     const secItems=items.filter(it=>it.secId===sec.id);
     if(!secItems.length)return;
-    h+=`<div class="stit">${esc(sec.name)}</div>`;
+    h+=`<h2 class="stit">${esc(sec.name)}</h2>`;
     secItems.forEach((it,ii)=>{
       const rec=r.items[it.id]||{};
       const sc=rec.score;
@@ -168,14 +168,14 @@ async function renderScoreDetail(r){
         <div class="tlbl"><span>${t('trLbl')}</span>${rec.hasAudio?`<button class="aibtn" id="ai-${it.id}" onclick="aiTranscribe('${it.id}')">${t('aiBtn')}</button>`:''}</div>
         <textarea class="trta" id="tr-${it.id}" placeholder="${t('phTr')}">${esc(rec.transcript!=null?rec.transcript:(rec.draft||''))}</textarea>
         <div class="tlbl">${t('scoreLbl')}</div>
-        <div class="sr">${[1,2,3,4,5].map(s=>`<button class="sb${sc===s?' sel':''}" data-id="${it.id}" data-s="${s}" onclick="pickScore('${it.id}',${s},this)">${s}<span class="sl">${t('s'+s)}</span></button>`).join('')}</div>
+        <div class="sr" role="radiogroup" aria-label="${esc(it.name)} ${t('scoreLbl')}">${[1,2,3,4,5].map(s=>`<button class="sb${sc===s?' sel':''}" role="radio" aria-checked="${sc===s?'true':'false'}" data-id="${it.id}" data-s="${s}" onclick="pickScore('${it.id}',${s},this)">${s}<span class="sl">${t('s'+s)}</span></button>`).join('')}</div>
         <div class="clbl">${t('cmtLbl')}</div>
         <textarea id="cm-${it.id}" placeholder="${t('phCmt')}">${esc(rec.comment||'')}</textarea>
       </div>`;
     });
   });
-  h+=`<div class="cd oasec"><h3>${t('overall')}</h3><textarea id="scOv" class="oata" rows="4" placeholder="${t('phOv')}">${esc(r.overall||'')}</textarea></div>`;
-  h+=`<div class="savebar"><span class="autost" id="scAutoSt"></span><div class="bg" style="margin:0"><button class="b b1" onclick="saveScore()">${t('btnSaveScore')}</button><button class="b b3" onclick="backToScoreList()">${t('btnBack')}</button></div></div>`;
+  h+=`<div class="cd oasec"><h2>${t('overall')}</h2><textarea id="scOv" class="oata" rows="4" placeholder="${t('phOv')}">${esc(r.overall||'')}</textarea></div>`;
+  h+=`<div class="savebar"><span class="autost" id="scAutoSt" role="status"></span><div class="bg" style="margin:0"><button class="b b1" onclick="saveScore()">${t('btnSaveScore')}</button><button class="b b3" onclick="backToScoreList()">${t('btnBack')}</button></div></div>`;
   det.innerHTML=h;
   det.querySelectorAll('textarea').forEach(el=>el.addEventListener('input',queueScoreDraft));
   updateScoreProg();
@@ -188,7 +188,7 @@ async function renderScoreDetail(r){
     }
   }
 }
-function pickScore(id,s,btn){btn.parentElement.querySelectorAll('.sb').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel');const c=document.getElementById('sc-'+id);if(c)c.classList.add('scored');updateScoreProg();queueScoreDraft()}
+function pickScore(id,s,btn){btn.parentElement.querySelectorAll('.sb').forEach(b=>{b.classList.remove('sel');b.setAttribute('aria-checked','false')});btn.classList.add('sel');btn.setAttribute('aria-checked','true');const c=document.getElementById('sc-'+id);if(c)c.classList.add('scored');updateScoreProg();queueScoreDraft()}
 function backToScoreList(){persistScoreDraft(false);curScore=null;releaseScoreUrls();document.getElementById('scDetail').style.display='none';drawScoreList()}
 function releaseScoreUrls(){curScoreUrls.forEach(u=>{try{URL.revokeObjectURL(u)}catch(e){}});curScoreUrls=[]}
 
@@ -244,7 +244,7 @@ function drawHist(){
     const ym=(r.date||'').slice(0,7);
     if(ym&&ym!==pm){h+=`<div class="mgrp">${esc(fmtMonth(ym))}</div>`;pm=ym}
     const sc=r.status==='scored';
-    h+=`<div class="hi" onclick="showDet('${sanitizeId(r.id)}')"><div class="hii"><div class="hid">${esc(r.date)}　${t('erLbl')}: ${esc(r.examiner)}</div><div class="hin">${esc(r.examinee)}</div><span class="badge ${sc?'scored':'rec'}">${sc?t('stScored'):t('stRec')}</span></div><div class="hia ${sc?avgCls(avg(r)):''}">${sc?avg(r):'–'}</div></div>`;
+    h+=`<button type="button" class="hi" onclick="showDet('${sanitizeId(r.id)}')"><span class="hii"><span class="hid">${esc(r.date)}　${t('erLbl')}: ${esc(r.examiner)}</span><span class="hin">${esc(r.examinee)}</span><span class="badge ${sc?'scored':'rec'}">${sc?t('stScored'):t('stRec')}</span></span><span class="hia ${sc?avgCls(avg(r)):''}">${sc?avg(r):'–'}</span></button>`;
   });
   c.innerHTML=h;
 }
@@ -253,7 +253,7 @@ async function showDet(id){
   const r=getAll().find(e=>e.id===id);if(!r)return;
   releaseScoreUrls();
   const items=getItems();
-  let h=`<div class="mh"><h3>${esc(r.examinee)} - ${esc(r.date)}</h3><button class="mx" onclick="closeMo()">&times;</button></div>`;
+  let h=`<div class="mh"><h2 id="moTitle">${esc(r.examinee)} - ${esc(r.date)}</h2><button class="mx" aria-label="${t('btnClose')}" onclick="closeMo()">&times;</button></div>`;
   h+=`<div style="font-size:.85rem;color:var(--sub);margin-bottom:12px">${t('erLbl')}: ${esc(r.examiner)}　／　${t('avgLbl')}: ${r.status==='scored'?avg(r):'-'}</div>`;
   items.forEach(it=>{
     const rec=r.items[it.id]||{};
@@ -268,7 +268,7 @@ async function showDet(id){
   if(r.overall)h+=`<div class="dov"><strong>${t('ovLbl')}:</strong><br>${esc(r.overall)}</div>`;
   h+=`<div class="ma">${r.status!=='scored'?`<button class="b b4" style="flex:1" onclick="closeMo();gotoScore('${sanitizeId(r.id)}')">${t('btnScore')}</button>`:`<button class="b b4" style="flex:1" onclick="closeMo();gotoScore('${sanitizeId(r.id)}')">${t('btnScore')}</button>`}<button class="b b2" style="flex:1" onclick="doDel('${sanitizeId(r.id)}')">${t('btnDel')}</button><button class="b b3" style="flex:1" onclick="closeMo()">${t('btnClose')}</button></div>`;
   document.getElementById('moBody').innerHTML=h;
-  document.getElementById('modal').classList.add('show');
+  moShow();
   for(const it of items){
     if(r.items[it.id]&&r.items[it.id].hasAudio){
       const b=await getAudio(r.id+'_'+it.id);
@@ -284,7 +284,20 @@ function gotoScore(id){
   document.getElementById('pgScore').classList.add('on');
   openScore(id);
 }
-function closeMo(){document.getElementById('modal').classList.remove('show');releaseScoreUrls()}
+/* モーダルを開く（開いた要素を記憶し、閉じるボタンへフォーカス移動） */
+let moOpener=null;
+function moShow(){
+  moOpener=document.activeElement;
+  document.getElementById('modal').classList.add('show');
+  const mx=document.querySelector('#moBody .mx');
+  if(mx)setTimeout(()=>mx.focus(),60);
+}
+function closeMo(){
+  document.getElementById('modal').classList.remove('show');
+  releaseScoreUrls();
+  if(moOpener&&moOpener.isConnected&&moOpener.focus)moOpener.focus();
+  moOpener=null;
+}
 function doDel(id){
   if(!confirm(t('cDel')))return;
   getItems().forEach(it=>delAudio(id+'_'+it.id));
@@ -342,6 +355,8 @@ function drawCharts(){
   all.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
   const items=getItems();
   const th=chartTheme();
+  // スクリーンリーダー向けのテキスト代替（描画データの要約）
+  document.getElementById('cvL').setAttribute('aria-label',t('chLine')+': '+all.map(e=>e.date+' '+avg(e)).join(', '));
   if(cL)cL.destroy();
   // 塗りは上→下へ消えるグラデーション（面の主張を抑えて線を立てる）
   const g=document.getElementById('cvL').getContext('2d').createLinearGradient(0,0,0,280);
@@ -355,8 +370,10 @@ function drawCharts(){
     const vs=si.map(it=>lat.items[it.id]&&lat.items[it.id].score).filter(x=>x!=null);
     if(vs.length){secLabels.push(sec.name);secData.push(+(vs.reduce((a,b)=>a+b,0)/vs.length).toFixed(2))}
   });
+  document.getElementById('cvS').setAttribute('aria-label',t('chSec')+': '+secLabels.map((l,i)=>l+' '+secData[i]).join(', '));
   if(cS)cS.destroy();
   cS=new Chart(document.getElementById('cvS'),{type:'bar',data:{labels:secLabels,datasets:[{data:secData,backgroundColor:secData.map(v=>th.pick(v)+'cc'),borderRadius:6,barThickness:22}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,scales:{x:{min:0,max:5,ticks:{stepSize:1}}},plugins:{legend:{display:false}}}});
+  document.getElementById('cvR').setAttribute('aria-label',t('chRadar')+': '+items.map(it=>it.name+' '+((lat.items[it.id]&&lat.items[it.id].score)||'-')).join(', '));
   if(cR)cR.destroy();
   cR=new Chart(document.getElementById('cvR'),{type:'radar',data:{labels:items.map(it=>{const n=it.name;return n.length>6?n.slice(0,6)+'…':n}),datasets:[{label:lat.date,data:items.map(it=>(lat.items[it.id]&&lat.items[it.id].score)||0),borderColor:th.acc,backgroundColor:th.fill,pointBackgroundColor:th.acc}]},options:{responsive:true,maintainAspectRatio:false,scales:{r:{min:0,max:5,ticks:{stepSize:1,font:{size:10}},pointLabels:{font:{size:11}},grid:{color:th.grid},angleLines:{color:th.grid}}},plugins:{legend:{display:true,position:'bottom'}}}});
 }
@@ -373,9 +390,9 @@ function buildCfgUI(){
     h+=`<div class="cfg-sec-hdr">
       <input type="text" value="${esc(sec.name)}" onchange="cfgSecName('${sec.id}',this.value)" placeholder="${t('secName')}">
       <div class="ci-btns">
-        ${si>0?`<button onclick="moveSec('${sec.id}',-1)">&#9650;</button>`:'<button style="visibility:hidden">&#9650;</button>'}
-        ${si<secs.length-1?`<button onclick="moveSec('${sec.id}',1)">&#9660;</button>`:'<button style="visibility:hidden">&#9660;</button>'}
-        <button class="del" onclick="delSec('${sec.id}')">&#10005;</button>
+        ${si>0?`<button aria-label="${t('alUp')}" onclick="moveSec('${sec.id}',-1)">&#9650;</button>`:'<button style="visibility:hidden" aria-hidden="true">&#9650;</button>'}
+        ${si<secs.length-1?`<button aria-label="${t('alDown')}" onclick="moveSec('${sec.id}',1)">&#9660;</button>`:'<button style="visibility:hidden" aria-hidden="true">&#9660;</button>'}
+        <button class="del" aria-label="${t('btnDel')}" onclick="delSec('${sec.id}')">&#10005;</button>
       </div>
     </div>`;
     secItems.forEach((it,ii)=>{
@@ -383,9 +400,9 @@ function buildCfgUI(){
         <div class="ci-row">
           <input type="text" value="${esc(it.name)}" onchange="cfgItemName('${it.id}',this.value)" placeholder="${t('itemName')}">
           <div class="ci-btns">
-            ${ii>0?`<button onclick="moveItem('${it.id}',-1)">&#9650;</button>`:'<button style="visibility:hidden">&#9650;</button>'}
-            ${ii<secItems.length-1?`<button onclick="moveItem('${it.id}',1)">&#9660;</button>`:'<button style="visibility:hidden">&#9660;</button>'}
-            <button class="del" onclick="delItem('${it.id}')">&#10005;</button>
+            ${ii>0?`<button aria-label="${t('alUp')}" onclick="moveItem('${it.id}',-1)">&#9650;</button>`:'<button style="visibility:hidden" aria-hidden="true">&#9650;</button>'}
+            ${ii<secItems.length-1?`<button aria-label="${t('alDown')}" onclick="moveItem('${it.id}',1)">&#9660;</button>`:'<button style="visibility:hidden" aria-hidden="true">&#9660;</button>'}
+            <button class="del" aria-label="${t('btnDel')}" onclick="delItem('${it.id}')">&#10005;</button>
           </div>
         </div>
         <textarea onchange="cfgItemDesc('${it.id}',this.value)" placeholder="${t('itemDesc')}">${esc(it.desc)}</textarea>
@@ -411,7 +428,7 @@ function addItem(secId){
   setTimeout(()=>{const ins=document.querySelectorAll('.cfg-item input[type="text"]');if(ins.length)ins[ins.length-1].focus()},50);
 }
 function delSec(secId){if(!confirm('このセクションと全質問を削除しますか？'))return;cfg.sections=cfg.sections.filter(s=>s.id!==secId);cfg.items=cfg.items.filter(it=>it.secId!==secId);buildCfgUI()}
-function delItem(itemId){cfg.items=cfg.items.filter(it=>it.id!==itemId);buildCfgUI()}
+function delItem(itemId){if(!confirm(t('cDelItem')))return;cfg.items=cfg.items.filter(it=>it.id!==itemId);buildCfgUI()}
 function moveSec(secId,dir){const i=cfg.sections.findIndex(s=>s.id===secId);if(i<0)return;const j=i+dir;if(j<0||j>=cfg.sections.length)return;[cfg.sections[i],cfg.sections[j]]=[cfg.sections[j],cfg.sections[i]];buildCfgUI()}
 function moveItem(itemId,dir){
   const secId=cfg.items.find(it=>it.id===itemId)?.secId;if(!secId)return;
@@ -429,13 +446,13 @@ function resetCfg(){if(!confirm(t('cResetCfg')))return;cfg=defaultCfg();localSto
    質問と模範解答は works-qa.js（睦沢pptx由来）から生成する
    ============================================================== */
 function openCatalog(){
-  let h=`<div class="mh"><h3>${t('catAddTitle')}</h3><button class="mx" onclick="closeMo()">&times;</button></div>`;
+  let h=`<div class="mh"><h2 id="moTitle">${t('catAddTitle')}</h2><button class="mx" aria-label="${t('btnClose')}" onclick="closeMo()">&times;</button></div>`;
   h+=`<div class="catrow"><label>${t('catSelLbl')}</label><select id="catSel" onchange="catPickCat(this.value)"><option value="">${t('selCatPh')}</option>${WORKSQA.categories.map(c=>`<option value="${esc(c.id)}">${esc(qaCatLabel(c.id))}</option>`).join('')}</select></div>`;
   h+=`<div class="catrow"><label>${t('workSelLbl')}</label><select id="workSel2" onchange="catPickWork(this.value)"><option value="">${t('selWorkPh')}</option></select></div>`;
   h+=`<div class="catrow"><label>${t('qaSelLbl')}</label><div id="qaChecks"></div></div>`;
   h+=`<div class="ma"><button class="b b1" style="flex:1" id="btnCatConfirm" onclick="addFromCatalog()">${t('btnCatConfirm')}</button><button class="b b3" style="flex:1" onclick="closeMo()">${t('btnClose')}</button></div>`;
   document.getElementById('moBody').innerHTML=h;
-  document.getElementById('modal').classList.add('show');
+  moShow();
 }
 function catPickCat(catId){
   const sel=document.getElementById('workSel2');

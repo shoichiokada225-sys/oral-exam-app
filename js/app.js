@@ -13,6 +13,12 @@ function setLang(l){
 function applyT(){
   document.querySelectorAll('[data-t]').forEach(el=>{el.textContent=t(el.dataset.t)});
   document.querySelectorAll('[data-ph]').forEach(el=>{el.placeholder=t(el.dataset.ph)});
+  // 言語に追従するアクセシブルネーム
+  const nav=document.getElementById('mainNav');if(nav)nav.setAttribute('aria-label',t('navMain'));
+  const hq=document.getElementById('hQ');if(hq)hq.setAttribute('aria-label',t('searchPh'));
+  const sf=document.getElementById('scFil');if(sf)sf.setAttribute('aria-label',t('alFilter'));
+  const hf=document.getElementById('hFil');if(hf)hf.setAttribute('aria-label',t('alFilter'));
+  const tb=document.getElementById('thBtn');if(tb&&typeof theme!=='undefined'){const lbl=t(theme==='auto'?'thAuto':theme==='light'?'thLight':'thDark');tb.title=lbl;tb.setAttribute('aria-label',lbl)}
 }
 
 /* ==============================================================
@@ -63,7 +69,20 @@ document.addEventListener('DOMContentLoaded',()=>{
   setLang(lang);
   if(gImported)setTimeout(()=>toast(t('gCfgSaved')),400);
   window.addEventListener('beforeunload',e=>{if(active){e.preventDefault();e.returnValue=''}});
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.getElementById('modal').classList.contains('show'))closeMo()});
+  document.addEventListener('keydown',e=>{
+    const mo=document.getElementById('modal');
+    if(!mo.classList.contains('show'))return;
+    if(e.key==='Escape'){closeMo();return}
+    // フォーカストラップ（Tabをモーダル内で循環させる）
+    if(e.key==='Tab'){
+      const f=[...mo.querySelectorAll('button,select,input,textarea,audio,[tabindex]:not([tabindex="-1"])')].filter(el=>el.offsetParent!==null);
+      if(!f.length)return;
+      const first=f[0],last=f[f.length-1];
+      if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}
+      else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}
+      else if(!mo.contains(document.activeElement)){e.preventDefault();first.focus()}
+    }
+  });
   applyTheme(theme);
   // OSのライト/ダーク切替に合わせてメタ色・グラフ配色を引き直す（自動モード時）
   try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>applyTheme(theme))}catch(e){}

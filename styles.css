@@ -18,11 +18,13 @@
   --chart-grid:rgba(0,0,0,.08);
   /* 面・文字 */
   --bg:#f2f5f8;--card:#ffffff;--card-2:#f8fafb;
-  --txt:#1a222b;--sub:#5b6773;--bdr:#dde4ea;--bdr-s:#ccd6de;
-  /* 評価スケール（5→1） */
-  --s5:#1b8a2e;--s4:#4caf50;--s3:#e79008;--s2:#e2600a;--s1:#d32f2f;
+  --txt:#1a222b;--sub:#5b6773;--bdr:#dde4ea;--bdr-s:#78909c;
+  /* 評価スケール（5→1）: 全色とも白文字で4.5:1以上（WCAG AA） */
+  --s5:#17802a;--s4:#2e7d32;--s3:#9a6200;--s2:#b84a00;--s1:#c62828;
   --s1-l:#fdeeee;--s2-l:#fdf1e7;--s5-l:#e9f6eb;
-  --rec:#d32f2f;--rec-l:#fdeeee;
+  --rec:#c62828;--rec-l:#fdeeee;
+  /* 選択済み採点ボタン等の文字色（ダークでは明色面に黒文字へ切替） */
+  --sel-tx:#fff;--sel-sl:rgba(255,255,255,.9);--toast-ok:#66bb6a;
   /* 形状・影（3層レイヤードシャドウで奥行きを統一） */
   --r:16px;--r-s:11px;
   --sh:0 1px 1px rgba(16,32,46,.04),0 2px 6px rgba(16,32,46,.05),0 6px 18px rgba(16,32,46,.06);
@@ -42,14 +44,18 @@
     --btn-pri:#2e6a92;--btn-pri-h:#397da9;
     --chart:#7fb3d3;--chart-grid:rgba(255,255,255,.1);
     --bg:#0e141a;--card:#19232c;--card-2:#141d25;
-    --txt:#e7edf2;--sub:#93a2af;--bdr:#2a3945;--bdr-s:#37485a;
-    --s5:#34a94a;--s4:#4caf50;--s3:#f0a422;--s2:#ee7b2f;--s1:#e05252;
+    --txt:#e7edf2;--sub:#93a2af;--bdr:#2a3945;--bdr-s:#5f7689;
+    --s5:#3db354;--s4:#4caf50;--s3:#f0a422;--s2:#ee7b2f;--s1:#e05252;
     --s1-l:#3a2020;--s2-l:#3a2b1c;--s5-l:#1c3322;
     --rec:#ff6b6b;--rec-l:#3a2020;
+    --sel-tx:#0e141a;--sel-sl:rgba(0,0,0,.66);--toast-ok:#2e7d32;
     --sh:0 1px 1px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.3),0 6px 18px rgba(0,0,0,.28);
     --sh-hover:0 2px 4px rgba(0,0,0,.35),0 6px 14px rgba(0,0,0,.35),0 14px 34px rgba(0,0,0,.32);
     --sh-lg:0 4px 12px rgba(0,0,0,.4),0 16px 48px rgba(0,0,0,.55);
     --toast-bg:#e7edf2;--toast-tx:#141d25;
+  }
+  :root:not([data-theme=light]) .nd::before{
+    background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%237fb3d3" opacity=".65"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-8 14H7v-6h4v6zm6 0h-4V7h4v10z"/></svg>');
   }
 }
 /* ※上のダークブロックと同内容（手動でダーク固定した場合用） */
@@ -58,14 +64,18 @@
   --btn-pri:#2e6a92;--btn-pri-h:#397da9;
   --chart:#7fb3d3;--chart-grid:rgba(255,255,255,.1);
   --bg:#0e141a;--card:#19232c;--card-2:#141d25;
-  --txt:#e7edf2;--sub:#93a2af;--bdr:#2a3945;--bdr-s:#37485a;
-  --s5:#34a94a;--s4:#4caf50;--s3:#f0a422;--s2:#ee7b2f;--s1:#e05252;
+  --txt:#e7edf2;--sub:#93a2af;--bdr:#2a3945;--bdr-s:#5f7689;
+  --s5:#3db354;--s4:#4caf50;--s3:#f0a422;--s2:#ee7b2f;--s1:#e05252;
   --s1-l:#3a2020;--s2-l:#3a2b1c;--s5-l:#1c3322;
   --rec:#ff6b6b;--rec-l:#3a2020;
+  --sel-tx:#0e141a;--sel-sl:rgba(0,0,0,.66);--toast-ok:#2e7d32;
   --sh:0 1px 1px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.3),0 6px 18px rgba(0,0,0,.28);
   --sh-hover:0 2px 4px rgba(0,0,0,.35),0 6px 14px rgba(0,0,0,.35),0 14px 34px rgba(0,0,0,.32);
   --sh-lg:0 4px 12px rgba(0,0,0,.4),0 16px 48px rgba(0,0,0,.55);
   --toast-bg:#e7edf2;--toast-tx:#141d25;
+}
+:root[data-theme=dark] .nd::before{
+  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%237fb3d3" opacity=".65"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-8 14H7v-6h4v6zm6 0h-4V7h4v10z"/></svg>');
 }
 
 /* ---- ベース ---- */
@@ -112,7 +122,7 @@ body{
 @media(max-width:359px){.hdr h1{font-size:.82rem}}
 /* テーマ切替ボタン（自動→ライト→ダーク） */
 .thbtn{
-  flex-shrink:0;min-width:32px;min-height:32px;padding:0;
+  flex-shrink:0;min-width:40px;min-height:40px;padding:0;
   display:flex;align-items:center;justify-content:center;
   background:rgba(0,0,0,.16);border:1px solid rgba(255,255,255,.22);border-radius:10px;
   color:rgba(255,255,255,.85);cursor:pointer;position:relative;
@@ -126,7 +136,7 @@ body{
 }
 .lsw button{
   background:transparent;border:none;color:rgba(255,255,255,.78);
-  min-width:32px;min-height:28px;padding:3px 8px;border-radius:8px;font-size:.7rem;font-weight:700;cursor:pointer;
+  min-width:34px;min-height:36px;padding:3px 8px;border-radius:8px;font-size:.7rem;font-weight:700;cursor:pointer;
   transition:background .18s var(--ease),color .18s var(--ease);font-family:inherit;
 }
 .lsw button:hover{background:rgba(255,255,255,.16);color:#fff}
@@ -252,9 +262,9 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
 .sb[data-s="5"]{--hint:var(--s5)}.sb[data-s="4"]{--hint:var(--s4)}.sb[data-s="3"]{--hint:var(--s3)}.sb[data-s="2"]{--hint:var(--s2)}.sb[data-s="1"]{--hint:var(--s1)}
 .sb:hover{border-color:var(--pri);background:var(--pri-l)}
 .sb:active{transform:scale(.93)}
-.sb.sel{color:#fff;border-color:transparent;box-shadow:inset 0 1px 0 rgba(255,255,255,.22),var(--sh);transform:translateY(-1px);animation:selPop .28s var(--ease)}
+.sb.sel{color:var(--sel-tx);border-color:transparent;box-shadow:inset 0 1px 0 rgba(255,255,255,.22),var(--sh);transform:translateY(-1px);animation:selPop .28s var(--ease)}
 @keyframes selPop{0%{transform:scale(.92)}60%{transform:scale(1.04) translateY(-1px)}100%{transform:translateY(-1px)}}
-.sb.sel .sl{color:rgba(255,255,255,.9)}
+.sb.sel .sl{color:var(--sel-sl)}
 .sb[data-s="5"].sel{background:var(--s5)}
 .sb[data-s="4"].sel{background:var(--s4)}
 .sb[data-s="3"].sel{background:var(--s3)}
@@ -271,14 +281,14 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
 .trta{min-height:84px}
 .clbl{font-size:.8rem;font-weight:600;color:var(--sub);margin:10px 0 4px}
 .aibtn{
-  font-size:.74rem;font-weight:700;color:var(--pri);background:var(--pri-l);border:1px solid var(--pri);
-  border-radius:8px;min-height:30px;padding:4px 12px;cursor:pointer;transition:filter .15s;font-family:inherit;
+  font-size:.78rem;font-weight:700;color:var(--pri);background:var(--pri-l);border:1px solid var(--pri);
+  border-radius:10px;min-height:44px;padding:6px 14px;cursor:pointer;transition:filter .15s;font-family:inherit;
 }
 .aibtn:hover{filter:brightness(.96)}
 .aibtn:disabled{opacity:.5;cursor:default}
 
 /* ---- 全体所感 ---- */
-.oasec h3{font-size:.98rem;margin-bottom:8px;color:var(--pri-d)}
+.oasec h2{font-size:.98rem;margin-bottom:8px;color:var(--pri-d)}
 
 /* ---- ボタン ---- */
 .bg{display:flex;gap:10px;margin:16px 0}
@@ -298,7 +308,7 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
 .b2:hover{background:var(--s1-l)}
 .b3{background:var(--pri-l);color:var(--pri-d);border:1px solid transparent}
 .b3:hover{filter:brightness(.97)}
-.b4{background:var(--s2-l);color:var(--s2);border:2px solid var(--s2)}
+.b4{background:var(--pri-l);color:var(--pri-d);border:2px solid var(--pri)}
 .b4:hover{filter:brightness(.98)}
 
 /* ---- トースト ---- */
@@ -308,10 +318,10 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
   background:var(--toast-bg);color:var(--toast-tx);padding:12px 26px;border-radius:26px;
   border:1px solid rgba(255,255,255,.08);
   font-size:.9rem;font-weight:700;opacity:0;transition:opacity .28s var(--ease),transform .28s var(--ease);
-  z-index:400;pointer-events:none;white-space:nowrap;max-width:92%;text-align:center;
+  z-index:400;pointer-events:none;white-space:normal;max-width:92%;text-align:center;
   box-shadow:var(--sh-lg);
 }
-.toast::before{content:'✓';font-weight:900;margin-right:7px;color:var(--s4)}
+.toast::before{content:'✓';font-weight:900;margin-right:7px;color:var(--toast-ok)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .toast.err{background:var(--s1);color:#fff}
 .toast.err::before{content:'！';color:#fff}
@@ -346,7 +356,9 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
   padding:14px 16px;box-shadow:var(--sh);cursor:pointer;
   display:flex;justify-content:space-between;align-items:center;gap:10px;
   transition:transform .12s,border-color .15s,background .15s;
+  width:100%;text-align:left;font-family:inherit;font-size:1rem;color:var(--txt);
 }
+.hi .hid,.hi .hin{display:block}
 .hi:hover{border-color:var(--pri);box-shadow:var(--sh-hover);transform:translateY(-1px)}
 .hi:active{background:var(--pri-l);transform:scale(.985)}
 .hi .hii{flex:1;min-width:0}
@@ -381,13 +393,13 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
 }
 @keyframes moUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
 .mh{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--bdr)}
-.mh h3{font-size:1.02rem;color:var(--pri-d)}
-.mx{background:0;border:0;font-size:1.5rem;cursor:pointer;min-width:40px;min-height:40px;padding:4px 8px;color:var(--sub);border-radius:10px;transition:background .15s}
+.mh h2{font-size:1.02rem;color:var(--pri-d)}
+.mx{background:0;border:0;font-size:1.5rem;cursor:pointer;min-width:44px;min-height:44px;padding:4px 8px;color:var(--sub);border-radius:10px;transition:background .15s}
 .mx:hover{background:var(--pri-l);color:var(--txt)}
 .di{padding:11px 0;border-bottom:1px solid var(--bdr)}.di:last-of-type{border-bottom:none}
 .dih{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .din{font-weight:700;font-size:.92rem}
-.dis{font-weight:700;font-size:1rem;min-width:34px;text-align:center;padding:2px 10px;border-radius:8px;color:#fff;flex-shrink:0}
+.dis{font-weight:700;font-size:1rem;min-width:34px;text-align:center;padding:2px 10px;border-radius:8px;color:var(--sel-tx);flex-shrink:0}
 .ditr{font-size:.85rem;color:var(--txt);margin-top:5px;white-space:pre-wrap;line-height:1.7}
 .dic{font-size:.84rem;color:var(--sub);margin-top:4px}
 .dov{margin-top:12px;padding:12px 14px;background:var(--pri-l);border-left:3px solid var(--pri);border-radius:0 var(--r-s) var(--r-s) 0;font-size:.9rem;line-height:1.7}
@@ -402,7 +414,7 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
 }
 .chc select:focus{border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-l)}
 .chb{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);padding:16px;margin-bottom:16px;box-shadow:var(--sh)}
-.chb h3{font-size:.88rem;margin-bottom:12px;color:var(--sub);font-weight:700;letter-spacing:.02em}
+.chb h2{font-size:.88rem;margin-bottom:12px;color:var(--sub);font-weight:700;letter-spacing:.02em}
 .chb canvas{width:100%!important;max-height:300px}
 .nd{
   text-align:center;color:var(--sub);padding:48px 16px;font-size:.95rem;line-height:1.8;
@@ -439,7 +451,7 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
 .cfg-item textarea:focus{border-color:var(--pri);color:var(--txt)}
 .ci-btns{display:flex;gap:4px;flex-shrink:0}
 .ci-btns button{
-  width:38px;height:38px;border:1px solid var(--bdr-s);border-radius:9px;background:var(--card);
+  width:44px;height:44px;border:1px solid var(--bdr-s);border-radius:10px;background:var(--card);
   cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;
   color:var(--sub);transition:background .15s,color .15s,border-color .15s;font-family:inherit;
 }
@@ -480,6 +492,7 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
 @keyframes shimmer{from{background-position:180% 0}to{background-position:-80% 0}}
 /* 全問録音/採点完了：バーが評価グリーンに変わり✓が付く（試問・採点共通） */
 .complete .pbar>i{background:linear-gradient(90deg,var(--s5),var(--s4))}
+.complete .pbar>i::after{animation:none}
 .complete .pmeta{color:var(--s5)}
 .complete .pmeta>span:last-child::after{content:' ✓';font-weight:900}
 .chips{
@@ -490,7 +503,7 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
 .chips .chip{scroll-snap-align:start}
 .chips::-webkit-scrollbar{display:none}
 .chip{
-  flex:0 0 auto;min-height:40px;padding:8px 15px;border:1.5px solid var(--bdr-s);border-radius:20px;
+  flex:0 0 auto;min-height:44px;padding:10px 16px;border:1.5px solid var(--bdr-s);border-radius:22px;
   background:var(--card);font-size:.78rem;font-weight:700;color:var(--sub);cursor:pointer;white-space:nowrap;
   font-family:inherit;transition:border-color .15s,color .15s,background .15s;
 }
@@ -568,6 +581,14 @@ details.ans .ansb{padding:0 13px 11px;font-size:.84rem;line-height:1.75;white-sp
 /* 設定画面の模範解答編集 */
 .cfg-item .ans-lbl{font-size:.72rem;font-weight:700;color:var(--pri-d);margin:7px 0 3px}
 
+/* ---- color-mix() 非対応ブラウザの単色フォールバック ---- */
+@supports not (color:color-mix(in srgb,#000,#fff)){
+  .b1{background:var(--btn-pri)}
+  .tabs{background:var(--card)}
+  .qc .en{border-color:var(--pri)}
+  .recbtn.recording{animation:none;box-shadow:0 0 0 5px var(--rec-l)}
+}
+
 /* ---- 入力欄ホバー（フォーカス前の気配） ---- */
 .meta input:hover:not(:focus),.hsearch:hover:not(:focus),
 .accb input:hover:not(:focus),.cfg-box input:hover:not(:focus),
@@ -594,6 +615,10 @@ details.ans .ansb{padding:0 13px 11px;font-size:.84rem;line-height:1.75;white-sp
   .cd,.hi,.chb,.chc{box-shadow:none;border:1px solid #999;break-inside:avoid}
   .pbar>i::after{animation:none}
   audio{display:none}
+  /* 履歴詳細モーダルを開いたまま印刷しても内容が紙に出るように */
+  .mo{position:static;background:none;backdrop-filter:none;-webkit-backdrop-filter:none;padding:0;overflow:visible}
+  .mc{box-shadow:none;border:1px solid #999;max-width:none;animation:none}
+  .mx{display:none!important}
 }
 
 @media(min-width:640px){
