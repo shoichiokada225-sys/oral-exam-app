@@ -217,6 +217,9 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
   transition:transform .12s,background .18s,border-color .18s,box-shadow .18s;font-family:inherit;
 }
 .sb .sl{font-size:.55rem;font-weight:600;color:var(--sub);line-height:1.15;text-align:center}
+/* 未選択でも評価色のヒントを上端に（5⇔1の方向が迷わない） */
+.sb:not(.sel){box-shadow:inset 0 3px 0 var(--hint,transparent)}
+.sb[data-s="5"]{--hint:var(--s5)}.sb[data-s="4"]{--hint:var(--s4)}.sb[data-s="3"]{--hint:var(--s3)}.sb[data-s="2"]{--hint:var(--s2)}.sb[data-s="1"]{--hint:var(--s1)}
 .sb:hover{border-color:var(--pri);background:var(--pri-l)}
 .sb:active{transform:scale(.93)}
 .sb.sel{color:#fff;border-color:transparent;box-shadow:inset 0 1px 0 rgba(255,255,255,.22),var(--sh);transform:translateY(-1px);animation:selPop .28s var(--ease)}
@@ -317,6 +320,11 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
 .hi .hid{font-size:.78rem;color:var(--sub)}
 .hi .hin{font-weight:700;font-size:1rem;margin-top:1px}
 .hi .hia{font-size:1.45rem;font-weight:700;color:var(--pri);min-width:52px;text-align:right;font-variant-numeric:tabular-nums}
+/* 平均点の評価色（一覧で成績が一目で分かる） */
+.hia.a5{color:var(--s5)}.hia.a4{color:var(--s4)}.hia.a3{color:var(--s3)}.hia.a2{color:var(--s2)}.hia.a1{color:var(--s1)}
+/* 採点中のリアルタイム平均 */
+.spavg{margin-right:10px;font-variant-numeric:tabular-nums}
+.spavg.a5{color:var(--s5)}.spavg.a4{color:var(--s4)}.spavg.a3{color:var(--s3)}.spavg.a2{color:var(--s2)}.spavg.a1{color:var(--s1)}
 .badge{
   display:inline-flex;align-items:center;gap:5px;font-size:.66rem;font-weight:700;
   padding:2.5px 10px 2.5px 8px;border-radius:10px;margin-top:4px;letter-spacing:.02em;
@@ -540,6 +548,17 @@ details.ans .ansb{padding:0 13px 11px;font-size:.84rem;line-height:1.75;white-sp
 /* ---- アクセシビリティ ---- */
 :focus-visible{outline:3px solid var(--pri);outline-offset:2px;border-radius:4px}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+/* ---- 印刷（履歴・採点結果を紙で提出できる） ---- */
+@media print{
+  body{background:#fff;color:#000;padding-bottom:0}
+  .hdr{position:static;background:#fff!important;color:#000;box-shadow:none;border-bottom:2px solid #000}
+  .hdr h1{color:#000;text-shadow:none}
+  .hdr .lsw,.brand,.tabs,.bg,.savebar,.recbtn,.aibtn,.hctrl button,.ma,.b{display:none!important}
+  .cd,.hi,.chb,.chc{box-shadow:none;border:1px solid #999;break-inside:avoid}
+  .pbar>i::after{animation:none}
+  audio{display:none}
+}
+
 @media(min-width:640px){
   .pg{padding:24px 24px 8px}
   .cd{padding:20px;margin-bottom:14px}

@@ -66,6 +66,9 @@ function updateExamProg(){
   });
 }
 
+/* 平均点→評価色クラス（4.5+:優 3.5+:良 2.5+:可 1.5+:要改善 それ未満:不可） */
+function avgCls(v){const n=parseFloat(v);if(isNaN(n))return'';return n>=4.5?'a5':n>=3.5?'a4':n>=2.5?'a3':n>=1.5?'a2':'a1'}
+
 /* ==============================================================
    採点タブ：一覧
    ============================================================== */
@@ -81,7 +84,7 @@ function drawScoreList(){
   if(!all.length){c.innerHTML=`<div class="nd">${fil==='all'?t('noData'):t('noUnscored')}</div>`;return}
   c.innerHTML=all.map(r=>{
     const sc=r.status==='scored';
-    return `<div class="hi" onclick="openScore('${sanitizeId(r.id)}')"><div class="hii"><div class="hid">${esc(r.date)}　${t('erLbl')}: ${esc(r.examiner)}</div><div class="hin">${esc(r.examinee)}</div><span class="badge ${sc?'scored':'rec'}">${sc?t('stScored'):t('stRec')}</span></div><div class="hia">${sc?avg(r):'–'}</div></div>`;
+    return `<div class="hi" onclick="openScore('${sanitizeId(r.id)}')"><div class="hii"><div class="hid">${esc(r.date)}　${t('erLbl')}: ${esc(r.examiner)}</div><div class="hin">${esc(r.examinee)}</div><span class="badge ${sc?'scored':'rec'}">${sc?t('stScored'):t('stRec')}</span></div><div class="hia ${sc?avgCls(avg(r)):''}">${sc?avg(r):'–'}</div></div>`;
   }).join('');
 }
 
@@ -130,6 +133,16 @@ function updateScoreProg(){
   const c=document.getElementById('spCnt'),b=document.getElementById('spBar');
   if(c)c.textContent=n+' / '+scorable;
   if(b)b.style.width=(scorable?Math.round(n/scorable*100):0)+'%';
+  // 採点中のリアルタイム平均（1つ以上採点したら表示・評価色つき）
+  const av=document.getElementById('spAvg');
+  if(av){
+    const vals=[...document.querySelectorAll('#scDetail .sb.sel')].map(el=>+el.dataset.s);
+    if(vals.length){
+      const m=(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1);
+      av.textContent=t('avgLbl')+' '+m;
+      av.className='spavg '+avgCls(m);
+    }else{av.textContent='';av.className='spavg'}
+  }
 }
 async function renderScoreDetail(r){
   releaseScoreUrls();
@@ -137,7 +150,7 @@ async function renderScoreDetail(r){
   document.querySelector('#pgScore .hctrl').style.display='none';
   const det=document.getElementById('scDetail');det.style.display='block';
   const secs=getSections(),items=getItems();
-  let h=`<div class="cd meta"><div style="font-size:.85rem;color:var(--sub)">${esc(r.date)}　${t('erLbl')}: ${esc(r.examiner)}</div><div style="font-size:1.1rem;font-weight:700;margin-top:2px">${esc(r.examinee)}</div><div class="pmeta" style="margin-top:10px"><span>${t('progScore')}</span><span id="spCnt"></span></div><div class="pbar"><i id="spBar"></i></div></div>`;
+  let h=`<div class="cd meta"><div style="font-size:.85rem;color:var(--sub)">${esc(r.date)}　${t('erLbl')}: ${esc(r.examiner)}</div><div style="font-size:1.1rem;font-weight:700;margin-top:2px">${esc(r.examinee)}</div><div class="pmeta" style="margin-top:10px"><span>${t('progScore')}</span><span><span id="spAvg" class="spavg"></span><span id="spCnt"></span></span></div><div class="pbar"><i id="spBar"></i></div></div>`;
   secs.forEach(sec=>{
     const secItems=items.filter(it=>it.secId===sec.id);
     if(!secItems.length)return;
@@ -230,7 +243,7 @@ function drawHist(){
     const ym=(r.date||'').slice(0,7);
     if(ym&&ym!==pm){h+=`<div class="mgrp">${esc(fmtMonth(ym))}</div>`;pm=ym}
     const sc=r.status==='scored';
-    h+=`<div class="hi" onclick="showDet('${sanitizeId(r.id)}')"><div class="hii"><div class="hid">${esc(r.date)}　${t('erLbl')}: ${esc(r.examiner)}</div><div class="hin">${esc(r.examinee)}</div><span class="badge ${sc?'scored':'rec'}">${sc?t('stScored'):t('stRec')}</span></div><div class="hia">${sc?avg(r):'–'}</div></div>`;
+    h+=`<div class="hi" onclick="showDet('${sanitizeId(r.id)}')"><div class="hii"><div class="hid">${esc(r.date)}　${t('erLbl')}: ${esc(r.examiner)}</div><div class="hin">${esc(r.examinee)}</div><span class="badge ${sc?'scored':'rec'}">${sc?t('stScored'):t('stRec')}</span></div><div class="hia ${sc?avgCls(avg(r)):''}">${sc?avg(r):'–'}</div></div>`;
   });
   c.innerHTML=h;
 }
@@ -326,7 +339,10 @@ function drawCharts(){
   const items=getItems();
   const th=chartTheme();
   if(cL)cL.destroy();
-  cL=new Chart(document.getElementById('cvL'),{type:'line',data:{labels:all.map(e=>e.date),datasets:[{label:t('chAvg'),data:all.map(e=>parseFloat(avg(e))),borderColor:th.acc,backgroundColor:th.fill,fill:true,tension:.3,pointRadius:5,pointBackgroundColor:th.acc}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{min:1,max:5,ticks:{stepSize:1}}},plugins:{legend:{display:false}}}});
+  // 塗りは上→下へ消えるグラデーション（面の主張を抑えて線を立てる）
+  const g=document.getElementById('cvL').getContext('2d').createLinearGradient(0,0,0,280);
+  g.addColorStop(0,th.acc+'4d');g.addColorStop(1,th.acc+'05');
+  cL=new Chart(document.getElementById('cvL'),{type:'line',data:{labels:all.map(e=>e.date),datasets:[{label:t('chAvg'),data:all.map(e=>parseFloat(avg(e))),borderColor:th.acc,borderWidth:2.5,backgroundColor:g,fill:true,tension:.3,pointRadius:5,pointHoverRadius:7,pointBackgroundColor:th.acc,pointBorderColor:'#fff',pointBorderWidth:1.5}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{min:1,max:5,ticks:{stepSize:1}}},plugins:{legend:{display:false}}}});
   const lat=all[all.length-1];
   // セクション別平均（直近の採点済み試問）
   const secLabels=[],secData=[];
