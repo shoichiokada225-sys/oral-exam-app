@@ -4,7 +4,7 @@
  *  - 静的アセットとChart.js CDNはキャッシュ優先
  *  - GAS(script.google.com)やAPI等の外部リクエストには一切関与しない
  */
-const VER = 'oral-exam-v9';
+const VER = 'oral-exam-v10';
 const ASSETS = [
   './',
   './index.html',
@@ -47,8 +47,11 @@ self.addEventListener('fetch', e => {
     // ネットワーク優先（成功したらキャッシュ更新）→ 圏外はキャッシュ
     e.respondWith(
       fetch(req).then(res => {
-        const cp = res.clone();
-        caches.open(VER).then(c => c.put(req, cp));
+        // エラー応答(404/500等)はキャッシュに入れない（壊れたページが圏外時に固定されるのを防ぐ）
+        if (res.ok) {
+          const cp = res.clone();
+          caches.open(VER).then(c => c.put(req, cp));
+        }
         return res;
       }).catch(() => caches.match(req).then(r => r || caches.match('./index.html')))
     );
@@ -58,8 +61,11 @@ self.addEventListener('fetch', e => {
   // 静的アセット: キャッシュ優先（なければ取得してキャッシュ）
   e.respondWith(
     caches.match(req).then(r => r || fetch(req).then(res => {
-      const cp = res.clone();
-      caches.open(VER).then(c => c.put(req, cp));
+      // CDNのno-cors取得はopaque(ok=false)になるため許可し、通常のエラー応答は弾く
+      if (res.ok || res.type === 'opaque') {
+        const cp = res.clone();
+        caches.open(VER).then(c => c.put(req, cp));
+      }
       return res;
     }))
   );

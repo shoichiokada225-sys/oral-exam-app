@@ -266,7 +266,7 @@ async function showDet(id){
     h+=`</div>`;
   });
   if(r.overall)h+=`<div class="dov"><strong>${t('ovLbl')}:</strong><br>${esc(r.overall)}</div>`;
-  h+=`<div class="ma">${r.status!=='scored'?`<button class="b b4" style="flex:1" onclick="closeMo();gotoScore('${sanitizeId(r.id)}')">${t('btnScore')}</button>`:`<button class="b b4" style="flex:1" onclick="closeMo();gotoScore('${sanitizeId(r.id)}')">${t('btnScore')}</button>`}<button class="b b2" style="flex:1" onclick="doDel('${sanitizeId(r.id)}')">${t('btnDel')}</button><button class="b b3" style="flex:1" onclick="closeMo()">${t('btnClose')}</button></div>`;
+  h+=`<div class="ma"><button class="b b4" style="flex:1" onclick="closeMo();gotoScore('${sanitizeId(r.id)}')">${t('btnScore')}</button><button class="b b2" style="flex:1" onclick="doDel('${sanitizeId(r.id)}')">${t('btnDel')}</button><button class="b b3" style="flex:1" onclick="closeMo()">${t('btnClose')}</button></div>`;
   document.getElementById('moBody').innerHTML=h;
   moShow();
   for(const it of items){
@@ -463,7 +463,7 @@ function catPickWork(workId){
   const w=qaWorkById(workId),box=document.getElementById('qaChecks');
   if(!w){box.innerHTML='';return}
   box.innerHTML=qaQuestions(w).map(q=>
-    `<label class="qa-check"><input type="checkbox" value="${q.key}" checked><div class="qat"><div class="qan">${esc(q.name)}</div><div class="qaq">${esc(q.desc)}</div><div class="qaa">${esc(q.ans)}</div></div></label>`
+    `<label class="qa-check"><input type="checkbox" value="${esc(q.key)}" checked><div class="qat"><div class="qan">${esc(q.name)}</div><div class="qaq">${esc(q.desc)}</div><div class="qaa">${esc(q.ans)}</div></div></label>`
   ).join('');
 }
 function addFromCatalog(){
