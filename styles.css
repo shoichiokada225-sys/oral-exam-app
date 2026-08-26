@@ -110,7 +110,7 @@ body{
 .hdr{
   background:linear-gradient(150deg,#234d69,#2e5d7d 55%,#376c8f);
   color:#fff;min-height:var(--hdr-h);padding:8px 14px;
-  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  display:flex;align-items:center;justify-content:space-between;gap:6px;
   position:sticky;top:0;z-index:100;
   box-shadow:0 2px 10px rgba(10,30,45,.28);
   padding-top:max(8px,env(safe-area-inset-top,0px));
@@ -128,7 +128,7 @@ body{
 :root[data-theme=dark] .hdr{background:linear-gradient(150deg,#132c3d,#1b3e57 55%,#234d69)}
 .brand{display:flex;align-items:center;flex-shrink:0;position:relative}
 .brand svg{
-  width:32px;height:32px;fill:none;stroke:#fff;stroke-width:1.8;padding:6px;
+  width:28px;height:28px;fill:none;stroke:#fff;stroke-width:1.8;padding:5px;
   background:linear-gradient(160deg,rgba(255,255,255,.24),rgba(255,255,255,.08));
   border:1px solid rgba(255,255,255,.28);border-radius:10px;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 1px 4px rgba(0,0,0,.18);
@@ -138,7 +138,7 @@ body{
 @media(max-width:359px){.hdr h1{font-size:.82rem}}
 /* テーマ切替ボタン（自動→ライト→ダーク） */
 .thbtn{
-  flex-shrink:0;min-width:40px;min-height:40px;padding:0;
+  flex-shrink:0;min-width:44px;min-height:44px;padding:0;
   display:flex;align-items:center;justify-content:center;
   background:rgba(0,0,0,.16);border:1px solid rgba(255,255,255,.22);border-radius:10px;
   color:rgba(255,255,255,.85);cursor:pointer;position:relative;
@@ -147,12 +147,12 @@ body{
 .thbtn:hover{background:rgba(255,255,255,.16);color:#fff}
 .thbtn svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .lsw{
-  display:flex;gap:2px;flex-shrink:0;position:relative;
+  display:flex;gap:4px;flex-shrink:0;position:relative;
   background:rgba(0,0,0,.16);border:1px solid rgba(255,255,255,.22);border-radius:10px;padding:2px;
 }
 .lsw button{
   background:transparent;border:none;color:rgba(255,255,255,.78);
-  min-width:34px;min-height:36px;padding:3px 8px;border-radius:8px;font-size:.7rem;font-weight:700;cursor:pointer;
+  min-width:40px;min-height:44px;padding:3px 8px;border-radius:8px;font-size:.7rem;font-weight:700;cursor:pointer;
   transition:background .18s var(--ease),color .18s var(--ease);font-family:inherit;
 }
 .lsw button:hover{background:rgba(255,255,255,.16);color:#fff}
@@ -267,6 +267,14 @@ button.cd{font-family:inherit;font-size:inherit;color:var(--txt);line-height:inh
 @keyframes recGlow{0%,100%{box-shadow:0 0 0 5px var(--rec-l)}50%{box-shadow:0 0 0 9px color-mix(in srgb,var(--rec-l) 45%,transparent)}}
 .recbtn.recording .dot{background:#fff;animation:pulse 1s infinite}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.8)}}
+/* 録音中の固定ピル（media.jsが生成）: どこへスクロールしても停止・復帰の導線が残る */
+#recPill{
+  position:fixed;right:12px;bottom:calc(var(--tabs-h) + 14px + env(safe-area-inset-bottom,0px));
+  z-index:200;min-height:48px;padding:10px 18px;border:none;border-radius:24px;
+  background:var(--rec);color:#fff;font-weight:700;font-size:.95rem;cursor:pointer;
+  box-shadow:var(--sh-lg);font-family:inherit;font-variant-numeric:tabular-nums;
+  animation:recGlow 1.6s infinite;
+}
 .rectime{font-size:.95rem;font-weight:700;color:var(--rec);font-variant-numeric:tabular-nums;min-width:48px}
 .rectime:empty{min-width:0} /* 空表示時は幅を取らない（狭幅端末の折返し抑制） */
 .recstat{font-size:.8rem;color:var(--sub)}
@@ -281,12 +289,14 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
 /* ---- 採点ボタン ---- */
 .sr{display:flex;gap:7px;margin:10px 0}
 .sb{
-  flex:1;min-height:54px;border:1.5px solid var(--bdr-s);border-radius:12px;background:var(--card);
+  flex:1;min-height:60px;border:1.5px solid var(--bdr-s);border-radius:12px;background:var(--card);
   font-size:1.15rem;font-weight:900;color:var(--txt);cursor:pointer;font-variant-numeric:tabular-nums;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
   transition:transform .12s,background .18s,border-color .18s,box-shadow .18s;font-family:inherit;
 }
-.sb .sl{font-size:.66rem;font-weight:700;color:var(--sub);line-height:1.15;text-align:center}
+.sb .sl{font-size:.78rem;font-weight:700;color:var(--sub);line-height:1.25;text-align:center}
+/* 選択した評価の意味を大きく再掲（極小ラベルだけに尺度の意味を負わせない） */
+.spick{min-height:22px;font-size:.95rem;font-weight:900;color:var(--pri-d);margin-top:2px}
 /* 未選択でも評価色のヒントを上端に（5⇔1の方向が迷わない） */
 .sb:not(.sel){box-shadow:inset 0 4px 0 var(--hint,transparent)}
 .sb[data-s="5"]{--hint:var(--s5)}.sb[data-s="4"]{--hint:var(--s4)}.sb[data-s="3"]{--hint:var(--s3)}.sb[data-s="2"]{--hint:var(--s2)}.sb[data-s="1"]{--hint:var(--s1)}
@@ -525,8 +535,14 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
   padding:13px 16px 7px;margin-bottom:var(--sp-3);
   border-radius:var(--r);border:1px solid rgba(255,255,255,.14);
   box-shadow:var(--sh-lg);overflow:hidden;
-  transition:background .45s var(--ease);
+  transition:background .45s var(--ease),padding .25s var(--ease);
 }
+/* スクロール中の小型化（app.jsがscrollY>240で.miniを付与。可視窓を約80px広げる） */
+.prog.mini{padding:8px 16px 6px}
+.prog.mini .chips{display:none}
+.prog.mini .pmeta{margin-bottom:4px}
+.prog.mini .pmeta>span:last-child{font-size:1.15rem}
+.prog.mini .pbar{height:6px}
 .prog::before{
   content:'';position:absolute;inset:0;pointer-events:none;
   background:radial-gradient(130% 170% at 10% -35%,rgba(255,255,255,.18),transparent 55%);
@@ -580,8 +596,9 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
 .prog.complete .pbar>i,#scDetail .cd.meta.complete .pbar>i{background:linear-gradient(90deg,#e7f5ea,#fff)}
 .prog.complete .pmeta,#scDetail .cd.meta.complete .pmeta{color:var(--hero-tx)}
 .prog.complete .pmeta span:first-child{color:var(--hero-dim)}
-/* セクションジャンプchip: 濃色ガラス面／done=白面+濃紺文字 */
-.prog .chips{padding:9px 0 4px}
+/* セクションジャンプchip: 濃色ガラス面／done=白面+濃紺文字。
+   横スクロールを廃し2行折返し＝後半セクションも「存在ごと」見える（スクロール中は.miniで非表示） */
+.prog .chips{padding:9px 0 4px;flex-wrap:wrap;overflow:visible;-webkit-mask-image:none;mask-image:none}
 .prog .chip{background:rgba(8,22,35,.3);border-color:rgba(255,255,255,.36);color:#fff}
 .prog .chip:hover{background:rgba(8,22,35,.46);border-color:#fff}
 .prog .chip.done{background:#fff;border-color:#fff;color:#1c3f58}
@@ -762,8 +779,8 @@ details.ans .ansb{padding:0 13px 11px;font-size:.84rem;line-height:1.75;white-sp
 @media(min-width:640px){
   .pg{padding:24px 24px 8px}
   .cd{padding:20px;margin-bottom:14px}
-  .sb{min-height:58px;font-size:1.25rem}
-  .sb .sl{font-size:.72rem}
+  .sb{min-height:62px;font-size:1.25rem}
+  .sb .sl{font-size:.8rem}
   .hdr h1{font-size:1.1rem}
   .hlist{gap:10px}
   .mc{padding:24px 22px}

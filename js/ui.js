@@ -18,7 +18,8 @@ storeFail:'保存に失敗しました（端末の空き容量不足の可能性
 gcConfirm:'どのセッションにも属さない録音データが{n}件見つかりました。削除して端末の容量を空けますか？',gcDone:'件の不要な録音を削除しました',
 naLbl:'質問しなかった（採点対象外）',nextUnrec:'次の未録音へ',nextUnscored:'次の未採点へ',allRec:'すべて録音済みです',allScored:'未採点の項目はありません',
 recBusy:'録音中です。先に「停止」を押してください',noRecGroup:'録音のない項目（{n}）',
-spd:'速度',sumTimes:'回受験',added:'追加済み',prevLbl:'前回',extraSec:'過去の項目（現在の設定にない質問）'},
+spd:'速度',sumTimes:'回受験',added:'追加済み',prevLbl:'前回',extraSec:'過去の項目（現在の設定にない質問）',
+resetCnt:'（録音{n}件を削除します。元に戻せません）'},
 en:{qsTitle:'Question set',qsCur:'Active set',qsNone:'(unsaved layout)',qsSaveNew:'Save current items as a new set',qsOver:'Overwrite',qsApply:'Switch',qsRen:'Rename',qsDel:'Delete',
 qsNamePrompt:'Enter a set name',
 qsSwConfirm:'Switch items to set "{n}"? Unsaved edits will be lost (past exam data is kept).',
@@ -33,17 +34,20 @@ storeFail:'Save failed (device storage may be full). Export a backup from Settin
 gcConfirm:'{n} recording(s) belong to no session. Delete them to free space?',gcDone:' orphan recording(s) deleted',
 naLbl:'Not asked (excluded from scoring)',nextUnrec:'Next unrecorded',nextUnscored:'Next unscored',allRec:'All items recorded',allScored:'Nothing left to score',
 recBusy:'Recording in progress — press "Stop" first',noRecGroup:'Items without recording ({n})',
-spd:'Speed',sumTimes:' exam(s)',added:'Added',extraSec:'Past items (not in current settings)',prevLbl:'Prev'},
+spd:'Speed',sumTimes:' exam(s)',added:'Added',extraSec:'Past items (not in current settings)',prevLbl:'Prev',
+resetCnt:'({n} recording(s) will be deleted. This cannot be undone)'},
 vi:{qsTitle:'Bộ câu hỏi',qsCur:'Bộ hiện tại',qsNone:'(chưa lưu thành bộ)',qsSaveNew:'Lưu các mục hiện tại thành bộ mới',qsOver:'Ghi đè',qsApply:'Chuyển',qsRen:'Đổi tên',qsDel:'Xóa',
 qsNamePrompt:'Nhập tên bộ',qbTitle:'Bộ câu hỏi mẫu',qbReplace:'Thay thế mục',qbAppend:'Thêm vào mục',
 naLbl:'Không hỏi (không chấm)',nextUnrec:'Mục chưa ghi tiếp theo',nextUnscored:'Mục chưa chấm tiếp theo',allRec:'Đã ghi tất cả',allScored:'Không còn mục chưa chấm',
 recBusy:'Đang ghi âm — hãy nhấn "Dừng" trước',noRecGroup:'Mục không có ghi âm ({n})',
-spd:'Tốc độ',sumTimes:' lần thi',added:'Đã thêm',extraSec:'Mục cũ (không có trong cài đặt hiện tại)',prevLbl:'Lần trước'},
+spd:'Tốc độ',sumTimes:' lần thi',added:'Đã thêm',extraSec:'Mục cũ (không có trong cài đặt hiện tại)',prevLbl:'Lần trước',
+resetCnt:'({n} bản ghi âm sẽ bị xóa. Không thể hoàn tác)'},
 id:{qsTitle:'Set pertanyaan',qsCur:'Set aktif',qsNone:'(belum disimpan sebagai set)',qsSaveNew:'Simpan item saat ini sebagai set baru',qsOver:'Timpa',qsApply:'Ganti',qsRen:'Ubah nama',qsDel:'Hapus',
 qsNamePrompt:'Masukkan nama set',qbTitle:'Set pertanyaan preset',qbReplace:'Ganti item',qbAppend:'Tambahkan item',
 naLbl:'Tidak ditanya (tidak dinilai)',nextUnrec:'Item belum direkam berikutnya',nextUnscored:'Item belum dinilai berikutnya',allRec:'Semua sudah direkam',allScored:'Tidak ada yang belum dinilai',
 recBusy:'Sedang merekam — tekan "Stop" dulu',noRecGroup:'Item tanpa rekaman ({n})',
-spd:'Kecepatan',sumTimes:' ujian',added:'Sudah ditambah',extraSec:'Item lama (tidak ada di pengaturan)',prevLbl:'Sebelumnya'}
+spd:'Kecepatan',sumTimes:' ujian',added:'Sudah ditambah',extraSec:'Item lama (tidak ada di pengaturan)',prevLbl:'Sebelumnya',
+resetCnt:'({n} rekaman akan dihapus. Tidak dapat dibatalkan)'}
 };
 function t2(k){const d=TX2[lang]||TX2.ja;return d[k]||TX2.en[k]||TX2.ja[k]||k}
 
@@ -231,6 +235,7 @@ function scoreCardHtml(r,id,en,name,desc,ans){
     <textarea class="trta" id="tr-${id}" placeholder="${t('phTr')}">${esc(rec.transcript!=null?rec.transcript:(rec.draft||''))}</textarea>
     <div class="tlbl">${t('scoreLbl')}</div>
     <div class="sr" role="radiogroup" aria-label="${esc(name)} ${t('scoreLbl')}">${[1,2,3,4,5].map(s=>`<button class="sb${sc===s?' sel':''}" role="radio" aria-checked="${sc===s?'true':'false'}" data-id="${id}" data-s="${s}" onclick="pickScore('${id}',${s},this)">${s}<span class="sl">${t('s'+s)}</span></button>`).join('')}</div>
+    <div class="spick" id="sp-${id}">${sc?sc+' — '+t('s'+sc):''}</div>
     ${rec.hasAudio?`<label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:.8rem;color:var(--sub);cursor:pointer"><input type="checkbox" class="nachk" data-id="${id}" ${rec.na?'checked':''} onchange="pickNA('${id}',this.checked)" style="width:auto"> ${esc(t2('naLbl'))}</label>`:''}
     <div class="clbl">${t('cmtLbl')}</div>
     <textarea id="cm-${id}" placeholder="${t('phCmt')}">${esc(rec.comment||'')}</textarea>
@@ -301,6 +306,7 @@ function pickNA(id,checked){
   if(checked){
     document.querySelectorAll('.sb[data-id="'+id+'"]').forEach(b=>{b.classList.remove('sel');b.setAttribute('aria-checked','false')});
     curScore.items[id].score=null;
+    const sp=document.getElementById('sp-'+id);if(sp)sp.textContent='';
     const c=document.getElementById('sc-'+id);if(c)c.classList.remove('scored');
   }
   updateScoreProg();queueScoreDraft();
@@ -322,7 +328,7 @@ function nextUnscored(){
 function pickScore(id,s,btn){
   // 押した瞬間にcurScoreへ反映（進捗カウンタの分母・分子がDOM選択と一致する）
   if(curScore){curScore.items[id]=curScore.items[id]||{};curScore.items[id].score=s}
-  btn.parentElement.querySelectorAll('.sb').forEach(b=>{b.classList.remove('sel');b.setAttribute('aria-checked','false')});btn.classList.add('sel');btn.setAttribute('aria-checked','true');const c=document.getElementById('sc-'+id);if(c)c.classList.add('scored');const na=document.querySelector('.nachk[data-id="'+id+'"]');if(na&&na.checked){na.checked=false;if(curScore&&curScore.items[id])curScore.items[id].na=false}updateScoreProg();queueScoreDraft()}
+  btn.parentElement.querySelectorAll('.sb').forEach(b=>{b.classList.remove('sel');b.setAttribute('aria-checked','false')});btn.classList.add('sel');btn.setAttribute('aria-checked','true');const sp=document.getElementById('sp-'+id);if(sp)sp.textContent=s+' — '+t('s'+s);const c=document.getElementById('sc-'+id);if(c)c.classList.add('scored');const na=document.querySelector('.nachk[data-id="'+id+'"]');if(na&&na.checked){na.checked=false;if(curScore&&curScore.items[id])curScore.items[id].na=false}updateScoreProg();queueScoreDraft()}
 function backToScoreList(){persistScoreDraft(false);curScore=null;releaseScoreUrls();document.getElementById('scDetail').style.display='none';drawScoreList()}
 function releaseScoreUrls(){curScoreUrls.forEach(u=>{try{URL.revokeObjectURL(u)}catch(e){}});curScoreUrls=[]}
 

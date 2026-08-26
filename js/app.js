@@ -109,6 +109,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   // 孤児音声GC（どのセッションにも属さない録音を検出→件数確認のうえ削除）
   setTimeout(()=>gcOrphanAudio(),2500);
   window.addEventListener('beforeunload',e=>{if(active){e.preventDefault();e.returnValue=''}});
+  // スクロール中はsticky進捗ヒーローを小型化して可視窓を広げる（先頭へ戻るとchips付きフル表示に自動復帰）
+  addEventListener('scroll',()=>{const p=document.getElementById('examProg');if(p)p.classList.toggle('mini',window.scrollY>240)},{passive:true});
   document.addEventListener('keydown',e=>{
     const mo=document.getElementById('modal');
     if(!mo.classList.contains('show'))return;
@@ -151,6 +153,21 @@ function saveDraft(){if(!cur)return;try{localStorage.setItem(DRAFTKEY,JSON.strin
 /* ==============================================================
    試問の保存・リセット
    ============================================================== */
+/* 録音中固定ピル（media.jsが生成）から呼ばれる：
+   録音中カードの停止ボタンが見えていればその場で停止、見えていなければカードへスクロール。
+   scrollOnly=true はスクロールのみ（他カードの録音ボタン誤タップ時＝勝手に停止しない） */
+function jumpToActiveRec(scrollOnly){
+  if(!active)return;
+  const iid=sanitizeId(active.itemId);
+  const card=document.getElementById('q-'+iid);
+  const btn=document.getElementById('rb-'+iid);
+  const tgt=btn||card;
+  if(!tgt){if(!scrollOnly)stopRec();return}
+  const r=tgt.getBoundingClientRect();
+  const inView=r.top>=0&&r.bottom<=(window.innerHeight||document.documentElement.clientHeight);
+  if(inView&&!scrollOnly){stopRec();return}
+  (card||tgt).scrollIntoView({behavior:'smooth',block:'center'});
+}
 async function saveSession(){
   if(active)await stopRec();
   cur.date=document.getElementById('fDate').value;
@@ -179,7 +196,9 @@ async function saveSession(){
   buildExamCards();refreshSel();
 }
 async function resetExam(){
-  if(!confirm(t('cReset')))return;
+  // 消える録音の件数を明示（confirm一発で試問1回分が消える事故の抑止）
+  const n=cur?Object.keys(cur.items||{}).filter(k=>cur.items[k]&&cur.items[k].hasAudio).length:0;
+  if(!confirm(t('cReset')+(n?'\n'+t2('resetCnt').replace('{n}',n):'')))return;
   if(active)await stopRec();
   // 未保存セッションの音声を破棄（セッション自身のキーで走査＝cfg変更後も取り残さない）
   const saved=getAll().some(s=>s.id===cur.id);

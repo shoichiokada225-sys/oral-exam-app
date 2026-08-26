@@ -4,7 +4,7 @@
    ============================================================== */
 async function toggleRec(itemId){
   if(active&&active.itemId===itemId){await stopRec();return}
-  if(active){toast(t('recOther'),1);return}
+  if(active){toast(t('recOther'),1);jumpToActiveRec(true);return} // 誤タップでも録音中カードへ自動で連れて行く
   let stream;
   try{stream=await navigator.mediaDevices.getUserMedia({audio:true})}
   catch(e){toast(t('micErr'),1);return}
@@ -60,9 +60,15 @@ async function toggleRec(itemId){
   const rs0=document.getElementById('rs-'+itemId);
   if(rs0){rs0.textContent='● '+t('recNow');rs0.classList.remove('ok')}
   const lv=document.getElementById('lv-'+itemId);if(lv){lv.style.display='block';lv.querySelector('.lvtxt').textContent=''}
+  // 固定ピル：どこへスクロールしても録音中であることが見え、タップで録音中カードへ戻る／停止できる
+  let pill=document.getElementById('recPill');
+  if(!pill){pill=document.createElement('button');pill.type='button';pill.id='recPill';pill.onclick=()=>jumpToActiveRec();document.body.appendChild(pill)}
+  pill.textContent='● 00:00 '+t('recStop');
   a.timer=setInterval(()=>{
     const s=Math.floor((Date.now()-a.t0)/1000);
-    const rt=document.getElementById('rt-'+itemId);if(rt)rt.textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+    const mm=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+    const rt=document.getElementById('rt-'+itemId);if(rt)rt.textContent=mm;
+    const p=document.getElementById('recPill');if(p)p.textContent='● '+mm+' '+t('recStop');
   },250);
 }
 function updateLive(itemId,txt){const lv=document.getElementById('lv-'+itemId);if(lv)lv.querySelector('.lvtxt').textContent=txt}
@@ -80,6 +86,7 @@ function stopRec(){
   const btn=document.getElementById('rb-'+itemId);
   if(btn){btn.classList.remove('recording');btn.querySelector('.rlab').textContent=t('recRedo')}
   const rt=document.getElementById('rt-'+itemId);if(rt)rt.textContent='';
+  const pill=document.getElementById('recPill');if(pill)pill.remove();
   // ステータスを保存済み状態に合わせて戻す（onstop成功時は「録音済み」で上書きされる。失敗時のフォールバック）
   const rs=document.getElementById('rs-'+itemId);
   if(rs){const has=cur&&cur.items[itemId]&&cur.items[itemId].hasAudio;rs.textContent=has?('● '+t('recDone')):t('recReady');rs.classList.toggle('ok',!!has)}
