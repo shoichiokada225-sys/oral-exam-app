@@ -355,7 +355,8 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
 
 /* ---- トースト ---- */
 .toast{
-  position:fixed;bottom:calc(var(--tabs-h) + 26px + env(safe-area-inset-bottom,0px));left:50%;
+  /* savebar(実測高約102px)より上に出す: 保存ボタンをトーストが覆って押せなく見える問題の回避 */
+  position:fixed;bottom:calc(var(--tabs-h) + 112px + env(safe-area-inset-bottom,0px));left:50%;
   transform:translateX(-50%) translateY(16px);
   background:var(--toast-bg);color:var(--toast-tx);padding:12px 26px;border-radius:26px;
   border:1px solid rgba(255,255,255,.08);
@@ -638,6 +639,8 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
   padding-top:6px;background:linear-gradient(to bottom,transparent,var(--bg) 40%);
 }
 .autost{display:block;text-align:right;font-size:.74rem;font-weight:700;color:var(--s5);min-height:16px;opacity:0;transition:opacity .3s;margin-bottom:2px}
+/* savebar内のアイコンボタン（⏸/速度）: 幅を取らず主要3ボタンを圧迫しない */
+.savebar .sbico{flex:0 0 auto;min-width:52px;padding:13px 8px;font-size:.95rem;font-variant-numeric:tabular-nums}
 
 /* ---- 履歴：検索＋月グループ ---- */
 .hsearch{

@@ -18,7 +18,7 @@ storeFail:'保存に失敗しました（端末の空き容量不足の可能性
 gcConfirm:'どのセッションにも属さない録音データが{n}件見つかりました。削除して端末の容量を空けますか？',gcDone:'件の不要な録音を削除しました',
 naLbl:'質問しなかった（採点対象外）',nextUnrec:'次の未録音へ',nextUnscored:'次の未採点へ',allRec:'すべて録音済みです',allScored:'未採点の項目はありません',
 recBusy:'録音中です。先に「停止」を押してください',noRecGroup:'録音のない項目（{n}）',
-spd:'速度',sumTimes:'回受験',added:'追加済み',prevLbl:'前回',extraSec:'過去の項目（現在の設定にない質問）',
+spd:'速度',pauseAll:'再生を停止',sumTimes:'回受験',added:'追加済み',prevLbl:'前回',extraSec:'過去の項目（現在の設定にない質問）',
 resetCnt:'（録音{n}件を削除します。元に戻せません）'},
 en:{qsTitle:'Question set',qsCur:'Active set',qsNone:'(unsaved layout)',qsSaveNew:'Save current items as a new set',qsOver:'Overwrite',qsApply:'Switch',qsRen:'Rename',qsDel:'Delete',
 qsNamePrompt:'Enter a set name',
@@ -34,19 +34,19 @@ storeFail:'Save failed (device storage may be full). Export a backup from Settin
 gcConfirm:'{n} recording(s) belong to no session. Delete them to free space?',gcDone:' orphan recording(s) deleted',
 naLbl:'Not asked (excluded from scoring)',nextUnrec:'Next unrecorded',nextUnscored:'Next unscored',allRec:'All items recorded',allScored:'Nothing left to score',
 recBusy:'Recording in progress — press "Stop" first',noRecGroup:'Items without recording ({n})',
-spd:'Speed',sumTimes:' exams',sumTimes1:' exam',added:'Added',extraSec:'Past items (not in current settings)',prevLbl:'Prev',
+spd:'Speed',pauseAll:'Pause playback',sumTimes:' exams',sumTimes1:' exam',added:'Added',extraSec:'Past items (not in current settings)',prevLbl:'Prev',
 resetCnt:'({n} recording(s) will be deleted. This cannot be undone)'},
 vi:{qsTitle:'Bộ câu hỏi',qsCur:'Bộ hiện tại',qsNone:'(chưa lưu thành bộ)',qsSaveNew:'Lưu các mục hiện tại thành bộ mới',qsOver:'Ghi đè',qsApply:'Chuyển',qsRen:'Đổi tên',qsDel:'Xóa',
 qsNamePrompt:'Nhập tên bộ',qbTitle:'Bộ câu hỏi mẫu',qbReplace:'Thay thế mục',qbAppend:'Thêm vào mục',
 naLbl:'Không hỏi (không chấm)',nextUnrec:'Mục chưa ghi tiếp theo',nextUnscored:'Mục chưa chấm tiếp theo',allRec:'Đã ghi tất cả',allScored:'Không còn mục chưa chấm',
 recBusy:'Đang ghi âm — hãy nhấn "Dừng" trước',noRecGroup:'Mục không có ghi âm ({n})',
-spd:'Tốc độ',sumTimes:' lần thi',added:'Đã thêm',extraSec:'Mục cũ (không có trong cài đặt hiện tại)',prevLbl:'Lần trước',
+spd:'Tốc độ',pauseAll:'Dừng phát',sumTimes:' lần thi',added:'Đã thêm',extraSec:'Mục cũ (không có trong cài đặt hiện tại)',prevLbl:'Lần trước',
 resetCnt:'({n} bản ghi âm sẽ bị xóa. Không thể hoàn tác)'},
 id:{qsTitle:'Set pertanyaan',qsCur:'Set aktif',qsNone:'(belum disimpan sebagai set)',qsSaveNew:'Simpan item saat ini sebagai set baru',qsOver:'Timpa',qsApply:'Ganti',qsRen:'Ubah nama',qsDel:'Hapus',
 qsNamePrompt:'Masukkan nama set',qbTitle:'Set pertanyaan preset',qbReplace:'Ganti item',qbAppend:'Tambahkan item',
 naLbl:'Tidak ditanya (tidak dinilai)',nextUnrec:'Item belum direkam berikutnya',nextUnscored:'Item belum dinilai berikutnya',allRec:'Semua sudah direkam',allScored:'Tidak ada yang belum dinilai',
 recBusy:'Sedang merekam — tekan "Stop" dulu',noRecGroup:'Item tanpa rekaman ({n})',
-spd:'Kecepatan',sumTimes:' ujian',added:'Sudah ditambah',extraSec:'Item lama (tidak ada di pengaturan)',prevLbl:'Sebelumnya',
+spd:'Kecepatan',pauseAll:'Jeda pemutaran',sumTimes:' ujian',added:'Sudah ditambah',extraSec:'Item lama (tidak ada di pengaturan)',prevLbl:'Sebelumnya',
 resetCnt:'({n} rekaman akan dihapus. Tidak dapat dibatalkan)'}
 };
 function t2(k){const d=TX2[lang]||TX2.ja;return d[k]||TX2.en[k]||TX2.ja[k]||k}
@@ -221,10 +221,14 @@ function updateScoreProg(){
       av.className='spavg '+avgCls(m);
     }else{av.textContent='';av.className='spavg'}
   }
+  // savebar常時表示の進捗+平均（表示のみの複製・保存形式に影響なし）
+  const sb2=document.getElementById('sbCnt');
+  if(sb2){let txt=n+' / '+scorable;if(av&&av.textContent)txt+='　'+av.textContent;sb2.textContent=txt}
 }
 /* 採点カード1枚分のHTML（通常項目・過去項目で共用）。ansJa=表示中の模範解答が日本語フォールバックのとき言語注記を付ける */
 function scoreCardHtml(r,id,en,name,desc,ans,ansJa){
   const rec=r.items[id]||{};
+  const stt=getStt();const sttReady=!!(stt.key&&stt.endpoint); // STT未設定なら文字起こしボタン自体を出さない（押しても行き止まりのため）
   id=sanitizeId(id); // 多層防御: onclick/DOM id/data-id への埋め込みを描画側でも無害化（sessItemIdsのsafeKey・cfg無害化と同水準）
   const sc=rec.score;
   return `<div class="cd qc${sc?' scored':''}" id="sc-${id}">
@@ -233,7 +237,7 @@ function scoreCardHtml(r,id,en,name,desc,ans,ansJa){
     ${desc?`<div class="ed">${esc(desc)}</div>`:''}
     ${ans?`<details class="ans"><summary>${t('ansLbl')}${ansJa&&lang!=='ja'?' '+esc(t('ansJaNote')):''}</summary><div class="ansb">${esc(ans)}</div></details>`:''}
     ${rec.hasAudio?`<audio id="sa-${id}" controls></audio>`:`<div class="recstat">${t('recReady')}</div>`}
-    <div class="tlbl"><span>${t('trLbl')}</span>${rec.hasAudio?`<button class="aibtn" id="ai-${id}" onclick="aiTranscribe('${id}')">${t('aiBtn')}</button>`:''}</div>
+    <div class="tlbl"><span>${t('trLbl')}</span>${rec.hasAudio&&sttReady?`<button class="aibtn" id="ai-${id}" onclick="aiTranscribe('${id}')">${t('aiBtn')}</button>`:''}</div>
     <textarea class="trta" id="tr-${id}" placeholder="${t('phTr')}">${esc(rec.transcript!=null?rec.transcript:(rec.draft||''))}</textarea>
     <div class="tlbl">${t('scoreLbl')}</div>
     <div class="sr" role="radiogroup" aria-label="${esc(name)} ${t('scoreLbl')}">${[1,2,3,4,5].map(s=>`<button class="sb${sc===s?' sel':''}" role="radio" aria-checked="${sc===s?'true':'false'}" data-id="${id}" data-s="${s}" onclick="pickScore('${id}',${s},this)">${s}<span class="sl">${t('s'+s)}</span></button>`).join('')}</div>
@@ -282,7 +286,8 @@ async function renderScoreDetail(r){
     h+=`<details class="ans" style="margin-top:14px"><summary>${esc(t2('noRecGroup').replace('{n}',noRec.length))}</summary><div style="padding:0 10px 10px">${noRec.join('')}</div></details>`;
   }
   h+=`<div class="cd oasec"><h2>${t('overall')}</h2><textarea id="scOv" class="oata" rows="4" placeholder="${t('phOv')}">${esc(r.overall||'')}</textarea></div>`;
-  h+=`<div class="savebar"><span class="autost" id="scAutoSt" role="status"></span><div class="bg" style="margin:0"><button class="b b4" onclick="nextUnscored()">${esc(t2('nextUnscored'))}</button><button class="b b1" onclick="saveScore()">${t('btnSaveScore')}</button><button class="b b3" onclick="backToScoreList()">${t('btnBack')}</button></div></div>`;
+  // savebar: 進捗+平均の常時表示（sbCnt）と再生停止/速度（sbPause/sbSpd）— 長い採点画面のどこにいても操作・確認できる
+  h+=`<div class="savebar"><div style="display:flex;justify-content:space-between;align-items:flex-end;gap:8px"><span id="sbCnt" style="font-size:.78rem;font-weight:700;color:var(--sub)"></span><span class="autost" id="scAutoSt" role="status" style="flex:1"></span></div><div class="bg" style="margin:0"><button type="button" class="b b3 sbico" id="sbPause" onclick="pauseAllAudio()" aria-label="${esc(t2('pauseAll'))}" title="${esc(t2('pauseAll'))}">⏸</button><button type="button" class="b b3 sbico" id="sbSpd" onclick="cycleSpeed()" aria-label="${esc(t2('spd'))}" title="${esc(t2('spd'))}">${playRate}x</button><button class="b b4" onclick="nextUnscored()">${esc(t2('nextUnscored'))}</button><button class="b b1" onclick="saveScore()">${t('btnSaveScore')}</button><button class="b b3" onclick="backToScoreList()">${t('btnBack')}</button></div></div>`;
   det.innerHTML=h;
   det.querySelectorAll('textarea').forEach(el=>el.addEventListener('input',queueScoreDraft));
   updateScoreProg();
@@ -291,17 +296,22 @@ async function renderScoreDetail(r){
   for(const id of sessItemIds(r)){
     if(r.items[id]&&r.items[id].hasAudio){
       const b=await getAudio(r.id+'_'+id);
-      if(b){const au=document.getElementById('sa-'+id);if(au){const u=URL.createObjectURL(b);curScoreUrls.push(u);au.src=u;au.playbackRate=playRate}}
+      if(b){const au=document.getElementById('sa-'+id);if(au){const u=URL.createObjectURL(b);curScoreUrls.push(u);au.src=u;au.playbackRate=playRate;
+        // 排他制御: 1つ再生を始めたら他の音声を全て止める（二重再生で聞き取り不能になるのを防ぐ）
+        au.addEventListener('play',()=>{document.querySelectorAll('#scDetail audio').forEach(o=>{if(o!==au)o.pause()})});}}
     }
   }
 }
-/* 音声の再生速度トグル（1x→1.25x→1.5x→2x） */
+/* 音声の再生速度トグル（1x→1.25x→1.5x→2x）。トップのspdBtnとsavebarのsbSpdを同時更新 */
 let playRate=1;
 function cycleSpeed(){
   playRate={'1':1.25,'1.25':1.5,'1.5':2,'2':1}[String(playRate)]||1;
   document.querySelectorAll('#scDetail audio').forEach(a=>{a.playbackRate=playRate});
   const b=document.getElementById('spdBtn');if(b)b.textContent=t2('spd')+' '+playRate+'x';
+  const sb=document.getElementById('sbSpd');if(sb)sb.textContent=playRate+'x';
 }
+/* savebarの⏸: 再生中の音声を全て止める（再生中のカードが画面外でも止められる） */
+function pauseAllAudio(){document.querySelectorAll('#scDetail audio').forEach(a=>a.pause())}
 /* 「質問しなかった」＝採点対象外（score=null維持なので集計・CSVは従来通り互換） */
 function pickNA(id,checked){
   if(!curScore)return;
@@ -315,25 +325,42 @@ function pickNA(id,checked){
   }
   updateScoreProg();queueScoreDraft();
 }
-/* 次の未採点項目へジャンプ */
-function nextUnscored(){
-  if(!curScore)return;
-  const id=sessItemIds(curScore).find(id=>{
+/* 次の未採点項目のid（なければnull） */
+function findUnscoredId(){
+  if(!curScore)return null;
+  return sessItemIds(curScore).find(id=>{
     const rec=curScore.items[id];
     if(!rec||!rec.hasAudio)return false;
     const na=document.querySelector('.nachk[data-id="'+id+'"]');
     if(na&&na.checked)return false;
     return !document.querySelector('.sb[data-id="'+id+'"].sel');
-  });
+  })||null;
+}
+/* 次の未採点項目へジャンプ＋その音声を頭から自動再生（排他制御済み＝前の音声は止まる） */
+function nextUnscored(){
+  if(!curScore)return;
+  const id=findUnscoredId();
   if(!id){toast(t2('allScored'));return}
   const c=document.getElementById('sc-'+id);
   if(c)c.scrollIntoView({behavior:'smooth',block:'center'});
+  const au=document.getElementById('sa-'+id);
+  if(au&&au.src){au.currentTime=0;au.play().catch(()=>{})}
+}
+/* 採点タップ後、未採点が残っていれば600ms後に自動で次へ（全採点済みトーストは出さない） */
+let autoNextTimer=null;
+function queueAutoNext(){
+  clearTimeout(autoNextTimer);
+  autoNextTimer=setTimeout(()=>{
+    const det=document.getElementById('scDetail');
+    if(!curScore||!det||det.style.display==='none')return;
+    if(findUnscoredId())nextUnscored();
+  },600);
 }
 function pickScore(id,s,btn){
   // 押した瞬間にcurScoreへ反映（進捗カウンタの分母・分子がDOM選択と一致する）
   if(curScore){curScore.items[id]=curScore.items[id]||{};curScore.items[id].score=s}
-  btn.parentElement.querySelectorAll('.sb').forEach(b=>{b.classList.remove('sel');b.setAttribute('aria-checked','false')});btn.classList.add('sel');btn.setAttribute('aria-checked','true');const sp=document.getElementById('sp-'+id);if(sp)sp.textContent=s+' — '+t('s'+s);const c=document.getElementById('sc-'+id);if(c)c.classList.add('scored');const na=document.querySelector('.nachk[data-id="'+id+'"]');if(na&&na.checked){na.checked=false;if(curScore&&curScore.items[id])curScore.items[id].na=false}updateScoreProg();queueScoreDraft()}
-function backToScoreList(){persistScoreDraft(false);curScore=null;releaseScoreUrls();document.getElementById('scDetail').style.display='none';drawScoreList()}
+  btn.parentElement.querySelectorAll('.sb').forEach(b=>{b.classList.remove('sel');b.setAttribute('aria-checked','false')});btn.classList.add('sel');btn.setAttribute('aria-checked','true');const sp=document.getElementById('sp-'+id);if(sp)sp.textContent=s+' — '+t('s'+s);const c=document.getElementById('sc-'+id);if(c)c.classList.add('scored');const na=document.querySelector('.nachk[data-id="'+id+'"]');if(na&&na.checked){na.checked=false;if(curScore&&curScore.items[id])curScore.items[id].na=false}updateScoreProg();queueScoreDraft();queueAutoNext()}
+function backToScoreList(){clearTimeout(autoNextTimer);persistScoreDraft(false);curScore=null;releaseScoreUrls();document.getElementById('scDetail').style.display='none';drawScoreList()}
 function releaseScoreUrls(){curScoreUrls.forEach(u=>{try{URL.revokeObjectURL(u)}catch(e){}});curScoreUrls=[]}
 
 
