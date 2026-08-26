@@ -2,6 +2,15 @@
 /* ==============================================================
    デフォルト試問項目（養豚 口頭試問）
    ============================================================== */
+/* デフォルト項目の模範解答: works-qa.js（睦沢pptx由来）に既存出典がある作業のみ再利用する。
+   出典のない質問（q1/q3/q5/q7〜q9）には新規執筆しない＝捏造禁止。ansは任意フィールド＝後方互換 */
+function defaultAns(workId){
+  try{
+    const w=WORKSQA.works.find(x=>x.id===workId);
+    if(!w)return undefined;
+    return '・'+w.purpose.concat(w.caution,w.mistakes).join('\n・');
+  }catch(e){return undefined}
+}
 function defaultCfg(){return{sections:[
   {id:'A',name:'飼養・健康管理'},
   {id:'B',name:'衛生・防疫'},
@@ -9,11 +18,11 @@ function defaultCfg(){return{sections:[
   {id:'D',name:'安全・コンプライアンス'}
 ],items:[
   {id:'q1',secId:'A',name:'母豚の健康観察',desc:'母豚の健康状態を確認する際、どこを見て何を判断しますか。異常を見つけたときの対応も説明してください。'},
-  {id:'q2',secId:'A',name:'飼料・給餌管理',desc:'給餌量の決め方と、食い込み不良を見つけたときの対応を説明してください。'},
+  {id:'q2',secId:'A',name:'飼料・給餌管理',desc:'給餌量の決め方と、食い込み不良を見つけたときの対応を説明してください。',ans:defaultAns('feeding-daily')},
   {id:'q3',secId:'A',name:'飲水・環境管理',desc:'豚舎の温度・換気・飲水管理で日頃気をつけている点を説明してください。'},
-  {id:'q4',secId:'B',name:'消毒・バイオセキュリティ',desc:'農場に病気を持ち込まないために実施している消毒・防疫対策を説明してください。'},
+  {id:'q4',secId:'B',name:'消毒・バイオセキュリティ',desc:'農場に病気を持ち込まないために実施している消毒・防疫対策を説明してください。',ans:defaultAns('disinfect')},
   {id:'q5',secId:'B',name:'異常の早期発見と報告',desc:'疾病や事故の兆候に気づいたとき、どのように判断し誰に報告しますか。'},
-  {id:'q6',secId:'C',name:'分娩介助の判断',desc:'分娩時に介助が必要と判断する基準と、難産時の対応を説明してください。'},
+  {id:'q6',secId:'C',name:'分娩介助の判断',desc:'分娩時に介助が必要と判断する基準と、難産時の対応を説明してください。',ans:defaultAns('farrow-assist')},
   {id:'q7',secId:'C',name:'子豚のケア',desc:'生まれた子豚に対して行う処置と、その目的を順を追って説明してください。'},
   {id:'q8',secId:'D',name:'作業安全',desc:'作業中の事故を防ぐために気をつけていることを説明してください。'},
   {id:'q9',secId:'D',name:'記録・ルール遵守',desc:'記録や報告のルールを守ることがなぜ重要か、あなたの考えを説明してください。'}

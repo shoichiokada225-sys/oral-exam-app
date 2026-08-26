@@ -17,6 +17,7 @@ delSecConfirm:'このセクションと全質問を削除しますか？',cfgNot
 storeFail:'保存に失敗しました（端末の空き容量不足の可能性）。設定タブからバックアップの書き出しをおすすめします',
 gcConfirm:'どのセッションにも属さない録音データが{n}件見つかりました。削除して端末の容量を空けますか？',gcDone:'件の不要な録音を削除しました',
 naLbl:'質問しなかった（採点対象外）',nextUnrec:'次の未録音へ',nextUnscored:'次の未採点へ',allRec:'すべて録音済みです',allScored:'未採点の項目はありません',
+recBusy:'録音中です。先に「停止」を押してください',noRecGroup:'録音のない項目（{n}）',
 spd:'速度',sumTimes:'回受験',added:'追加済み',prevLbl:'前回',extraSec:'過去の項目（現在の設定にない質問）'},
 en:{qsTitle:'Question set',qsCur:'Active set',qsNone:'(unsaved layout)',qsSaveNew:'Save current items as a new set',qsOver:'Overwrite',qsApply:'Switch',qsRen:'Rename',qsDel:'Delete',
 qsNamePrompt:'Enter a set name',
@@ -31,14 +32,17 @@ delSecConfirm:'Delete this section and all its questions?',cfgNote:'Deleting/rep
 storeFail:'Save failed (device storage may be full). Export a backup from Settings',
 gcConfirm:'{n} recording(s) belong to no session. Delete them to free space?',gcDone:' orphan recording(s) deleted',
 naLbl:'Not asked (excluded from scoring)',nextUnrec:'Next unrecorded',nextUnscored:'Next unscored',allRec:'All items recorded',allScored:'Nothing left to score',
+recBusy:'Recording in progress — press "Stop" first',noRecGroup:'Items without recording ({n})',
 spd:'Speed',sumTimes:' exam(s)',added:'Added',extraSec:'Past items (not in current settings)',prevLbl:'Prev'},
 vi:{qsTitle:'Bộ câu hỏi',qsCur:'Bộ hiện tại',qsNone:'(chưa lưu thành bộ)',qsSaveNew:'Lưu các mục hiện tại thành bộ mới',qsOver:'Ghi đè',qsApply:'Chuyển',qsRen:'Đổi tên',qsDel:'Xóa',
 qsNamePrompt:'Nhập tên bộ',qbTitle:'Bộ câu hỏi mẫu',qbReplace:'Thay thế mục',qbAppend:'Thêm vào mục',
 naLbl:'Không hỏi (không chấm)',nextUnrec:'Mục chưa ghi tiếp theo',nextUnscored:'Mục chưa chấm tiếp theo',allRec:'Đã ghi tất cả',allScored:'Không còn mục chưa chấm',
+recBusy:'Đang ghi âm — hãy nhấn "Dừng" trước',noRecGroup:'Mục không có ghi âm ({n})',
 spd:'Tốc độ',sumTimes:' lần thi',added:'Đã thêm',extraSec:'Mục cũ (không có trong cài đặt hiện tại)',prevLbl:'Lần trước'},
 id:{qsTitle:'Set pertanyaan',qsCur:'Set aktif',qsNone:'(belum disimpan sebagai set)',qsSaveNew:'Simpan item saat ini sebagai set baru',qsOver:'Timpa',qsApply:'Ganti',qsRen:'Ubah nama',qsDel:'Hapus',
 qsNamePrompt:'Masukkan nama set',qbTitle:'Set pertanyaan preset',qbReplace:'Ganti item',qbAppend:'Tambahkan item',
 naLbl:'Tidak ditanya (tidak dinilai)',nextUnrec:'Item belum direkam berikutnya',nextUnscored:'Item belum dinilai berikutnya',allRec:'Semua sudah direkam',allScored:'Tidak ada yang belum dinilai',
+recBusy:'Sedang merekam — tekan "Stop" dulu',noRecGroup:'Item tanpa rekaman ({n})',
 spd:'Kecepatan',sumTimes:' ujian',added:'Sudah ditambah',extraSec:'Item lama (tidak ada di pengaturan)',prevLbl:'Sebelumnya'}
 };
 function t2(k){const d=TX2[lang]||TX2.ja;return d[k]||TX2.en[k]||TX2.ja[k]||k}
@@ -239,13 +243,19 @@ async function renderScoreDetail(r){
   const det=document.getElementById('scDetail');det.style.display='block';
   const secs=getSections(),items=getItems();
   let h=`<div class="cd meta"><div style="font-size:.85rem;color:var(--sub)">${esc(r.date)}　${t('erLbl')}: ${esc(r.examiner)}</div><div style="font-size:1.1rem;font-weight:700;margin-top:2px">${esc(r.examinee)}</div><div class="pmeta" style="margin-top:10px"><span>${t('progScore')}</span><span><span id="spAvg" class="spavg"></span><span id="spCnt"></span></span></div><div class="pbar"><i id="spBar"></i></div><button type="button" class="b b3" id="spdBtn" style="margin-top:10px;padding:6px 12px;font-size:.78rem" onclick="cycleSpeed()">${esc(t2('spd'))} ${playRate}x</button></div>`;
+  // 録音も点も文字起こしも無い項目は折りたたみへ退避（採点すべきカードだけを本流に並べる）
+  const noRec=[];
   secs.forEach(sec=>{
     const secItems=items.filter(it=>it.secId===sec.id);
     if(!secItems.length)return;
-    h+=`<h2 class="stit">${esc(sec.name)}</h2>`;
+    let sh='';
     secItems.forEach((it,ii)=>{
-      h+=scoreCardHtml(r,it.id,sec.name.charAt(0)+'-'+(ii+1),it.name,it.desc,it.ans);
+      const card=scoreCardHtml(r,it.id,sec.name.charAt(0)+'-'+(ii+1),it.name,it.desc,it.ans);
+      const rec=r.items[it.id];
+      if(rec&&(rec.hasAudio||rec.score!=null||rec.transcript))sh+=card;
+      else noRec.push(card);
     });
+    if(sh)h+=`<h2 class="stit">${esc(sec.name)}</h2>`+sh;
   });
   // 現在の設定に無いが、このセッションに録音/採点/文字起こしが残っている過去項目（cfg変更後も採点できる）
   const extras=sessItemIds(r).filter(id=>{
@@ -258,6 +268,9 @@ async function renderScoreDetail(r){
       const m=itemMeta(r,id);
       h+=scoreCardHtml(r,id,'#-'+(ii+1),m.name+(m.sec?'（'+m.sec+'）':''),'',null);
     });
+  }
+  if(noRec.length){
+    h+=`<details class="ans" style="margin-top:14px"><summary>${esc(t2('noRecGroup').replace('{n}',noRec.length))}</summary><div style="padding:0 10px 10px">${noRec.join('')}</div></details>`;
   }
   h+=`<div class="cd oasec"><h2>${t('overall')}</h2><textarea id="scOv" class="oata" rows="4" placeholder="${t('phOv')}">${esc(r.overall||'')}</textarea></div>`;
   h+=`<div class="savebar"><span class="autost" id="scAutoSt" role="status"></span><div class="bg" style="margin:0"><button class="b b4" onclick="nextUnscored()">${esc(t2('nextUnscored'))}</button><button class="b b1" onclick="saveScore()">${t('btnSaveScore')}</button><button class="b b3" onclick="backToScoreList()">${t('btnBack')}</button></div></div>`;
@@ -306,7 +319,10 @@ function nextUnscored(){
   const c=document.getElementById('sc-'+id);
   if(c)c.scrollIntoView({behavior:'smooth',block:'center'});
 }
-function pickScore(id,s,btn){btn.parentElement.querySelectorAll('.sb').forEach(b=>{b.classList.remove('sel');b.setAttribute('aria-checked','false')});btn.classList.add('sel');btn.setAttribute('aria-checked','true');const c=document.getElementById('sc-'+id);if(c)c.classList.add('scored');const na=document.querySelector('.nachk[data-id="'+id+'"]');if(na&&na.checked){na.checked=false;if(curScore&&curScore.items[id])curScore.items[id].na=false}updateScoreProg();queueScoreDraft()}
+function pickScore(id,s,btn){
+  // 押した瞬間にcurScoreへ反映（進捗カウンタの分母・分子がDOM選択と一致する）
+  if(curScore){curScore.items[id]=curScore.items[id]||{};curScore.items[id].score=s}
+  btn.parentElement.querySelectorAll('.sb').forEach(b=>{b.classList.remove('sel');b.setAttribute('aria-checked','false')});btn.classList.add('sel');btn.setAttribute('aria-checked','true');const c=document.getElementById('sc-'+id);if(c)c.classList.add('scored');const na=document.querySelector('.nachk[data-id="'+id+'"]');if(na&&na.checked){na.checked=false;if(curScore&&curScore.items[id])curScore.items[id].na=false}updateScoreProg();queueScoreDraft()}
 function backToScoreList(){persistScoreDraft(false);curScore=null;releaseScoreUrls();document.getElementById('scDetail').style.display='none';drawScoreList()}
 function releaseScoreUrls(){curScoreUrls.forEach(u=>{try{URL.revokeObjectURL(u)}catch(e){}});curScoreUrls=[]}
 
@@ -348,6 +364,8 @@ function saveScore(){
   toast(t('tScored'));
   curScore=null;releaseScoreUrls();
   document.getElementById('scDetail').style.display='none';
+  // 保存直後は「すべて」表示に切替＝いま採点した行が「採点済」バッジ付きで見え続ける（空画面の行き止まり防止）
+  const sf=document.getElementById('scFil');if(sf)sf.value='all';
   drawScoreList();refreshSel();
 }
 

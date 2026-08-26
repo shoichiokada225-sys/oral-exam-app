@@ -56,6 +56,9 @@ async function toggleRec(itemId){
   // UI
   const btn=document.getElementById('rb-'+itemId);
   btn.classList.add('recording');btn.querySelector('.rlab').textContent=t('recStop');
+  // ステータスも「録音中」に（タイマーの横に「未録音」が残る矛盾表示を防ぐ）
+  const rs0=document.getElementById('rs-'+itemId);
+  if(rs0){rs0.textContent='● '+t('recNow');rs0.classList.remove('ok')}
   const lv=document.getElementById('lv-'+itemId);if(lv){lv.style.display='block';lv.querySelector('.lvtxt').textContent=''}
   a.timer=setInterval(()=>{
     const s=Math.floor((Date.now()-a.t0)/1000);
@@ -77,6 +80,9 @@ function stopRec(){
   const btn=document.getElementById('rb-'+itemId);
   if(btn){btn.classList.remove('recording');btn.querySelector('.rlab').textContent=t('recRedo')}
   const rt=document.getElementById('rt-'+itemId);if(rt)rt.textContent='';
+  // ステータスを保存済み状態に合わせて戻す（onstop成功時は「録音済み」で上書きされる。失敗時のフォールバック）
+  const rs=document.getElementById('rs-'+itemId);
+  if(rs){const has=cur&&cur.items[itemId]&&cur.items[itemId].hasAudio;rs.textContent=has?('● '+t('recDone')):t('recReady');rs.classList.toggle('ok',!!has)}
   active=null;
   return p;
 }

@@ -191,6 +191,9 @@ body{
 .tabs button.on::after{opacity:1;transform:translate(-50%,0) scale(1)}
 .tabs button.on svg{transform:translateY(-1px)}
 .tabs button:active svg{transform:scale(.88)}
+/* 試問保存直後の「次は採点タブ」誘導パルス（app.js saveSessionが付与、5秒で除去） */
+.tabs button.attn{animation:attnPulse 1s ease 3;color:var(--pri)}
+@keyframes attnPulse{50%{transform:translateY(-3px)}}
 
 /* ---- ページ ---- */
 .pg{display:none;padding:16px 16px 8px;max-width:660px;margin:0 auto}

@@ -3,7 +3,7 @@
    言語
    ============================================================== */
 function setLang(l){
-  if(active){toast(t('recStop'),1);return} // 録音中は切替不可（カード再描画でUIが壊れるため）
+  if(active){toast(t2('recBusy'),1);return} // 録音中は切替不可（カード再描画でUIが壊れるため）
   lang=l;localStorage.setItem(LKEY,l);document.documentElement.lang=l;
   document.querySelectorAll('.lsw button').forEach(b=>{const on=b.textContent.trim()==={ja:'JP',en:'EN',vi:'VI',id:'ID'}[l];b.classList.toggle('on',on);b.setAttribute('aria-pressed',on?'true':'false')});
   applyT();buildExamCards();buildCfgUI();
@@ -63,6 +63,13 @@ function injectDynamicContainers(){
   if(meta&&!document.getElementById('examSetBox')){
     const d=document.createElement('div');
     d.id='examSetBox';d.className='cd';d.style.display='none';
+    meta.parentElement.insertBefore(d,meta);
+  }
+  // 試問タブ上部：1行の使い方ガイド（初見の試問者向け。文言はi18n howto・applyTで言語追従）
+  if(meta&&!document.getElementById('examHowto')){
+    const d=document.createElement('div');
+    d.id='examHowto';d.className='cd';d.dataset.t='howto';
+    d.style.cssText='font-size:.8rem;color:var(--sub);line-height:1.7';
     meta.parentElement.insertBefore(d,meta);
   }
   // 設定タブ：プリセット/質問セットUI（作業カタログボタンの上）
@@ -162,6 +169,9 @@ async function saveSession(){
   localStorage.removeItem(DRAFTKEY);
   try{localStorage.setItem(EKEY,cur.examiner)}catch(e){} // 試問者名を次回の初期値に
   toast(t('tSaved'));
+  // 成果物の行き先（採点タブ）へ視覚誘導（保存直後の「消えた」誤解を防ぐ）
+  const sb=document.querySelector('.tabs button[data-pg="pgScore"]');
+  if(sb){sb.classList.add('attn');setTimeout(()=>sb.classList.remove('attn'),5000)}
   newSession();
   document.getElementById('fEr').value=cur.examiner=(localStorage.getItem(EKEY)||'');
   document.getElementById('fEe').value='';
@@ -186,7 +196,7 @@ async function resetExam(){
    タブ切替
    ============================================================== */
 function swTab(btn){
-  if(active){toast(t('recStop'),1);return}
+  if(active){toast(t2('recBusy'),1);return}
   // 設定タブで未保存の項目編集がある場合は確認し、離脱時は保存済み状態に戻す
   //（試問カードが未保存cfgで描画されて見た目と保存状態が乖離する事故を防ぐ）
   const curPg=document.querySelector('.pg.on');

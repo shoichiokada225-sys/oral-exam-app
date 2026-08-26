@@ -38,7 +38,7 @@ function ok(name, cond) {
   console.log('[3] 試問の保存 → 採点');
   await page.fill('#fEr', '岡田');
   await page.fill('#fEe', 'テスト太郎');
-  await page.click('text=試問を保存');
+  await page.click('button:has-text("試問を保存")'); // 使い方ガイド文中の「試問を保存」と衝突しないようbuttonに限定
   await page.waitForTimeout(400);
   await page.click('.tabs button[data-pg="pgScore"]');
   await page.waitForTimeout(300);
@@ -89,19 +89,19 @@ function ok(name, cond) {
   await page.click('#btnCatConfirm');
   await page.waitForTimeout(300);
   ok('セクション「除フン」が追加', await page.evaluate(() => cfg.sections.some(s => s.name === '除フン')));
-  ok('質問3問が追加', await page.evaluate(() => cfg.items.filter(i => i.ans).length === 3));
+  ok('質問3問が追加', await page.evaluate(() => cfg.items.filter(i => i.id.startsWith('qa_')).length === 3));
   // 試問タブに反映（12カード）＋模範解答は折りたたみ
   await page.click('.tabs button[data-pg="pgExam"]');
   await page.waitForTimeout(300);
   ok('試問カード12枚', await page.locator('#examCards .qc').count() === 12);
-  ok('模範解答details 3個', await page.locator('#examCards details.ans').count() === 3);
+  ok('模範解答details 6個（初期3+追加3）', await page.locator('#examCards details.ans').count() === 6);
   ok('模範解答は閉じている', await page.evaluate(() => [...document.querySelectorAll('#examCards details.ans')].every(d => !d.open)));
 
   console.log('[6] 採点画面に模範解答が出る');
-  const addedId = await page.evaluate(() => cfg.items.find(i => i.ans).id);
+  const addedId = await page.evaluate(() => cfg.items.find(i => i.id.startsWith('qa_')).id);
   await page.evaluate(() => { // 追加項目に録音があるセッションを模擬
     const all = JSON.parse(localStorage.getItem('oral_exam_sessions_v1')).sessions;
-    const it = cfg.items.find(i => i.ans);
+    const it = cfg.items.find(i => i.id.startsWith('qa_'));
     all[0].items[it.id] = { hasAudio: false, transcript: 'テスト', score: null };
     localStorage.setItem('oral_exam_sessions_v1', JSON.stringify({ sessions: all }));
   });
@@ -125,7 +125,7 @@ function ok(name, cond) {
   await dl.saveAs(path);
   const bk = JSON.parse(require('fs').readFileSync(path, 'utf8'));
   ok('バックアップ形式', bk.app === 'oral-exam-app' && bk.sessions.length === 1);
-  ok('cfgに模範解答が含まれる', bk.cfg.items.filter(i => i.ans).length === 3);
+  ok('cfgに模範解答が含まれる', bk.cfg.items.filter(i => i.ans).length === 6);
   ok('音声が同梱される', Object.keys(bk.audio).length >= 1);
   // 全消去→復元
   await page.evaluate(async () => {
@@ -143,7 +143,7 @@ function ok(name, cond) {
   await fc.setFiles(path);
   await page.waitForTimeout(600);
   ok('復元後セッション1件', await page.evaluate(() => JSON.parse(localStorage.getItem('oral_exam_sessions_v1')).sessions.length === 1));
-  ok('復元後cfgに模範解答', await page.evaluate(() => cfg.items.filter(i => i.ans).length === 3));
+  ok('復元後cfgに模範解答', await page.evaluate(() => cfg.items.filter(i => i.ans).length === 6));
 
   console.log('[8] 言語切替の回帰');
   await page.click('.tabs button[data-pg="pgExam"]');
