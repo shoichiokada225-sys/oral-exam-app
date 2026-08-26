@@ -168,9 +168,12 @@ function jumpToActiveRec(scrollOnly){
   const inView=r.top>=0&&r.bottom<=(window.innerHeight||document.documentElement.clientHeight);
   if(inView&&!scrollOnly){stopRec();return}
   (card||tgt).scrollIntoView({behavior:'smooth',block:'center'});
+  // スクロール到着後に停止ボタンを強調（「ここで停止」を明示。ピルの1タップ目で止まらない驚きを補う）
+  if(btn){btn.classList.add('attn');setTimeout(()=>btn.classList.remove('attn'),2200)}
 }
 async function saveSession(){
-  if(active)await stopRec();
+  // 録音の真っ最中の保存は回答を途中で切断してコミットするため、必ず確認を挟む（タブ/言語切替の保護と一貫させる）
+  if(active){if(!confirm(t('saveWhileRec')))return;await stopRec()}
   cur.date=document.getElementById('fDate').value;
   cur.examiner=document.getElementById('fEr').value.trim();
   cur.examinee=document.getElementById('fEe').value.trim();

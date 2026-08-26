@@ -2,7 +2,8 @@
 /* ==============================================================
    ユーティリティ
    ============================================================== */
-function toast(msg,err){const el=document.getElementById('toast');el.textContent=msg;el.classList.toggle('err',!!err);el.setAttribute('role',err?'alert':'status');el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2600)}
+/* エラーは5秒表示（現場で受験者へ視線を移した後でも気づけるように）。連続表示時は前のタイマーを破棄 */
+function toast(msg,err){const el=document.getElementById('toast');el.textContent=msg;el.classList.toggle('err',!!err);el.setAttribute('role',err?'alert':'status');el.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>el.classList.remove('show'),err?5000:2600)}
 function esc(s){if(s==null)return'';return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
 function blobToB64(blob){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]||'');r.onerror=()=>rej(r.error);r.readAsDataURL(blob)})}

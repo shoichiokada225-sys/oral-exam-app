@@ -5,9 +5,18 @@
 async function toggleRec(itemId){
   if(active&&active.itemId===itemId){await stopRec();return}
   if(active){toast(t('recOther'),1);jumpToActiveRec(true);return} // 誤タップでも録音中カードへ自動で連れて行く
+  // 録り直しは開始前に必ず確認（停止した瞬間に前のテイクが上書きされるため。誤タップの唯一の出口が破壊にならないように）
+  if(cur&&cur.items[itemId]&&cur.items[itemId].hasAudio&&!confirm(t('reRecConfirm')))return;
+  hideUndoBar(); // 新しい録音が始まったら旧テイクの「元に戻す」窓は閉じる（別項目の復元でカード再描画がUIを壊すのを防ぐ）
   let stream;
   try{stream=await navigator.mediaDevices.getUserMedia({audio:true})}
-  catch(e){toast(t('micErr'),1);return}
+  catch(e){
+    toast(t('micErr'),1);
+    // トースト(5秒)が消えても手掛かりが残るよう、カードのステータスに永続表示（次回の録音開始で自然に上書き）
+    const rs=document.getElementById('rs-'+itemId);
+    if(rs&&!(cur&&cur.items[itemId]&&cur.items[itemId].hasAudio)){rs.textContent='⚠ '+t('micErrShort');rs.classList.remove('ok')}
+    return;
+  }
   let mime='';
   if(window.MediaRecorder){
     if(MediaRecorder.isTypeSupported('audio/webm'))mime='audio/webm';
@@ -16,11 +25,28 @@ async function toggleRec(itemId){
   const mr=mime?new MediaRecorder(stream,{mimeType:mime}):new MediaRecorder(stream);
   const chunks=[];
   // active状態を先に作り、ハンドラからクロージャ経由で参照する（onstopは非同期で発火するため）
-  const a={itemId,mr,stream,chunks,rec:null,draft:'',timer:null,t0:Date.now(),_resolve:null};
+  const a={itemId,mr,stream,chunks,rec:null,draft:'',timer:null,t0:Date.now(),_resolve:null,_old:null};
+  // 録り直しの場合は旧テイクをメモリ退避（上書き後10秒だけ「元に戻す」を出すため。保存形式は不変）
+  if(cur&&cur.items[itemId]&&cur.items[itemId].hasAudio){
+    try{const ob=await getAudio(cur.id+'_'+itemId);if(ob)a._old={blob:ob,draft:cur.items[itemId].draft||''}}catch(e){}
+  }
   mr.ondataavailable=e=>{if(e.data&&e.data.size>0)chunks.push(e.data)};
+  // MediaRecorderがエラーで死んだらタイマーとピルを止めて失敗を明示（「録音できているつもり」で試問を続けさせない）
+  mr.onerror=()=>{if(active&&active.mr===mr){toast(t('recFail'),1);stopRec()}};
   mr.onstop=async()=>{
     try{
       const blob=new Blob(chunks,{type:mr.mimeType||'audio/webm'});
+      // 0バイト録音（マイク経路死亡等）は保存しない＝hasAudioを立てず失敗を明示（旧テイクは無傷のまま）
+      if(!blob.size){
+        toast(t('recFail'),1);
+        if(cur&&cur.items[itemId]){
+          if(a._old)cur.items[itemId].draft=a._old.draft; // 下書きも旧テイクのものへ戻す
+          saveDraft();
+        }
+        const rs=document.getElementById('rs-'+itemId);
+        if(rs&&!(cur&&cur.items[itemId]&&cur.items[itemId].hasAudio)){rs.textContent='⚠ '+t('recFailStat');rs.classList.remove('ok')}
+        return;
+      }
       await putAudio(cur.id+'_'+itemId,blob);
       cur.items[itemId]=cur.items[itemId]||{};
       cur.items[itemId].hasAudio=true;
@@ -35,6 +61,7 @@ async function toggleRec(itemId){
       const lv=document.getElementById('lv-'+itemId);
       if(lv){lv.querySelector('.lvtxt').textContent=cur.items[itemId].draft;lv.style.display=cur.items[itemId].draft?'block':'none'}
       maybeAutoUpload(itemId); // Googleドライブ自動保存（設定時のみ）
+      if(a._old)showUndoBar(cur.id,itemId,a._old); // 録り直しの上書き完了：10秒だけ「元に戻す」を提示
     }finally{if(a._resolve)a._resolve()}
   };
   // 自動文字起こし（ベストエフォート。Web Speech API対応ブラウザのみ）
@@ -51,11 +78,25 @@ async function toggleRec(itemId){
       rec.start();a.rec=rec;
     }catch(e){a.rec=null}
   }
+  // 簡易VUメーター（音を拾えているかの可視化。WebAudioが使えなくても録音は継続）
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(AC){
+      const ac=new AC();const an=ac.createAnalyser();an.fftSize=512;
+      ac.createMediaStreamSource(stream).connect(an);
+      a.ac=ac;a.an=an;a.buf=new Uint8Array(an.fftSize);a.lastSound=Date.now();
+    }
+  }catch(e){a.ac=null;a.an=null}
   active=a;
   mr.start();
   // UI
   const btn=document.getElementById('rb-'+itemId);
   btn.classList.add('recording');btn.querySelector('.rlab').textContent=t('recStop');
+  // VUバー（録音中だけ表示。ミュート/故障マイクと正常録音の画面が同一になるのを防ぐ）
+  if(btn.parentElement&&!document.getElementById('vu-'+itemId)){
+    const vu=document.createElement('i');vu.className='vu';vu.id='vu-'+itemId;
+    btn.parentElement.insertBefore(vu,document.getElementById('rs-'+itemId)||null);
+  }
   // ステータスも「録音中」に（タイマーの横に「未録音」が残る矛盾表示を防ぐ）
   const rs0=document.getElementById('rs-'+itemId);
   if(rs0){rs0.textContent='● '+t('recNow');rs0.classList.remove('ok')}
@@ -68,8 +109,61 @@ async function toggleRec(itemId){
     const s=Math.floor((Date.now()-a.t0)/1000);
     const mm=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
     const rt=document.getElementById('rt-'+itemId);if(rt)rt.textContent=mm;
-    const p=document.getElementById('recPill');if(p)p.textContent='● '+mm+' '+t('recStop');
+    // VU: 入力音量をバー幅に反映。無音が10秒続いたら警告表示（ミュート/BTヘッドセット横取り対策）
+    let silent=false;
+    if(a.an){
+      try{
+        a.an.getByteTimeDomainData(a.buf);
+        let sum=0;for(let i=0;i<a.buf.length;i++){const d=(a.buf[i]-128)/128;sum+=d*d}
+        const rms=Math.sqrt(sum/a.buf.length);
+        const vu=document.getElementById('vu-'+itemId);if(vu)vu.style.width=Math.min(48,Math.round(rms*300))+'px';
+        if(rms>=0.01)a.lastSound=Date.now();
+        silent=(Date.now()-a.lastSound)>10000;
+      }catch(e){}
+    }
+    const rs=document.getElementById('rs-'+itemId);
+    if(rs){rs.textContent=silent?('⚠ '+t('noSignal')):('● '+t('recNow'));rs.classList.remove('ok')}
+    // ピルのラベルは実際の動作に一致させる：停止ボタンが見えていれば「停止」、見えていなければ「録音中の項目へ▲」
+    const p=document.getElementById('recPill');
+    if(p){
+      const rb=document.getElementById('rb-'+itemId),r=rb&&rb.getBoundingClientRect();
+      const inV=r&&r.top>=0&&r.bottom<=(window.innerHeight||document.documentElement.clientHeight);
+      p.textContent=(silent?'⚠ ':'● ')+mm+' '+(inV?t('recStop'):t('recJump'));
+    }
   },250);
+}
+
+/* 録り直しの「元に戻す」：上書き直後10秒だけ旧テイクをメモリから復元できる（IndexedDBスキーマ・保存形式は不変） */
+let lastReplaced=null,undoTimer=null;
+function showUndoBar(sessId,itemId,old){
+  hideUndoBar();
+  lastReplaced={key:sessId+'_'+itemId,sessId,itemId,blob:old.blob,draft:old.draft};
+  const bar=document.createElement('div');bar.id='undoBar';
+  const sp=document.createElement('span');sp.textContent=t('recReplaced');
+  const b=document.createElement('button');b.type='button';b.textContent=t('undoBtn');
+  b.onclick=async()=>{
+    const lr=lastReplaced;hideUndoBar();
+    if(!lr)return;
+    if(active){toast(t2('recBusy'),1);return} // 録音中の再描画はUIを壊すため復元しない
+    try{
+      await putAudio(lr.key,lr.blob);
+      if(cur&&cur.id===lr.sessId&&cur.items[lr.itemId]){
+        cur.items[lr.itemId].mime=lr.blob.type||'audio/webm';
+        cur.items[lr.itemId].draft=lr.draft;
+        saveDraft();
+        buildExamCards();
+      }
+      toast(t('undoDone'));
+    }catch(e){toast(t2('storeFail'),1)}
+  };
+  bar.appendChild(sp);bar.appendChild(b);
+  document.body.appendChild(bar);
+  undoTimer=setTimeout(hideUndoBar,10000);
+}
+function hideUndoBar(){
+  lastReplaced=null;
+  if(undoTimer){clearTimeout(undoTimer);undoTimer=null}
+  const el=document.getElementById('undoBar');if(el)el.remove();
 }
 function updateLive(itemId,txt){const lv=document.getElementById('lv-'+itemId);if(lv)lv.querySelector('.lvtxt').textContent=txt}
 function stopRec(){
@@ -82,6 +176,8 @@ function stopRec(){
   const p=new Promise(res=>{a._resolve=res});
   try{a.mr.stop()}catch(e){if(a._resolve)a._resolve()}
   try{if(a.rec)a.rec.stop()}catch(e){}
+  try{if(a.ac)a.ac.close()}catch(e){}
+  const vu=document.getElementById('vu-'+itemId);if(vu)vu.remove();
   a.stream.getTracks().forEach(tr=>tr.stop());
   const btn=document.getElementById('rb-'+itemId);
   if(btn){btn.classList.remove('recording');btn.querySelector('.rlab').textContent=t('recRedo')}
