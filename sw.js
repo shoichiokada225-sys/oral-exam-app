@@ -4,7 +4,7 @@
  *  - 静的アセットとChart.js CDNはキャッシュ優先
  *  - GAS(script.google.com)やAPI等の外部リクエストには一切関与しない
  */
-const VER = 'oral-exam-v10';
+const VER = 'oral-exam-v11';
 const ASSETS = [
   './',
   './index.html',
@@ -12,6 +12,7 @@ const ASSETS = [
   './js/util.js',
   './js/i18n.js',
   './js/works-qa.js',
+  './js/qbank.js',
   './js/data.js',
   './js/store.js',
   './js/media.js',

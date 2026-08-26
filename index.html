@@ -76,10 +76,10 @@ try{var _th=localStorage.getItem('oral_exam_theme');if(_th==='light'||_th==='dar
 
 <!-- 履歴 -->
 <div id="pgHi" class="pg">
-  <div class="hctrl" style="flex-wrap:wrap">
+  <div class="hctrl hwrap">
     <input type="search" id="hQ" class="hsearch" oninput="drawHist()" data-ph="searchPh" placeholder="受験者名で検索">
     <select id="hFil" onchange="drawHist()"><option value="" data-t="filterAllEe">全員</option></select>
-    <button class="b b3" onclick="doCSV()" style="flex:0 0 auto;padding:10px 16px;font-size:.85rem" data-t="btnCSV">CSV出力</button>
+    <button class="b b3 b-sm" onclick="doCSV()" data-t="btnCSV">CSV出力</button>
   </div>
   <div id="hList" class="hlist"></div>
 </div>
@@ -87,7 +87,7 @@ try{var _th=localStorage.getItem('oral_exam_theme');if(_th==='light'||_th==='dar
 <!-- グラフ -->
 <div id="pgCh" class="pg">
   <div class="chc">
-    <label for="chSel" style="font-size:.85rem;font-weight:600;color:var(--sub);display:block;margin-bottom:6px" data-t="selEe">受験者を選択</label>
+    <label for="chSel" class="flabel" data-t="selEe">受験者を選択</label>
     <select id="chSel" onchange="drawCharts()"><option value="" data-t="selPh">-- 選択してください --</option></select>
   </div>
   <div id="chArea">
@@ -110,13 +110,13 @@ try{var _th=localStorage.getItem('oral_exam_theme');if(_th==='light'||_th==='dar
     <input type="password" id="gToken" placeholder="例：oral-exam-2026">
     <label for="gFolder" data-t="gFolder">保存先フォルダ名</label>
     <input type="text" id="gFolder" placeholder="口頭試問音声">
-    <div style="display:flex;gap:8px;margin-top:12px">
-      <button class="b b1" style="flex:1" onclick="saveGoogleCfg()" data-t="gSaveId">設定を保存</button>
-      <button class="b b3" style="flex:1" id="gTestBtn" onclick="gasTest()" data-t="gTest">接続テスト</button>
+    <div class="btnrow">
+      <button class="b b1 grow" onclick="saveGoogleCfg()" data-t="gSaveId">設定を保存</button>
+      <button class="b b3 grow" id="gTestBtn" onclick="gasTest()" data-t="gTest">接続テスト</button>
     </div>
-    <div id="gStatus" style="font-size:.82rem;font-weight:700;margin-top:10px;text-align:center"></div>
-    <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:.88rem;color:var(--txt);cursor:pointer">
-      <input type="checkbox" id="gAuto" onchange="toggleAuto()" style="width:auto"> <span data-t="gAuto">録音を自動でドライブに保存する</span>
+    <div id="gStatus" class="gstat"></div>
+    <label class="ckrow">
+      <input type="checkbox" id="gAuto" onchange="toggleAuto()"> <span data-t="gAuto">録音を自動でドライブに保存する</span>
     </label>
     </div>
   </details>
@@ -124,9 +124,9 @@ try{var _th=localStorage.getItem('oral_exam_theme');if(_th==='light'||_th==='dar
     <summary data-t="bkTitle">データの引き継ぎ（バックアップ／復元）</summary>
     <div class="accb">
     <p data-t="bkNote">この端末の全データ（試問項目・録音音声・文字起こし・採点）を1つのファイルに書き出し、別のPCやスマホで読み込んで引き継げます。読み込みは既存データと統合（同じ試問は新しい方を採用）します。</p>
-    <button class="b b1" style="width:100%" id="bkExportBtn" onclick="exportBackup()" data-t="bkExport">バックアップを書き出す</button>
-    <button class="b b3" style="width:100%;margin-top:10px" onclick="document.getElementById('bkFile').click()" data-t="bkImport">バックアップを読み込む</button>
-    <input type="file" id="bkFile" accept="application/json,.json" style="display:none" onchange="importBackup(this)">
+    <button class="b b1 wfull" id="bkExportBtn" onclick="exportBackup()" data-t="bkExport">バックアップを書き出す</button>
+    <button class="b b3 wfull mt10" onclick="document.getElementById('bkFile').click()" data-t="bkImport">バックアップを読み込む</button>
+    <input type="file" id="bkFile" accept="application/json,.json" class="file-hidden" onchange="importBackup(this)">
     </div>
   </details>
   <details class="acc">
@@ -139,20 +139,20 @@ try{var _th=localStorage.getItem('oral_exam_theme');if(_th==='light'||_th==='dar
     <input type="text" id="sttModel" placeholder="whisper-1">
     <label for="sttKey" data-t="sttKey">APIキー</label>
     <input type="password" id="sttKey" placeholder="sk-...">
-    <button class="b b1" style="width:100%;margin-top:12px" onclick="saveStt()" data-t="sttSave">API設定を保存</button>
+    <button class="b b1 wfull mt12" onclick="saveStt()" data-t="sttSave">API設定を保存</button>
     </div>
   </details>
   <div class="stit" data-t="cfgItemsTitle">試問項目</div>
-  <button class="b b4" style="width:100%;margin-bottom:16px" id="btnCatAdd" onclick="openCatalog()" data-t="catAdd">📚 作業カタログから質問を追加</button>
+  <button class="b b4 wfull mb16" id="btnCatAdd" onclick="openCatalog()" data-t="catAdd">📚 作業カタログから質問を追加</button>
   <div id="cfgArea"></div>
   <div class="cfg-add">
     <button onclick="addSection()" data-t="addSec">＋ セクション追加</button>
   </div>
-  <div style="margin-top:24px">
-    <button class="b b1" style="width:100%" onclick="saveCfg()" data-t="saveCfg">項目を保存</button>
+  <div class="mt24">
+    <button class="b b1 wfull" onclick="saveCfg()" data-t="saveCfg">項目を保存</button>
   </div>
-  <div style="margin-top:12px">
-    <button class="b b2" style="width:100%" onclick="resetCfg()" data-t="resetCfg">初期設定に戻す</button>
+  <div class="mt12">
+    <button class="b b2 wfull" onclick="resetCfg()" data-t="resetCfg">初期設定に戻す</button>
   </div>
 </div>
 
@@ -190,6 +190,7 @@ try{var _th=localStorage.getItem('oral_exam_theme');if(_th==='light'||_th==='dar
 <script src="js/util.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/works-qa.js"></script>
+<script src="js/qbank.js"></script>
 <script src="js/data.js"></script>
 <script src="js/store.js"></script>
 <script src="js/media.js"></script>

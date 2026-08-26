@@ -34,6 +34,14 @@
   --tabs-h:60px;
   --toast-bg:#242c34;--toast-tx:#fff;
   --ease:cubic-bezier(.33,1,.68,1);
+  /* 余白スケール・文字階調（新規トークン。既存直値は退行ゼロで段階置換） */
+  --sp-1:4px;--sp-2:8px;--sp-3:12px;--sp-4:16px;--sp-5:24px;
+  --fs-xs:.72rem;--fs-sm:.82rem;--fs-md:.95rem;--fs-lg:1.1rem;--fs-xl:1.5rem;--fs-num:1.9rem;
+  /* ヒーロー面（進捗コックピット）: 白文字4.5:1以上を両端色で担保 */
+  --hero-grad:linear-gradient(135deg,#16354a,#2e5d7d 55%,#3a729a);
+  --hero-grad-ok:linear-gradient(135deg,#0e5420,#17802a 60%,#2e7d32);
+  --hero-tx:#fff;--hero-dim:rgba(255,255,255,.78);
+  --pill-bg:rgba(255,255,255,.94);
 }
 /* 手動テーマ切替（data-theme）: light固定はOSダークでも常にライト */
 :root[data-theme=light]{color-scheme:light}
@@ -53,6 +61,10 @@
     --sh-hover:0 2px 4px rgba(0,0,0,.35),0 6px 14px rgba(0,0,0,.35),0 14px 34px rgba(0,0,0,.32);
     --sh-lg:0 4px 12px rgba(0,0,0,.4),0 16px 48px rgba(0,0,0,.55);
     --toast-bg:#e7edf2;--toast-tx:#141d25;
+    --hero-grad:linear-gradient(135deg,#0d2330,#1b3e57 55%,#2e6a92);
+    --hero-grad-ok:linear-gradient(135deg,#0d3a17,#1e6b2d 60%,#2e7d32);
+    --hero-dim:rgba(255,255,255,.72);
+    --pill-bg:rgba(5,13,20,.78); /* ヒーローグラデ上でも --s1/--s2 文字がAA(4.5:1)を満たす濃度 */
   }
   :root:not([data-theme=light]) .nd::before{
     background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%237fb3d3" opacity=".65"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-8 14H7v-6h4v6zm6 0h-4V7h4v10z"/></svg>');
@@ -73,6 +85,10 @@
   --sh-hover:0 2px 4px rgba(0,0,0,.35),0 6px 14px rgba(0,0,0,.35),0 14px 34px rgba(0,0,0,.32);
   --sh-lg:0 4px 12px rgba(0,0,0,.4),0 16px 48px rgba(0,0,0,.55);
   --toast-bg:#e7edf2;--toast-tx:#141d25;
+  --hero-grad:linear-gradient(135deg,#0d2330,#1b3e57 55%,#2e6a92);
+  --hero-grad-ok:linear-gradient(135deg,#0d3a17,#1e6b2d 60%,#2e7d32);
+  --hero-dim:rgba(255,255,255,.72);
+  --pill-bg:rgba(5,13,20,.78); /* ヒーローグラデ上でも --s1/--s2 文字がAA(4.5:1)を満たす濃度 */
 }
 :root[data-theme=dark] .nd::before{
   background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%237fb3d3" opacity=".65"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-8 14H7v-6h4v6zm6 0h-4V7h4v10z"/></svg>');
@@ -117,7 +133,7 @@ body{
   border:1px solid rgba(255,255,255,.28);border-radius:10px;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 1px 4px rgba(0,0,0,.18);
 }
-.hdr h1{font-size:1rem;font-weight:700;flex:1;text-align:left;letter-spacing:.03em;text-shadow:0 1px 2px rgba(0,0,0,.18);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:2px;position:relative}
+.hdr h1{font-size:1.05rem;font-weight:700;flex:1;text-align:left;letter-spacing:.04em;text-shadow:0 1px 2px rgba(0,0,0,.18);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:2px;position:relative}
 @media(max-width:429px){.hdr h1{font-size:.9rem;letter-spacing:0}}
 @media(max-width:359px){.hdr h1{font-size:.82rem}}
 /* テーマ切替ボタン（自動→ライト→ダーク） */
@@ -186,8 +202,11 @@ body{
   background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);
   padding:16px;margin-bottom:12px;box-shadow:var(--sh);
 }
+/* button要素として使うカード（受験者サマリータイル等）: UA既定のボタンフォントを継承に戻す */
+button.cd{font-family:inherit;font-size:inherit;color:var(--txt);line-height:inherit}
 
-/* ---- メタ入力 ---- */
+/* ---- メタ入力（一段引いた面＝ヒーローと質問カードを立てる） ---- */
+.cd.meta{background:var(--card-2);box-shadow:none}
 .meta label{display:block;font-size:.82rem;font-weight:700;color:var(--sub);margin-bottom:5px;letter-spacing:.02em}
 .meta input{
   width:100%;min-height:46px;padding:10px 13px;border:1.5px solid var(--bdr-s);border-radius:var(--r-s);
@@ -204,27 +223,34 @@ body{
   border-bottom:2px solid;
   border-image:linear-gradient(90deg,var(--pri) 30%,transparent 95%) 1;
   display:flex;align-items:center;gap:8px;letter-spacing:.02em;
-  scroll-margin-top:calc(var(--hdr-h) + 92px);
+  scroll-margin-top:calc(var(--hdr-h) + 158px); /* ヒーロー進捗パネル(sticky)の高さぶん */
 }
 .stit::before{content:'';width:5px;height:1.05em;border-radius:3px;background:var(--pri);flex-shrink:0}
 
 /* ---- 試問カード ---- */
-.qc{border-left:4px solid var(--bdr-s);transition:border-color .3s,box-shadow .3s}
+.qc{border-left:4px solid var(--bdr-s);transition:border-color .3s,box-shadow .3s;position:relative}
 .qc.done{border-left-color:var(--pri)}
 .qc.scored{border-left-color:var(--s5)}
+/* 録音済み/採点済みが流し見で分かる右上ステータスアイコン */
+.qc.done::after,.qc.scored::after{
+  content:'✓';position:absolute;top:12px;right:14px;width:22px;height:22px;border-radius:50%;
+  line-height:22px;text-align:center;font-size:.76rem;font-weight:900;
+}
+.qc.done::after{background:var(--pri-l);color:var(--pri)}
+.qc.scored::after{background:var(--s5-l);color:var(--s5)}
 .qc .en{
   display:inline-block;font-size:.72rem;font-weight:700;color:var(--pri);letter-spacing:.06em;
   background:var(--pri-l);border:1px solid color-mix(in srgb,var(--pri) 25%,transparent);
   border-radius:7px;padding:2px 9px;margin-bottom:2px;font-variant-numeric:tabular-nums;
 }
-.qc .enm{font-size:1.06rem;font-weight:700;margin:6px 0 4px;line-height:1.45}
+.qc .enm{font-size:1.125rem;font-weight:700;margin:6px 0 4px;line-height:1.45}
 .qc .ed{
   font-size:.88rem;color:var(--txt);margin-bottom:12px;line-height:1.7;
   background:var(--pri-l);border-left:3px solid var(--pri);padding:10px 13px;border-radius:0 var(--r-s) var(--r-s) 0;
 }
 
 /* ---- 録音 ---- */
-.recrow{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.recrow{display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap} /* 375px幅で「次の未録音へ」ボタンがはみ出さない */
 .recbtn{
   display:flex;align-items:center;gap:8px;min-height:44px;padding:10px 18px;
   border:2px solid var(--rec);border-radius:24px;background:var(--card);color:var(--rec);
@@ -239,6 +265,7 @@ body{
 .recbtn.recording .dot{background:#fff;animation:pulse 1s infinite}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.8)}}
 .rectime{font-size:.95rem;font-weight:700;color:var(--rec);font-variant-numeric:tabular-nums;min-width:48px}
+.rectime:empty{min-width:0} /* 空表示時は幅を取らない（狭幅端末の折返し抑制） */
 .recstat{font-size:.8rem;color:var(--sub)}
 .recstat.ok{color:var(--pri);font-weight:700}
 audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
@@ -252,15 +279,17 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
 .sr{display:flex;gap:7px;margin:10px 0}
 .sb{
   flex:1;min-height:54px;border:1.5px solid var(--bdr-s);border-radius:12px;background:var(--card);
-  font-size:1.15rem;font-weight:700;color:var(--txt);cursor:pointer;
+  font-size:1.15rem;font-weight:900;color:var(--txt);cursor:pointer;font-variant-numeric:tabular-nums;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
   transition:transform .12s,background .18s,border-color .18s,box-shadow .18s;font-family:inherit;
 }
-.sb .sl{font-size:.55rem;font-weight:600;color:var(--sub);line-height:1.15;text-align:center}
+.sb .sl{font-size:.66rem;font-weight:700;color:var(--sub);line-height:1.15;text-align:center}
 /* 未選択でも評価色のヒントを上端に（5⇔1の方向が迷わない） */
-.sb:not(.sel){box-shadow:inset 0 3px 0 var(--hint,transparent)}
+.sb:not(.sel){box-shadow:inset 0 4px 0 var(--hint,transparent)}
 .sb[data-s="5"]{--hint:var(--s5)}.sb[data-s="4"]{--hint:var(--s4)}.sb[data-s="3"]{--hint:var(--s3)}.sb[data-s="2"]{--hint:var(--s2)}.sb[data-s="1"]{--hint:var(--s1)}
 .sb:hover{border-color:var(--pri);background:var(--pri-l)}
+/* hover時は該当評価色の淡面＋同色枠（どの点に落ちるかを予告） */
+.sb:not(.sel):hover{border-color:var(--hint,var(--pri));background:color-mix(in srgb,var(--hint,var(--pri)) 10%,var(--card))}
 .sb:active{transform:scale(.93)}
 .sb.sel{color:var(--sel-tx);border-color:transparent;box-shadow:inset 0 1px 0 rgba(255,255,255,.22),var(--sh);transform:translateY(-1px);animation:selPop .28s var(--ease)}
 @keyframes selPop{0%{transform:scale(.92)}60%{transform:scale(1.04) translateY(-1px)}100%{transform:translateY(-1px)}}
@@ -330,7 +359,7 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
 .hctrl{display:flex;gap:8px;margin-bottom:16px}
 
 /* セレクト共通: ネイティブ矢印を廃し、テーマ追従のシェブロンで統一 */
-.hctrl select,.chc select,.catrow select{
+.hctrl select,.chc select,.catrow select,#qsetArea select,#examSetBox select{
   appearance:none;-webkit-appearance:none;
   background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%235b6773" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>');
   background-repeat:no-repeat;background-position:right 12px center;background-size:16px;
@@ -338,11 +367,11 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
   transition:border-color .15s,box-shadow .15s;
 }
 @media(prefers-color-scheme:dark){
-  :root:not([data-theme=light]) .hctrl select,:root:not([data-theme=light]) .chc select,:root:not([data-theme=light]) .catrow select{
+  :root:not([data-theme=light]) .hctrl select,:root:not([data-theme=light]) .chc select,:root:not([data-theme=light]) .catrow select,:root:not([data-theme=light]) #qsetArea select,:root:not([data-theme=light]) #examSetBox select{
     background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%2393a2af" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>');
   }
 }
-:root[data-theme=dark] .hctrl select,:root[data-theme=dark] .chc select,:root[data-theme=dark] .catrow select{
+:root[data-theme=dark] .hctrl select,:root[data-theme=dark] .chc select,:root[data-theme=dark] .catrow select,:root[data-theme=dark] #qsetArea select,:root[data-theme=dark] #examSetBox select{
   background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%2393a2af" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>');
 }
 .hctrl select{
@@ -350,6 +379,13 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
   font-size:.9rem;background-color:var(--card);color:var(--txt);outline:0;font-family:inherit;
 }
 .hctrl select:focus{border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-l)}
+/* JS生成セレクト（設定=質問セット/プリセット #qsetArea・試問タブ上部 #examSetBox）を共通スタイルに揃える */
+#qsetArea select,#examSetBox select{
+  min-height:44px;padding-top:10px;padding-bottom:10px;padding-left:12px;
+  border:1.5px solid var(--bdr-s);border-radius:var(--r-s);
+  font-size:.9rem;background-color:var(--card);color:var(--txt);outline:0;font-family:inherit;
+}
+#qsetArea select:focus,#examSetBox select:focus{border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-l)}
 .hlist{display:flex;flex-direction:column;gap:9px}
 .hi{
   background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);
@@ -363,10 +399,12 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
 .hi:active{background:var(--pri-l);transform:scale(.985)}
 .hi .hii{flex:1;min-width:0}
 .hi .hid{font-size:.78rem;color:var(--sub)}
-.hi .hin{font-weight:700;font-size:1rem;margin-top:1px}
-.hi .hia{font-size:1.45rem;font-weight:700;color:var(--pri);min-width:52px;text-align:right;font-variant-numeric:tabular-nums}
+.hi .hin{font-weight:700;font-size:1.06rem;margin-top:1px}
+.hi .hia{font-size:var(--fs-xl);font-weight:900;color:var(--pri);min-width:52px;text-align:right;font-variant-numeric:tabular-nums}
 /* 平均点の評価色（一覧で成績が一目で分かる） */
 .hia.a5{color:var(--s5)}.hia.a4{color:var(--s4)}.hia.a3{color:var(--s3)}.hia.a2{color:var(--s2)}.hia.a1{color:var(--s1)}
+/* 素の評価色クラス（ui.js生成のサマリータイル等で単独使用される） */
+.a5{color:var(--s5)}.a4{color:var(--s4)}.a3{color:var(--s3)}.a2{color:var(--s2)}.a1{color:var(--s1)}
 /* 採点中のリアルタイム平均 */
 .spavg{margin-right:10px;font-variant-numeric:tabular-nums}
 .spavg.a5{color:var(--s5)}.spavg.a4{color:var(--s4)}.spavg.a3{color:var(--s3)}.spavg.a2{color:var(--s2)}.spavg.a1{color:var(--s1)}
@@ -399,7 +437,7 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
 .di{padding:11px 0;border-bottom:1px solid var(--bdr)}.di:last-of-type{border-bottom:none}
 .dih{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .din{font-weight:700;font-size:.92rem}
-.dis{font-weight:700;font-size:1rem;min-width:34px;text-align:center;padding:2px 10px;border-radius:8px;color:var(--sel-tx);flex-shrink:0}
+.dis{font-weight:900;font-size:1rem;min-width:34px;text-align:center;padding:2px 10px;border-radius:8px;color:var(--sel-tx);flex-shrink:0;font-variant-numeric:tabular-nums}
 .ditr{font-size:.85rem;color:var(--txt);margin-top:5px;white-space:pre-wrap;line-height:1.7}
 .dic{font-size:.84rem;color:var(--sub);margin-top:4px}
 .dov{margin-top:12px;padding:12px 14px;background:var(--pri-l);border-left:3px solid var(--pri);border-radius:0 var(--r-s) var(--r-s) 0;font-size:.9rem;line-height:1.7}
@@ -417,10 +455,11 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
 .chb h2{font-size:.88rem;margin-bottom:12px;color:var(--sub);font-weight:700;letter-spacing:.02em}
 .chb canvas{width:100%!important;max-height:300px}
 .nd{
-  text-align:center;color:var(--sub);padding:48px 16px;font-size:.95rem;line-height:1.8;
+  text-align:center;color:var(--sub);padding:56px 20px;font-size:var(--fs-md);font-weight:500;line-height:1.8;
   border:2px dashed var(--bdr-s);border-radius:var(--r);background:var(--card-2);
 }
-.nd::before{content:'';display:block;width:52px;height:52px;margin:0 auto 12px;border-radius:50%;background:var(--pri-l);
+.nd::before{content:'';display:block;width:60px;height:60px;margin:0 auto 14px;border-radius:50%;background:var(--pri-l);
+  box-shadow:0 0 0 8px color-mix(in srgb,var(--pri-l) 40%,transparent);
   background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%232e5d7d" opacity=".55"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-8 14H7v-6h4v6zm6 0h-4V7h4v10z"/></svg>');
   background-repeat:no-repeat;background-position:center;background-size:26px}
 
@@ -476,6 +515,21 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
 
 /* ---- 進捗ナビ（試問・採点） ---- */
 .prog{position:sticky;top:var(--hdr-h);z-index:90;background:var(--bg);padding:8px 0 4px;margin-bottom:8px}
+/* 試問タブの進捗＝画面の主役（ヒーロー・コックピット化）。ID/クラス構造は不変・CSSのみ */
+.prog{
+  top:calc(var(--hdr-h) + 8px);
+  background:var(--hero-grad);color:var(--hero-tx);
+  padding:13px 16px 7px;margin-bottom:var(--sp-3);
+  border-radius:var(--r);border:1px solid rgba(255,255,255,.14);
+  box-shadow:var(--sh-lg);overflow:hidden;
+  transition:background .45s var(--ease);
+}
+.prog::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(130% 170% at 10% -35%,rgba(255,255,255,.18),transparent 55%);
+}
+.prog>*{position:relative}
+.prog.complete{background:var(--hero-grad-ok)}
 .pmeta{display:flex;justify-content:space-between;align-items:center;font-size:.8rem;font-weight:700;color:var(--pri-d);margin-bottom:5px}
 .pmeta span:last-child{font-variant-numeric:tabular-nums}
 .pbar{height:8px;background:var(--bdr);border-radius:5px;overflow:hidden;box-shadow:inset 0 1px 2px rgba(16,32,46,.08)}
@@ -511,6 +565,53 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
 .chip.done{border-color:var(--pri);color:var(--pri);background:var(--pri-l)}
 .chip.done::before{content:'✓ ';font-weight:700}
 
+/* ---- ヒーロー面の中身（試問=.prog／採点詳細=#scDetail .cd.meta 共通） ---- */
+/* 「いま何問目か」を3m先から読める主役数字に昇格 */
+.prog .pmeta{color:var(--hero-tx);align-items:baseline;margin-bottom:7px}
+.prog .pmeta span:first-child{font-size:var(--fs-xs);font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--hero-dim)}
+.prog .pmeta>span:last-child{font-size:var(--fs-num);font-weight:900;line-height:1.05;letter-spacing:-.01em;text-shadow:0 1px 2px rgba(0,0,0,.15)}
+.prog .pbar,#scDetail .cd.meta .pbar{height:12px;border-radius:7px;background:rgba(0,0,0,.28);box-shadow:inset 0 1px 3px rgba(0,0,0,.3)}
+.prog .pbar>i,#scDetail .cd.meta .pbar>i{border-radius:7px;background:linear-gradient(90deg,#d9eaf6,#fff)}
+.prog .pbar>i::after,#scDetail .cd.meta .pbar>i::after{background:linear-gradient(105deg,transparent 30%,rgba(27,62,87,.18) 50%,transparent 70%);background-size:200% 100%}
+/* 完了時もヒーロー内は白バー＋白文字を維持（面全体が緑に遷移して達成を演出） */
+.prog.complete .pbar>i,#scDetail .cd.meta.complete .pbar>i{background:linear-gradient(90deg,#e7f5ea,#fff)}
+.prog.complete .pmeta,#scDetail .cd.meta.complete .pmeta{color:var(--hero-tx)}
+.prog.complete .pmeta span:first-child{color:var(--hero-dim)}
+/* セクションジャンプchip: 濃色ガラス面／done=白面+濃紺文字 */
+.prog .chips{padding:9px 0 4px}
+.prog .chip{background:rgba(8,22,35,.3);border-color:rgba(255,255,255,.36);color:#fff}
+.prog .chip:hover{background:rgba(8,22,35,.46);border-color:#fff}
+.prog .chip.done{background:#fff;border-color:#fff;color:#1c3f58}
+.prog .chip.done:hover{background:#fff}
+.hdr :focus-visible,.prog :focus-visible,#scDetail .cd.meta :focus-visible{outline-color:#fff}
+
+/* ---- 採点詳細ヘッダー＝第2のヒーロー（ui.js生成の .cd.meta をCSSのみで昇格） ---- */
+#scDetail .cd.meta{
+  --sub:rgba(255,255,255,.84); /* インラインstyleのvar(--sub)参照ごと白系に切替 */
+  background:var(--hero-grad);color:var(--hero-tx);
+  border-color:rgba(255,255,255,.14);box-shadow:var(--sh-lg);
+  position:relative;overflow:hidden;transition:background .45s var(--ease);
+}
+#scDetail .cd.meta::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(130% 170% at 10% -35%,rgba(255,255,255,.18),transparent 55%);
+}
+#scDetail .cd.meta>*{position:relative}
+#scDetail .cd.meta.complete{background:var(--hero-grad-ok)}
+#scDetail .cd.meta .pmeta{color:var(--hero-tx);align-items:baseline}
+#scDetail .cd.meta .pmeta>span:first-child{font-size:var(--fs-xs);font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--hero-dim)}
+#scDetail #spCnt{font-size:1.55rem;font-weight:900;line-height:1.05;letter-spacing:-.01em;vertical-align:middle;text-shadow:0 1px 2px rgba(0,0,0,.15)}
+#scDetail .cd.meta.complete .pmeta>span:last-child::after{font-size:1.2rem;vertical-align:middle}
+/* リアルタイム平均＝評価色バッジ（a1〜a5のJS付与ロジックは不変） */
+#scDetail .spavg{
+  display:inline-block;background:var(--pill-bg);padding:3px 12px;border-radius:999px;
+  font-weight:900;font-size:.92rem;vertical-align:middle;margin-right:10px;
+  box-shadow:0 1px 4px rgba(0,0,0,.18);
+}
+#scDetail .spavg:empty{display:none}
+/* ヒーロー面上の操作ボタン（再生速度等）は白面チップに統一（両テーマ共通で可読） */
+#scDetail .cd.meta .b3{background:rgba(255,255,255,.92);color:#1c3f58;border-color:transparent}
+
 /* ---- 採点：常時表示の保存バー＋自動保存表示 ---- */
 .savebar{
   position:sticky;bottom:calc(var(--tabs-h) + env(safe-area-inset-bottom,0px));z-index:80;
@@ -525,9 +626,10 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
 }
 .hsearch:focus{border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-l)}
 .mgrp{
-  display:flex;align-items:center;gap:10px;
-  font-size:.76rem;font-weight:700;color:var(--sub);letter-spacing:.06em;margin:12px 2px 2px;text-transform:uppercase;
+  display:flex;align-items:center;gap:8px;
+  font-size:.78rem;font-weight:800;color:var(--sub);letter-spacing:.06em;margin:14px 2px 2px;text-transform:uppercase;
 }
+.mgrp::before{content:'';width:4px;height:14px;border-radius:2px;background:var(--pri);flex-shrink:0}
 .mgrp::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--bdr-s),transparent)}
 
 /* ---- 設定：アコーディオン ---- */
@@ -587,7 +689,24 @@ details.ans .ansb{padding:0 13px 11px;font-size:.84rem;line-height:1.75;white-sp
   .tabs{background:var(--card)}
   .qc .en{border-color:var(--pri)}
   .recbtn.recording{animation:none;box-shadow:0 0 0 5px var(--rec-l)}
+  .sb:not(.sel):hover{background:var(--pri-l)}
 }
+
+/* ---- ユーティリティ（index.htmlのインラインstyleをクラス化。見た目は同一） ---- */
+.wfull{width:100%}
+.grow{flex:1}
+.mt10{margin-top:10px}
+.mt12{margin-top:12px}
+.mt24{margin-top:24px}
+.mb16{margin-bottom:16px}
+.btnrow{display:flex;gap:8px;margin-top:12px}
+.hwrap{flex-wrap:wrap}
+.b-sm{flex:0 0 auto;padding:10px 16px;font-size:.85rem}
+.flabel{font-size:.85rem;font-weight:600;color:var(--sub);display:block;margin-bottom:6px}
+.gstat{font-size:.82rem;font-weight:700;margin-top:10px;text-align:center}
+.ckrow{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:.88rem;color:var(--txt);cursor:pointer}
+.ckrow input{width:auto;min-height:0}
+.file-hidden{display:none}
 
 /* ---- 入力欄ホバー（フォーカス前の気配） ---- */
 .meta input:hover:not(:focus),.hsearch:hover:not(:focus),
@@ -615,6 +734,22 @@ details.ans .ansb{padding:0 13px 11px;font-size:.84rem;line-height:1.75;white-sp
   .cd,.hi,.chb,.chc{box-shadow:none;border:1px solid #999;break-inside:avoid}
   .pbar>i::after{animation:none}
   audio{display:none}
+  /* ヒーロー面は紙では単色化（インク節約・可読性） */
+  .prog,#scDetail .cd.meta{position:static;background:#fff!important;color:#000;border:1px solid #999;box-shadow:none}
+  .prog::before,#scDetail .cd.meta::before{display:none}
+  #scDetail .cd.meta{--sub:#333}
+  .prog .pmeta,.prog .pmeta span:first-child,.prog .pmeta>span:last-child,
+  #scDetail .cd.meta .pmeta,#scDetail .cd.meta .pmeta>span:first-child,#scDetail #spCnt{color:#000;text-shadow:none}
+  .prog .pbar,#scDetail .cd.meta .pbar{background:#ddd;box-shadow:none}
+  .prog .pbar>i,#scDetail .cd.meta .pbar>i{background:#666}
+  .prog .chip{background:#fff;color:#000;border-color:#999}
+  .prog .chip.done{background:#fff;color:#000;border-color:#000}
+  #scDetail .spavg{background:none;box-shadow:none}
+  /* 採点値は背景色なしでも判別できるように（ブラウザ既定は背景色を印刷しない） */
+  .sb{border-color:#999}
+  .sb.sel{color:#000;border:2.5px solid #000;box-shadow:none;transform:none}
+  .sb.sel .sl{color:#333}
+  .dis{color:#000;border:1.5px solid #000}
   /* 履歴詳細モーダルを開いたまま印刷しても内容が紙に出るように */
   .mo{position:static;background:none;backdrop-filter:none;-webkit-backdrop-filter:none;padding:0;overflow:visible}
   .mc{box-shadow:none;border:1px solid #999;max-width:none;animation:none}
@@ -625,8 +760,10 @@ details.ans .ansb{padding:0 13px 11px;font-size:.84rem;line-height:1.75;white-sp
   .pg{padding:24px 24px 8px}
   .cd{padding:20px;margin-bottom:14px}
   .sb{min-height:58px;font-size:1.25rem}
-  .sb .sl{font-size:.6rem}
+  .sb .sl{font-size:.72rem}
   .hdr h1{font-size:1.1rem}
   .hlist{gap:10px}
   .mc{padding:24px 22px}
+  .prog{padding:15px 20px 9px}
+  .prog .pmeta>span:last-child{font-size:2.1rem}
 }

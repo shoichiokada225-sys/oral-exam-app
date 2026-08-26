@@ -20,6 +20,13 @@ function defaultCfg(){return{sections:[
 ]}}
 
 /* ==============================================================
+   質問バンク（qbank.js の QBANK）へのアクセサ【契約・変更禁止】
+   UI側はこの2関数だけを使ってプリセット選択UIを作る
+   ============================================================== */
+function qbankPresets(){return QBANK.presets}
+function qbankPreset(id){return QBANK.presets.find(p=>p.id===id)}
+
+/* ==============================================================
    作業カタログ（works-qa.js の WORKSQA）へのアクセサと質問生成
    大項目=作業（7カテゴリ44作業）、小項目=質問（目的/注意点/よくあるミス）
    pptx由来の箇条書きが模範解答（ans）になる

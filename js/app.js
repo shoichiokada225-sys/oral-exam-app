@@ -7,6 +7,7 @@ function setLang(l){
   lang=l;localStorage.setItem(LKEY,l);document.documentElement.lang=l;
   document.querySelectorAll('.lsw button').forEach(b=>{const on=b.textContent.trim()==={ja:'JP',en:'EN',vi:'VI',id:'ID'}[l];b.classList.toggle('on',on);b.setAttribute('aria-pressed',on?'true':'false')});
   applyT();buildExamCards();buildCfgUI();
+  if(typeof renderExamSetSel==='function')renderExamSetSel(); // セット切替UIも言語に追従
   // 開いている採点画面・一覧を再描画（入力中の採点は退避してから再描画）
   if(document.getElementById('pgScore').classList.contains('on')){if(curScore){captureScoreForm();renderScoreDetail(curScore)}else{drawScoreList()}}
 }
@@ -55,10 +56,39 @@ function cycleTheme(){
 /* ==============================================================
    初期化
    ============================================================== */
+/* index.htmlはデザイン担当が編集中のため、追加DOMはJSで生成して既存コンテナに挿入する */
+function injectDynamicContainers(){
+  // 試問タブ上部：質問セット切替
+  const meta=document.querySelector('#pgExam .cd.meta');
+  if(meta&&!document.getElementById('examSetBox')){
+    const d=document.createElement('div');
+    d.id='examSetBox';d.className='cd';d.style.display='none';
+    meta.parentElement.insertBefore(d,meta);
+  }
+  // 設定タブ：プリセット/質問セットUI（作業カタログボタンの上）
+  const catBtn=document.getElementById('btnCatAdd');
+  if(catBtn&&!document.getElementById('qsetArea')){
+    const d=document.createElement('div');
+    d.id='qsetArea';
+    catBtn.parentElement.insertBefore(d,catBtn);
+  }
+  // 設定タブ：未保存バッジ（「項目を保存」ボタンの直上）
+  const saveBtn=document.querySelector('#pgCfg button[onclick="saveCfg()"]');
+  if(saveBtn&&!document.getElementById('cfgDirtyBadge')){
+    const b=document.createElement('div');
+    b.id='cfgDirtyBadge';
+    b.style.cssText='display:none;color:var(--s2,#c60);font-size:.8rem;font-weight:700;text-align:center;margin-bottom:6px';
+    saveBtn.parentElement.insertBefore(b,saveBtn);
+  }
+}
+
 document.addEventListener('DOMContentLoaded',()=>{
+  injectDynamicContainers();
   restoreDraftOrNew();
   document.getElementById('fDate').value=cur.date||new Date().toISOString().split('T')[0];
-  document.getElementById('fEr').value=cur.examiner||'';
+  // 試問者名は前回値を初期表示（毎回の手入力を省く）
+  let lastEr='';try{lastEr=localStorage.getItem(EKEY)||''}catch(e){}
+  document.getElementById('fEr').value=cur.examiner||lastEr;
   document.getElementById('fEe').value=cur.examinee||'';
   ['fDate','fEr','fEe'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{if(cur){cur.date=document.getElementById('fDate').value;cur.examiner=document.getElementById('fEr').value;cur.examinee=document.getElementById('fEe').value;saveDraft()}}));
   const s=getStt();
@@ -67,7 +97,10 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('sttKey').value=s.key||'';
   const gImported=applyUrlConfig();
   setLang(lang);
+  renderExamSetSel();
   if(gImported)setTimeout(()=>toast(t('gCfgSaved')),400);
+  // 孤児音声GC（どのセッションにも属さない録音を検出→件数確認のうえ削除）
+  setTimeout(()=>gcOrphanAudio(),2500);
   window.addEventListener('beforeunload',e=>{if(active){e.preventDefault();e.returnValue=''}});
   document.addEventListener('keydown',e=>{
     const mo=document.getElementById('modal');
@@ -106,7 +139,7 @@ function restoreDraftOrNew(){
   }catch(e){}
   newSession();
 }
-function saveDraft(){if(cur)localStorage.setItem(DRAFTKEY,JSON.stringify(cur))}
+function saveDraft(){if(!cur)return;try{localStorage.setItem(DRAFTKEY,JSON.stringify(cur))}catch(e){toast(t2('storeFail'),1)}}
 
 /* ==============================================================
    試問の保存・リセット
@@ -120,24 +153,27 @@ async function saveSession(){
   if(!cur.date){toast(t('eDt'),1);return}
   const recd=getItems().some(it=>cur.items[it.id]&&cur.items[it.id].hasAudio);
   if(!recd){toast(t('eNoRec'),1);return}
+  snapMeta(cur); // 項目名スナップショット（cfg変更後も履歴・CSVで名前が出る）
   const all=getAll();
   const idx=all.findIndex(s=>s.id===cur.id);
   cur.updatedAt=new Date().toISOString();
   if(idx>=0)all[idx]=cur;else all.push(cur);
   saveAll(all);
   localStorage.removeItem(DRAFTKEY);
+  try{localStorage.setItem(EKEY,cur.examiner)}catch(e){} // 試問者名を次回の初期値に
   toast(t('tSaved'));
   newSession();
-  document.getElementById('fEr').value='';document.getElementById('fEe').value='';
+  document.getElementById('fEr').value=cur.examiner=(localStorage.getItem(EKEY)||'');
+  document.getElementById('fEe').value='';
   document.getElementById('fDate').value=new Date().toISOString().split('T')[0];
   buildExamCards();refreshSel();
 }
 async function resetExam(){
   if(!confirm(t('cReset')))return;
   if(active)await stopRec();
-  // 未保存セッションの音声を破棄
+  // 未保存セッションの音声を破棄（セッション自身のキーで走査＝cfg変更後も取り残さない）
   const saved=getAll().some(s=>s.id===cur.id);
-  if(!saved)getItems().forEach(it=>{if(cur.items[it.id]&&cur.items[it.id].hasAudio)delAudio(cur.id+'_'+it.id)});
+  if(!saved)Object.keys(cur.items||{}).forEach(k=>{if(cur.items[k]&&cur.items[k].hasAudio)delAudio(cur.id+'_'+k)});
   newSession();
   document.getElementById('fEr').value='';document.getElementById('fEe').value='';
   document.getElementById('fDate').value=new Date().toISOString().split('T')[0];
@@ -151,6 +187,13 @@ async function resetExam(){
    ============================================================== */
 function swTab(btn){
   if(active){toast(t('recStop'),1);return}
+  // 設定タブで未保存の項目編集がある場合は確認し、離脱時は保存済み状態に戻す
+  //（試問カードが未保存cfgで描画されて見た目と保存状態が乖離する事故を防ぐ）
+  const curPg=document.querySelector('.pg.on');
+  if(curPg&&curPg.id==='pgCfg'&&btn.dataset.pg!=='pgCfg'&&typeof cfgDirty!=='undefined'&&cfgDirty){
+    if(!confirm(t2('dirtyLeave')))return;
+    cfg=loadCfg();cfgDirty=false;updateDirtyBadge();buildExamCards();
+  }
   if(curScore)persistScoreDraft(false); // 採点途中の入力をタブ移動前に自動退避
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('on'));btn.classList.add('on');
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));

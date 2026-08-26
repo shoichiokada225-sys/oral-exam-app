@@ -1,5 +1,49 @@
 /* ui.js — 描画層：試問カード/採点/履歴/詳細/グラフ/CSV/設定画面 */
 /* ==============================================================
+   ui.js内ローカル文言（i18n.jsはコンテンツ担当が編集中のため触らない。
+   短いUIラベルは4言語、確認ダイアログ等の長文はja中心でenフォールバック）
+   ============================================================== */
+const TX2={
+ja:{qsTitle:'試問セット',qsCur:'現在のセット',qsNone:'（セット未保存の構成）',qsSaveNew:'現在の項目を新しいセットとして保存',qsOver:'上書き保存',qsApply:'切替',qsRen:'名前変更',qsDel:'削除',
+qsNamePrompt:'セット名を入力してください（例：新人向け／繁殖担当／棚倉農場）',
+qsSwConfirm:'試問項目をセット「{n}」に切り替えます。現在の未保存の編集は失われます（過去の試問データは消えません）。よろしいですか？',
+qsDelConfirm:'セット「{n}」を削除しますか？（過去の試問データは消えません）',
+qsSaved:'セットを保存しました',qsApplied:'セットに切り替えました',qsDeleted:'セットを削除しました',
+qbTitle:'プリセット試問セット（テンプレート）',qbReplace:'項目を置き換え',qbAppend:'項目に追記',
+qbRepConfirm:'現在の試問項目をプリセット「{n}」で置き換えます（過去の試問データは消えません）。よろしいですか？',
+qbApplied:'プリセットを適用しました',qbNone:'プリセット（qbank.js）が読み込まれていません',
+dirty:'未保存の変更があります',dirtyLeave:'試問項目に未保存の変更があります。保存せずに移動しますか？（変更は破棄されます）',
+delSecConfirm:'このセクションと全質問を削除しますか？',cfgNote:'※質問を削除・差し替えても、過去の試問の採点・録音・文字起こしは履歴とCSVに残ります',
+storeFail:'保存に失敗しました（端末の空き容量不足の可能性）。設定タブからバックアップの書き出しをおすすめします',
+gcConfirm:'どのセッションにも属さない録音データが{n}件見つかりました。削除して端末の容量を空けますか？',gcDone:'件の不要な録音を削除しました',
+naLbl:'質問しなかった（採点対象外）',nextUnrec:'次の未録音へ',nextUnscored:'次の未採点へ',allRec:'すべて録音済みです',allScored:'未採点の項目はありません',
+spd:'速度',sumTimes:'回受験',added:'追加済み',prevLbl:'前回',extraSec:'過去の項目（現在の設定にない質問）'},
+en:{qsTitle:'Question set',qsCur:'Active set',qsNone:'(unsaved layout)',qsSaveNew:'Save current items as a new set',qsOver:'Overwrite',qsApply:'Switch',qsRen:'Rename',qsDel:'Delete',
+qsNamePrompt:'Enter a set name',
+qsSwConfirm:'Switch items to set "{n}"? Unsaved edits will be lost (past exam data is kept).',
+qsDelConfirm:'Delete set "{n}"? (past exam data is kept)',
+qsSaved:'Set saved',qsApplied:'Switched to set',qsDeleted:'Set deleted',
+qbTitle:'Preset question sets (templates)',qbReplace:'Replace items',qbAppend:'Append items',
+qbRepConfirm:'Replace current items with preset "{n}"? (past exam data is kept)',
+qbApplied:'Preset applied',qbNone:'Presets (qbank.js) not loaded',
+dirty:'Unsaved changes',dirtyLeave:'Exam items have unsaved changes. Leave without saving? (changes will be discarded)',
+delSecConfirm:'Delete this section and all its questions?',cfgNote:'Deleting/replacing questions does not remove past scores, recordings or transcripts from history and CSV',
+storeFail:'Save failed (device storage may be full). Export a backup from Settings',
+gcConfirm:'{n} recording(s) belong to no session. Delete them to free space?',gcDone:' orphan recording(s) deleted',
+naLbl:'Not asked (excluded from scoring)',nextUnrec:'Next unrecorded',nextUnscored:'Next unscored',allRec:'All items recorded',allScored:'Nothing left to score',
+spd:'Speed',sumTimes:' exam(s)',added:'Added',extraSec:'Past items (not in current settings)',prevLbl:'Prev'},
+vi:{qsTitle:'Bộ câu hỏi',qsCur:'Bộ hiện tại',qsNone:'(chưa lưu thành bộ)',qsSaveNew:'Lưu các mục hiện tại thành bộ mới',qsOver:'Ghi đè',qsApply:'Chuyển',qsRen:'Đổi tên',qsDel:'Xóa',
+qsNamePrompt:'Nhập tên bộ',qbTitle:'Bộ câu hỏi mẫu',qbReplace:'Thay thế mục',qbAppend:'Thêm vào mục',
+naLbl:'Không hỏi (không chấm)',nextUnrec:'Mục chưa ghi tiếp theo',nextUnscored:'Mục chưa chấm tiếp theo',allRec:'Đã ghi tất cả',allScored:'Không còn mục chưa chấm',
+spd:'Tốc độ',sumTimes:' lần thi',added:'Đã thêm',extraSec:'Mục cũ (không có trong cài đặt hiện tại)',prevLbl:'Lần trước'},
+id:{qsTitle:'Set pertanyaan',qsCur:'Set aktif',qsNone:'(belum disimpan sebagai set)',qsSaveNew:'Simpan item saat ini sebagai set baru',qsOver:'Timpa',qsApply:'Ganti',qsRen:'Ubah nama',qsDel:'Hapus',
+qsNamePrompt:'Masukkan nama set',qbTitle:'Set pertanyaan preset',qbReplace:'Ganti item',qbAppend:'Tambahkan item',
+naLbl:'Tidak ditanya (tidak dinilai)',nextUnrec:'Item belum direkam berikutnya',nextUnscored:'Item belum dinilai berikutnya',allRec:'Semua sudah direkam',allScored:'Tidak ada yang belum dinilai',
+spd:'Kecepatan',sumTimes:' ujian',added:'Sudah ditambah',extraSec:'Item lama (tidak ada di pengaturan)',prevLbl:'Sebelumnya'}
+};
+function t2(k){const d=TX2[lang]||TX2.ja;return d[k]||TX2.en[k]||TX2.ja[k]||k}
+
+/* ==============================================================
    試問タブ：カード生成
    ============================================================== */
 function buildExamCards(){
@@ -11,21 +55,23 @@ function buildExamCards(){
     if(!secItems.length)return;
     h+=`<h2 class="stit" id="sec-i${si}">${esc(sec.name)}</h2>`;
     secItems.forEach((it,ii)=>{
+      const iid=sanitizeId(it.id); // 多層防御: onclick/DOM idへの埋め込みは描画側でも無害化（loadCfg/importBackup/applySetの上流無害化に一点依存しない）
       const rec=cur&&cur.items[it.id];
       const has=rec&&rec.hasAudio;
-      h+=`<div class="cd qc${has?' done':''}" id="q-${it.id}">
+      h+=`<div class="cd qc${has?' done':''}" id="q-${iid}">
         <div class="en">${esc(sec.name.charAt(0))}-${ii+1}</div>
         <div class="enm">${esc(it.name)}</div>
         <div class="ed">${esc(it.desc)}</div>
         ${it.ans?`<details class="ans"><summary>${t('ansLbl')}</summary><div class="ansb">${esc(it.ans)}</div></details>`:''}
         <div class="recrow">
-          <button class="recbtn" id="rb-${it.id}" onclick="toggleRec('${it.id}')"><span class="dot"></span><span class="rlab">${has?t('recRedo'):t('recStart')}</span></button>
-          <span class="rectime" id="rt-${it.id}"></span>
-          <span class="recstat${has?' ok':''}" id="rs-${it.id}">${has?'● '+t('recDone'):t('recReady')}</span>
+          <button class="recbtn" id="rb-${iid}" onclick="toggleRec('${iid}')"><span class="dot"></span><span class="rlab">${has?t('recRedo'):t('recStart')}</span></button>
+          <span class="rectime" id="rt-${iid}"></span>
+          <span class="recstat${has?' ok':''}" id="rs-${iid}">${has?'● '+t('recDone'):t('recReady')}</span>
+          <button type="button" class="b b3" id="nx-${iid}" style="display:${has?'inline-block':'none'};flex:0 0 auto;padding:6px 10px;font-size:.74rem;margin-left:auto" onclick="gotoNextUnrec('${iid}')">${esc(t2('nextUnrec'))} ▾</button>
         </div>
-        <audio id="au-${it.id}" controls style="display:${has?'block':'none'}"></audio>
-        <div class="live" id="lv-${it.id}" style="display:${(rec&&rec.draft)?'block':'none'}"><span class="lbl">${t('liveLbl')}</span><span class="lvtxt">${esc(rec?rec.draft:'')}</span></div>
-        <div class="cloud" id="cl-${it.id}" style="font-size:.78rem;font-weight:700;margin-top:6px;display:${(rec&&rec.driveLink)?'block':'none'};color:var(--pri)">${(rec&&rec.driveLink)?t('clDone'):''}</div>
+        <audio id="au-${iid}" controls style="display:${has?'block':'none'}"></audio>
+        <div class="live" id="lv-${iid}" style="display:${(rec&&rec.draft)?'block':'none'}"><span class="lbl">${t('liveLbl')}</span><span class="lvtxt">${esc(rec?rec.draft:'')}</span></div>
+        <div class="cloud" id="cl-${iid}" style="font-size:.78rem;font-weight:700;margin-top:6px;display:${(rec&&rec.driveLink)?'block':'none'};color:var(--pri)">${(rec&&rec.driveLink)?t('clDone'):''}</div>
       </div>`;
     });
   });
@@ -35,7 +81,7 @@ function buildExamCards(){
   if(cur)getItems().forEach(async it=>{
     if(cur.items[it.id]&&cur.items[it.id].hasAudio){
       const b=await getAudio(cur.id+'_'+it.id);
-      if(b){const au=document.getElementById('au-'+it.id);if(au){const u=URL.createObjectURL(b);examUrls.push(u);au.src=u;au.style.display='block'}}
+      if(b){const au=document.getElementById('au-'+sanitizeId(it.id));if(au){const u=URL.createObjectURL(b);examUrls.push(u);au.src=u;au.style.display='block'}}
     }
   });
   updateExamProg();
@@ -50,6 +96,8 @@ function updateExamProg(){
   box.style.display='block';
   const done=it=>cur&&cur.items[it.id]&&cur.items[it.id].hasAudio;
   const n=items.filter(done).length;
+  // 録音完了直後（media.jsのonstopから呼ばれる）に「次の未録音へ」ボタンを出す
+  items.forEach(it=>{const b=document.getElementById('nx-'+sanitizeId(it.id));if(b)b.style.display=done(it)?'inline-block':'none'});
   document.getElementById('epLbl').textContent=t('progRec');
   document.getElementById('epCnt').textContent=n+' / '+m;
   document.getElementById('epBar').style.width=Math.round(n/m*100)+'%';
@@ -65,6 +113,17 @@ function updateExamProg(){
     b.onclick=()=>{const a=document.getElementById('sec-i'+si);if(a)a.scrollIntoView({behavior:'smooth',block:'start'})};
     chips.appendChild(b);
   });
+}
+
+/* 録音完了後の導線：次の未録音項目へスクロール（末尾までいったら先頭へ折り返し） */
+function gotoNextUnrec(fromId){
+  const items=getItems();
+  const i=items.findIndex(it=>it.id===fromId);
+  const order=items.slice(i+1).concat(items.slice(0,Math.max(i,0)+1));
+  const nxt=order.find(it=>!(cur&&cur.items[it.id]&&cur.items[it.id].hasAudio));
+  if(!nxt){toast(t2('allRec'));return}
+  const c=document.getElementById('q-'+sanitizeId(nxt.id));
+  if(c)c.scrollIntoView({behavior:'smooth',block:'center'});
 }
 
 /* 平均点→評価色クラス（4.5+:優 3.5+:良 2.5+:可 1.5+:要改善 それ未満:不可） */
@@ -100,15 +159,17 @@ async function openScore(id){
 // 採点フォームの現在値をcurScoreに退避（言語切替などの再描画で入力を失わないため）
 function captureScoreForm(){
   if(!curScore)return;
-  getItems().forEach(it=>{
-    const tr=document.getElementById('tr-'+it.id);
-    const cm=document.getElementById('cm-'+it.id);
-    const sel=document.querySelector('.sb[data-id="'+it.id+'"].sel');
-    if(tr||cm||sel){
-      curScore.items[it.id]=curScore.items[it.id]||{};
-      if(tr)curScore.items[it.id].transcript=tr.value;
-      if(cm)curScore.items[it.id].comment=cm.value;
-      if(sel)curScore.items[it.id].score=+sel.dataset.s;
+  sessItemIds(curScore).forEach(id=>{
+    const tr=document.getElementById('tr-'+id);
+    const cm=document.getElementById('cm-'+id);
+    const sel=document.querySelector('.sb[data-id="'+id+'"].sel');
+    const na=document.querySelector('.nachk[data-id="'+id+'"]');
+    if(tr||cm||sel||na){
+      curScore.items[id]=curScore.items[id]||{};
+      if(tr)curScore.items[id].transcript=tr.value;
+      if(cm)curScore.items[id].comment=cm.value;
+      if(sel)curScore.items[id].score=+sel.dataset.s;
+      if(na)curScore.items[id].na=na.checked;
     }
   });
   const ov=document.getElementById('scOv');if(ov)curScore.overall=ov.value;
@@ -127,8 +188,14 @@ function persistScoreDraft(showHint){
 }
 function updateScoreProg(){
   if(!curScore)return;
-  // 採点対象=録音あり or 既に点が付いている項目（分子も同じ母集団で数え、1/0のような表示を防ぐ）
-  const ids=getItems().filter(it=>{const r=curScore.items[it.id];return r&&(r.hasAudio||r.score!=null)}).map(it=>it.id);
+  // 採点対象=録音あり or 既に点が付いている項目（N/A=質問しなかった項目は除外。分子も同じ母集団で数える）
+  const ids=sessItemIds(curScore).filter(id=>{
+    const r=curScore.items[id];
+    if(!r)return false;
+    const naEl=document.querySelector('.nachk[data-id="'+id+'"]');
+    if(naEl?naEl.checked:r.na)return false; // 画面が開いていればチェック状態、なければ保存値
+    return r.hasAudio||r.score!=null;
+  });
   const scorable=ids.length;
   const n=ids.filter(id=>document.querySelector('.sb[data-id="'+id+'"].sel')).length;
   const c=document.getElementById('spCnt'),b=document.getElementById('spBar');
@@ -145,50 +212,101 @@ function updateScoreProg(){
     }else{av.textContent='';av.className='spavg'}
   }
 }
+/* 採点カード1枚分のHTML（通常項目・過去項目で共用） */
+function scoreCardHtml(r,id,en,name,desc,ans){
+  const rec=r.items[id]||{};
+  id=sanitizeId(id); // 多層防御: onclick/DOM id/data-id への埋め込みを描画側でも無害化（sessItemIdsのsafeKey・cfg無害化と同水準）
+  const sc=rec.score;
+  return `<div class="cd qc${sc?' scored':''}" id="sc-${id}">
+    <div class="en">${esc(en)}</div>
+    <div class="enm">${esc(name)}</div>
+    ${desc?`<div class="ed">${esc(desc)}</div>`:''}
+    ${ans?`<details class="ans"><summary>${t('ansLbl')}</summary><div class="ansb">${esc(ans)}</div></details>`:''}
+    ${rec.hasAudio?`<audio id="sa-${id}" controls></audio>`:`<div class="recstat">${t('recReady')}</div>`}
+    <div class="tlbl"><span>${t('trLbl')}</span>${rec.hasAudio?`<button class="aibtn" id="ai-${id}" onclick="aiTranscribe('${id}')">${t('aiBtn')}</button>`:''}</div>
+    <textarea class="trta" id="tr-${id}" placeholder="${t('phTr')}">${esc(rec.transcript!=null?rec.transcript:(rec.draft||''))}</textarea>
+    <div class="tlbl">${t('scoreLbl')}</div>
+    <div class="sr" role="radiogroup" aria-label="${esc(name)} ${t('scoreLbl')}">${[1,2,3,4,5].map(s=>`<button class="sb${sc===s?' sel':''}" role="radio" aria-checked="${sc===s?'true':'false'}" data-id="${id}" data-s="${s}" onclick="pickScore('${id}',${s},this)">${s}<span class="sl">${t('s'+s)}</span></button>`).join('')}</div>
+    ${rec.hasAudio?`<label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:.8rem;color:var(--sub);cursor:pointer"><input type="checkbox" class="nachk" data-id="${id}" ${rec.na?'checked':''} onchange="pickNA('${id}',this.checked)" style="width:auto"> ${esc(t2('naLbl'))}</label>`:''}
+    <div class="clbl">${t('cmtLbl')}</div>
+    <textarea id="cm-${id}" placeholder="${t('phCmt')}">${esc(rec.comment||'')}</textarea>
+  </div>`;
+}
 async function renderScoreDetail(r){
   releaseScoreUrls();
   document.getElementById('scList').style.display='none';
   document.querySelector('#pgScore .hctrl').style.display='none';
   const det=document.getElementById('scDetail');det.style.display='block';
   const secs=getSections(),items=getItems();
-  let h=`<div class="cd meta"><div style="font-size:.85rem;color:var(--sub)">${esc(r.date)}　${t('erLbl')}: ${esc(r.examiner)}</div><div style="font-size:1.1rem;font-weight:700;margin-top:2px">${esc(r.examinee)}</div><div class="pmeta" style="margin-top:10px"><span>${t('progScore')}</span><span><span id="spAvg" class="spavg"></span><span id="spCnt"></span></span></div><div class="pbar"><i id="spBar"></i></div></div>`;
+  let h=`<div class="cd meta"><div style="font-size:.85rem;color:var(--sub)">${esc(r.date)}　${t('erLbl')}: ${esc(r.examiner)}</div><div style="font-size:1.1rem;font-weight:700;margin-top:2px">${esc(r.examinee)}</div><div class="pmeta" style="margin-top:10px"><span>${t('progScore')}</span><span><span id="spAvg" class="spavg"></span><span id="spCnt"></span></span></div><div class="pbar"><i id="spBar"></i></div><button type="button" class="b b3" id="spdBtn" style="margin-top:10px;padding:6px 12px;font-size:.78rem" onclick="cycleSpeed()">${esc(t2('spd'))} ${playRate}x</button></div>`;
   secs.forEach(sec=>{
     const secItems=items.filter(it=>it.secId===sec.id);
     if(!secItems.length)return;
     h+=`<h2 class="stit">${esc(sec.name)}</h2>`;
     secItems.forEach((it,ii)=>{
-      const rec=r.items[it.id]||{};
-      const sc=rec.score;
-      h+=`<div class="cd qc${sc?' scored':''}" id="sc-${it.id}">
-        <div class="en">${esc(sec.name.charAt(0))}-${ii+1}</div>
-        <div class="enm">${esc(it.name)}</div>
-        <div class="ed">${esc(it.desc)}</div>
-        ${it.ans?`<details class="ans"><summary>${t('ansLbl')}</summary><div class="ansb">${esc(it.ans)}</div></details>`:''}
-        ${rec.hasAudio?`<audio id="sa-${it.id}" controls></audio>`:`<div class="recstat">${t('recReady')}</div>`}
-        <div class="tlbl"><span>${t('trLbl')}</span>${rec.hasAudio?`<button class="aibtn" id="ai-${it.id}" onclick="aiTranscribe('${it.id}')">${t('aiBtn')}</button>`:''}</div>
-        <textarea class="trta" id="tr-${it.id}" placeholder="${t('phTr')}">${esc(rec.transcript!=null?rec.transcript:(rec.draft||''))}</textarea>
-        <div class="tlbl">${t('scoreLbl')}</div>
-        <div class="sr" role="radiogroup" aria-label="${esc(it.name)} ${t('scoreLbl')}">${[1,2,3,4,5].map(s=>`<button class="sb${sc===s?' sel':''}" role="radio" aria-checked="${sc===s?'true':'false'}" data-id="${it.id}" data-s="${s}" onclick="pickScore('${it.id}',${s},this)">${s}<span class="sl">${t('s'+s)}</span></button>`).join('')}</div>
-        <div class="clbl">${t('cmtLbl')}</div>
-        <textarea id="cm-${it.id}" placeholder="${t('phCmt')}">${esc(rec.comment||'')}</textarea>
-      </div>`;
+      h+=scoreCardHtml(r,it.id,sec.name.charAt(0)+'-'+(ii+1),it.name,it.desc,it.ans);
     });
   });
+  // 現在の設定に無いが、このセッションに録音/採点/文字起こしが残っている過去項目（cfg変更後も採点できる）
+  const extras=sessItemIds(r).filter(id=>{
+    if(items.some(it=>it.id===id))return false;
+    const rec=r.items[id];return rec&&(rec.hasAudio||rec.score!=null||rec.transcript);
+  });
+  if(extras.length){
+    h+=`<h2 class="stit">${esc(t2('extraSec'))}</h2>`;
+    extras.forEach((id,ii)=>{
+      const m=itemMeta(r,id);
+      h+=scoreCardHtml(r,id,'#-'+(ii+1),m.name+(m.sec?'（'+m.sec+'）':''),'',null);
+    });
+  }
   h+=`<div class="cd oasec"><h2>${t('overall')}</h2><textarea id="scOv" class="oata" rows="4" placeholder="${t('phOv')}">${esc(r.overall||'')}</textarea></div>`;
-  h+=`<div class="savebar"><span class="autost" id="scAutoSt" role="status"></span><div class="bg" style="margin:0"><button class="b b1" onclick="saveScore()">${t('btnSaveScore')}</button><button class="b b3" onclick="backToScoreList()">${t('btnBack')}</button></div></div>`;
+  h+=`<div class="savebar"><span class="autost" id="scAutoSt" role="status"></span><div class="bg" style="margin:0"><button class="b b4" onclick="nextUnscored()">${esc(t2('nextUnscored'))}</button><button class="b b1" onclick="saveScore()">${t('btnSaveScore')}</button><button class="b b3" onclick="backToScoreList()">${t('btnBack')}</button></div></div>`;
   det.innerHTML=h;
   det.querySelectorAll('textarea').forEach(el=>el.addEventListener('input',queueScoreDraft));
   updateScoreProg();
   window.scrollTo({top:0,behavior:'smooth'});
-  // 音声URL
-  for(const it of items){
-    if(r.items[it.id]&&r.items[it.id].hasAudio){
-      const b=await getAudio(r.id+'_'+it.id);
-      if(b){const au=document.getElementById('sa-'+it.id);if(au){const u=URL.createObjectURL(b);curScoreUrls.push(u);au.src=u}}
+  // 音声URL（セッション自身のキーで走査＝過去項目の録音も再生できる）
+  for(const id of sessItemIds(r)){
+    if(r.items[id]&&r.items[id].hasAudio){
+      const b=await getAudio(r.id+'_'+id);
+      if(b){const au=document.getElementById('sa-'+id);if(au){const u=URL.createObjectURL(b);curScoreUrls.push(u);au.src=u;au.playbackRate=playRate}}
     }
   }
 }
-function pickScore(id,s,btn){btn.parentElement.querySelectorAll('.sb').forEach(b=>{b.classList.remove('sel');b.setAttribute('aria-checked','false')});btn.classList.add('sel');btn.setAttribute('aria-checked','true');const c=document.getElementById('sc-'+id);if(c)c.classList.add('scored');updateScoreProg();queueScoreDraft()}
+/* 音声の再生速度トグル（1x→1.25x→1.5x→2x） */
+let playRate=1;
+function cycleSpeed(){
+  playRate={'1':1.25,'1.25':1.5,'1.5':2,'2':1}[String(playRate)]||1;
+  document.querySelectorAll('#scDetail audio').forEach(a=>{a.playbackRate=playRate});
+  const b=document.getElementById('spdBtn');if(b)b.textContent=t2('spd')+' '+playRate+'x';
+}
+/* 「質問しなかった」＝採点対象外（score=null維持なので集計・CSVは従来通り互換） */
+function pickNA(id,checked){
+  if(!curScore)return;
+  curScore.items[id]=curScore.items[id]||{};
+  curScore.items[id].na=checked;
+  if(checked){
+    document.querySelectorAll('.sb[data-id="'+id+'"]').forEach(b=>{b.classList.remove('sel');b.setAttribute('aria-checked','false')});
+    curScore.items[id].score=null;
+    const c=document.getElementById('sc-'+id);if(c)c.classList.remove('scored');
+  }
+  updateScoreProg();queueScoreDraft();
+}
+/* 次の未採点項目へジャンプ */
+function nextUnscored(){
+  if(!curScore)return;
+  const id=sessItemIds(curScore).find(id=>{
+    const rec=curScore.items[id];
+    if(!rec||!rec.hasAudio)return false;
+    const na=document.querySelector('.nachk[data-id="'+id+'"]');
+    if(na&&na.checked)return false;
+    return !document.querySelector('.sb[data-id="'+id+'"].sel');
+  });
+  if(!id){toast(t2('allScored'));return}
+  const c=document.getElementById('sc-'+id);
+  if(c)c.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function pickScore(id,s,btn){btn.parentElement.querySelectorAll('.sb').forEach(b=>{b.classList.remove('sel');b.setAttribute('aria-checked','false')});btn.classList.add('sel');btn.setAttribute('aria-checked','true');const c=document.getElementById('sc-'+id);if(c)c.classList.add('scored');const na=document.querySelector('.nachk[data-id="'+id+'"]');if(na&&na.checked){na.checked=false;if(curScore&&curScore.items[id])curScore.items[id].na=false}updateScoreProg();queueScoreDraft()}
 function backToScoreList(){persistScoreDraft(false);curScore=null;releaseScoreUrls();document.getElementById('scDetail').style.display='none';drawScoreList()}
 function releaseScoreUrls(){curScoreUrls.forEach(u=>{try{URL.revokeObjectURL(u)}catch(e){}});curScoreUrls=[]}
 
@@ -196,28 +314,33 @@ function releaseScoreUrls(){curScoreUrls.forEach(u=>{try{URL.revokeObjectURL(u)}
 function saveScore(){
   clearTimeout(scSaveTimer);
   const r=curScore;if(!r)return;
-  const items=getItems();
+  const ids=sessItemIds(r); // 現在のcfg ∪ セッション自身の項目（過去項目も採点対象）
+  const isNA=id=>{const na=document.querySelector('.nachk[data-id="'+id+'"]');return na?na.checked:!!(r.items[id]&&r.items[id].na)};
   const miss=[];
-  items.forEach(it=>{
-    const rec=r.items[it.id]||{};
+  ids.forEach(id=>{
+    const rec=r.items[id]||{};
     if(!rec.hasAudio)return; // 録音のない項目は採点対象外
-    const sel=document.querySelector('.sb[data-id="'+it.id+'"].sel');
-    if(!sel)miss.push(it);
+    if(isNA(id))return;      // 「質問しなかった」は必須採点から除外
+    const sel=document.querySelector('.sb[data-id="'+id+'"].sel');
+    if(!sel)miss.push(id);
   });
   if(miss.length){
-    miss.forEach(it=>{const c=document.getElementById('sc-'+it.id);if(c){c.classList.add('warn');setTimeout(()=>c.classList.remove('warn'),1000)}});
+    miss.forEach(id=>{const c=document.getElementById('sc-'+id);if(c){c.classList.add('warn');setTimeout(()=>c.classList.remove('warn'),1000)}});
     toast(t('eScore')+'（'+miss.length+'）',1);
-    const f=document.getElementById('sc-'+miss[0].id);if(f)f.scrollIntoView({behavior:'smooth',block:'center'});
+    const f=document.getElementById('sc-'+miss[0]);if(f)f.scrollIntoView({behavior:'smooth',block:'center'});
     return;
   }
-  items.forEach(it=>{
-    r.items[it.id]=r.items[it.id]||{};
-    const tr=document.getElementById('tr-'+it.id);if(tr)r.items[it.id].transcript=tr.value;
-    const cm=document.getElementById('cm-'+it.id);if(cm)r.items[it.id].comment=cm.value;
-    const sel=document.querySelector('.sb[data-id="'+it.id+'"].sel');
-    r.items[it.id].score=sel?+sel.dataset.s:null;
+  ids.forEach(id=>{
+    if(!document.getElementById('sc-'+id))return; // 画面に無い項目は触らない
+    r.items[id]=r.items[id]||{};
+    const tr=document.getElementById('tr-'+id);if(tr)r.items[id].transcript=tr.value;
+    const cm=document.getElementById('cm-'+id);if(cm)r.items[id].comment=cm.value;
+    const na=isNA(id);r.items[id].na=na;
+    const sel=document.querySelector('.sb[data-id="'+id+'"].sel');
+    r.items[id].score=(!na&&sel)?+sel.dataset.s:null;
   });
   r.overall=document.getElementById('scOv').value;
+  snapMeta(r); // 項目名スナップショットを追記（cfg変更後も履歴・CSVで名前が出る）
   r.status='scored';
   r.updatedAt=new Date().toISOString();
   const all=getAll();const idx=all.findIndex(s=>s.id===r.id);if(idx>=0)all[idx]=r;else all.push(r);
@@ -232,6 +355,34 @@ function saveScore(){
    履歴
    ============================================================== */
 function fmtMonth(ym){const[y,m]=ym.split('-');return lang==='ja'?y+'年'+(+m)+'月':y+'-'+m}
+/* 受験者別サマリ（採点済み試問から：回数/最新平均/前回比） */
+let _eeSums=[];
+function eeSummary(){
+  const map={};
+  getAll().filter(s=>s.status==='scored').forEach(s=>{(map[s.examinee]=map[s.examinee]||[]).push(s)});
+  return Object.keys(map).sort().map(n=>{
+    const arr=map[n].sort((a,b)=>(a.date||'').localeCompare(b.date||'')||(a.createdAt||'').localeCompare(b.createdAt||''));
+    const last=parseFloat(avg(arr[arr.length-1]));
+    const prev=arr.length>1?parseFloat(avg(arr[arr.length-2])):null;
+    return{name:n,count:arr.length,last,prev};
+  }).filter(s=>!isNaN(s.last));
+}
+function eeFilterIdx(i){const s=_eeSums[i];if(!s)return;const hf=document.getElementById('hFil');hf.value=s.name;drawHist()}
+function eeSummaryHtml(filterName){
+  _eeSums=eeSummary();
+  let sums=_eeSums.map((s,i)=>({...s,idx:i}));
+  if(filterName)sums=sums.filter(s=>s.name===filterName);
+  if(!sums.length)return'';
+  return `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">`+sums.map(s=>{
+    const arrow=s.prev==null?'':s.last>s.prev+0.05?'▲':s.last<s.prev-0.05?'▼':'→';
+    const col=arrow==='▲'?'var(--s4)':arrow==='▼'?'var(--s1)':'var(--sub)';
+    return `<button type="button" class="cd" style="flex:1 1 150px;min-width:140px;text-align:left;cursor:pointer;padding:10px 12px;margin:0" onclick="eeFilterIdx(${s.idx})">
+      <div style="font-weight:700;font-size:.9rem">${esc(s.name)}</div>
+      <div style="font-size:.74rem;color:var(--sub)">${s.count}${esc(t2('sumTimes'))}</div>
+      <div style="font-size:1.1rem;font-weight:800;margin-top:2px"><span class="${avgCls(s.last)}">${s.last.toFixed(1)}</span>${arrow?` <span style="font-size:.8rem;font-weight:700;color:${col}">${arrow} ${esc(t2('prevLbl'))} ${s.prev.toFixed(1)}</span>`:''}</div>
+    </button>`;
+  }).join('')+'</div>';
+}
 function drawHist(){
   const f=document.getElementById('hFil').value;let all=getAll();if(f)all=all.filter(e=>e.examinee===f);
   const q=(document.getElementById('hQ').value||'').trim().toLowerCase();
@@ -239,7 +390,7 @@ function drawHist(){
   all.sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.createdAt||'').localeCompare(a.createdAt||''));
   const c=document.getElementById('hList');
   if(!all.length){c.innerHTML=`<div class="nd">${t('noData')}</div>`;return}
-  let h='',pm='';
+  let h=q?'':eeSummaryHtml(f),pm='';
   all.forEach(r=>{
     const ym=(r.date||'').slice(0,7);
     if(ym&&ym!==pm){h+=`<div class="mgrp">${esc(fmtMonth(ym))}</div>`;pm=ym}
@@ -252,15 +403,17 @@ function drawHist(){
 async function showDet(id){
   const r=getAll().find(e=>e.id===id);if(!r)return;
   releaseScoreUrls();
-  const items=getItems();
+  // cfg変更後も過去項目が消えないよう「cfg ∪ セッション自身のキー」で走査、名前はスナップショット優先
+  const ids=sessItemIds(r);
   let h=`<div class="mh"><h2 id="moTitle">${esc(r.examinee)} - ${esc(r.date)}</h2><button class="mx" aria-label="${t('btnClose')}" onclick="closeMo()">&times;</button></div>`;
   h+=`<div style="font-size:.85rem;color:var(--sub);margin-bottom:12px">${t('erLbl')}: ${esc(r.examiner)}　／　${t('avgLbl')}: ${r.status==='scored'?avg(r):'-'}</div>`;
-  items.forEach(it=>{
-    const rec=r.items[it.id]||{};
+  ids.forEach(iid=>{
+    const rec=r.items[iid]||{};
     if(!rec.hasAudio&&rec.score==null&&!rec.transcript)return;
     const sc=rec.score;
-    h+=`<div class="di"><div class="dih"><span class="din">${esc(it.name)}</span>${sc?`<span class="dis sb${sc}">${sc}</span>`:''}</div>`;
-    if(rec.hasAudio)h+=`<audio id="da-${it.id}" controls></audio>`;
+    const m=itemMeta(r,iid);
+    h+=`<div class="di"><div class="dih"><span class="din">${esc(m.name)}</span>${sc?`<span class="dis sb${sc}">${sc}</span>`:''}</div>`;
+    if(rec.hasAudio)h+=`<audio id="da-${iid}" controls></audio>`;
     if(rec.transcript)h+=`<div class="ditr">${esc(rec.transcript)}</div>`;
     if(rec.comment)h+=`<div class="dic">${esc(rec.comment)}</div>`;
     h+=`</div>`;
@@ -269,10 +422,10 @@ async function showDet(id){
   h+=`<div class="ma"><button class="b b4" style="flex:1" onclick="closeMo();gotoScore('${sanitizeId(r.id)}')">${t('btnScore')}</button><button class="b b2" style="flex:1" onclick="doDel('${sanitizeId(r.id)}')">${t('btnDel')}</button><button class="b b3" style="flex:1" onclick="closeMo()">${t('btnClose')}</button></div>`;
   document.getElementById('moBody').innerHTML=h;
   moShow();
-  for(const it of items){
-    if(r.items[it.id]&&r.items[it.id].hasAudio){
-      const b=await getAudio(r.id+'_'+it.id);
-      if(b){const au=document.getElementById('da-'+it.id);if(au){const u=URL.createObjectURL(b);curScoreUrls.push(u);au.src=u}}
+  for(const iid of ids){
+    if(r.items[iid]&&r.items[iid].hasAudio){
+      const b=await getAudio(r.id+'_'+iid);
+      if(b){const au=document.getElementById('da-'+iid);if(au){const u=URL.createObjectURL(b);curScoreUrls.push(u);au.src=u}}
     }
   }
 }
@@ -300,7 +453,9 @@ function closeMo(){
 }
 function doDel(id){
   if(!confirm(t('cDel')))return;
-  getItems().forEach(it=>delAudio(id+'_'+it.id));
+  // セッション自身のキーで削除（cfg変更後でも旧項目の音声がIndexedDBに孤児残留しない）
+  const r=getAll().find(e=>e.id===id);
+  if(r)Object.keys(r.items||{}).forEach(k=>delAudio(id+'_'+k));
   saveAll(getAll().filter(e=>e.id!==id));
   closeMo();drawHist();refreshSel();
   if(document.getElementById('pgScore').classList.contains('on'))drawScoreList();
@@ -311,16 +466,22 @@ function doDel(id){
    CSV
    ============================================================== */
 function doCSV(){
-  const all=getAll(),items=getItems();if(!all.length){toast(t('noData'),1);return}
-  const hd=['試問日','試問者','受験者','状態',...items.map(it=>it.name+'(点)'),...items.map(it=>it.name+'(文字起こし)'),...items.map(it=>it.name+'(コメント)'),'平均点','全体所感','作成日時'];
+  const all=getAll();if(!all.length){toast(t('noData'),1);return}
+  // 列=現在のcfg項目 ∪ 全セッションの項目キー（cfg変更後も過去の点・文字起こしが列から消えない）
+  const cols=[];const seen=new Set();
+  getItems().forEach(it=>{if(!seen.has(it.id)){seen.add(it.id);cols.push({id:it.id,name:it.name})}});
+  all.forEach(r=>Object.keys(r.items||{}).forEach(id=>{
+    if(!seen.has(id)&&safeKey(id)){seen.add(id);cols.push({id,name:itemMeta(r,id).name})}
+  }));
+  const hd=['試問日','試問者','受験者','状態',...cols.map(c=>c.name+'(点)'),...cols.map(c=>c.name+'(文字起こし)'),...cols.map(c=>c.name+'(コメント)'),'平均点','全体所感','作成日時'];
   // 数式インジェクション対策：=,+,-,@ 等で始まる値は先頭に ' を付ける
   const cell=s=>{let v=String(s==null?'':s);if(/^[=+\-@\t\r]/.test(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"'};
   let csv='﻿'+hd.map(cell).join(',')+'\n';
   all.forEach(r=>{
     const row=[r.date,r.examiner,r.examinee,r.status==='scored'?t('stScored'):t('stRec'),
-      ...items.map(it=>(r.items[it.id]&&r.items[it.id].score)||''),
-      ...items.map(it=>(r.items[it.id]&&r.items[it.id].transcript)||''),
-      ...items.map(it=>(r.items[it.id]&&r.items[it.id].comment)||''),
+      ...cols.map(c=>(r.items[c.id]&&r.items[c.id].score)||''),
+      ...cols.map(c=>(r.items[c.id]&&r.items[c.id].transcript)||''),
+      ...cols.map(c=>(r.items[c.id]&&r.items[c.id].comment)||''),
       r.status==='scored'?avg(r):'',r.overall||'',r.createdAt||''];
     csv+=row.map(cell).join(',')+'\n';
   });
@@ -375,15 +536,31 @@ function drawCharts(){
   cS=new Chart(document.getElementById('cvS'),{type:'bar',data:{labels:secLabels,datasets:[{data:secData,backgroundColor:secData.map(v=>th.pick(v)+'cc'),borderRadius:6,barThickness:22}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,scales:{x:{min:0,max:5,ticks:{stepSize:1}}},plugins:{legend:{display:false}}}});
   document.getElementById('cvR').setAttribute('aria-label',t('chRadar')+': '+items.map(it=>it.name+' '+((lat.items[it.id]&&lat.items[it.id].score)||'-')).join(', '));
   if(cR)cR.destroy();
-  cR=new Chart(document.getElementById('cvR'),{type:'radar',data:{labels:items.map(it=>{const n=it.name;return n.length>6?n.slice(0,6)+'…':n}),datasets:[{label:lat.date,data:items.map(it=>(lat.items[it.id]&&lat.items[it.id].score)||0),borderColor:th.acc,backgroundColor:th.fill,pointBackgroundColor:th.acc}]},options:{responsive:true,maintainAspectRatio:false,scales:{r:{min:0,max:5,ticks:{stepSize:1,font:{size:10}},pointLabels:{font:{size:11}},grid:{color:th.grid},angleLines:{color:th.grid}}},plugins:{legend:{display:true,position:'bottom'}}}});
+  // 前回試問のオーバーレイ（破線）＝成長が一目で見える
+  const prev=all.length>1?all[all.length-2]:null;
+  const rDatasets=[{label:lat.date,data:items.map(it=>(lat.items[it.id]&&lat.items[it.id].score)||0),borderColor:th.acc,backgroundColor:th.fill,pointBackgroundColor:th.acc}];
+  if(prev)rDatasets.push({label:(t2('prevLbl'))+' '+prev.date,data:items.map(it=>(prev.items[it.id]&&prev.items[it.id].score)||0),borderColor:th.acc+'80',backgroundColor:'transparent',borderDash:[6,4],borderWidth:1.5,pointBackgroundColor:th.acc+'80',pointRadius:2});
+  cR=new Chart(document.getElementById('cvR'),{type:'radar',data:{labels:items.map(it=>{const n=it.name;return n.length>6?n.slice(0,6)+'…':n}),datasets:rDatasets},options:{responsive:true,maintainAspectRatio:false,scales:{r:{min:0,max:5,ticks:{stepSize:1,font:{size:10}},pointLabels:{font:{size:11}},grid:{color:th.grid},angleLines:{color:th.grid}}},plugins:{legend:{display:true,position:'bottom'}}}});
 }
 
 /* ==============================================================
    設定：試問項目（セクション＋質問）
    ============================================================== */
+/* 未保存変更のトラッキング（保存せず離脱→タブ切替時にconfirm、バッジ表示） */
+let cfgDirty=false;
+function markCfgDirty(){cfgDirty=true;updateDirtyBadge()}
+function updateDirtyBadge(){const el=document.getElementById('cfgDirtyBadge');if(el){el.textContent='● '+t2('dirty');el.style.display=cfgDirty?'block':'none'}}
+/* cfgをCKEYへ永続化して全ビューを再描画（quota失敗はToast） */
+function persistCfg(){
+  try{localStorage.setItem(CKEY,JSON.stringify(cfg))}catch(e){toast(t2('storeFail'),1);return}
+  cfgDirty=false;updateDirtyBadge();
+  buildCfgUI();buildExamCards();
+  if(typeof renderExamSetSel==='function')renderExamSetSel();
+}
 function buildCfgUI(){
   const area=document.getElementById('cfgArea');
-  const secs=cfg.sections,items=cfg.items;let h='';
+  const secs=cfg.sections,items=cfg.items;
+  let h=`<div style="font-size:.75rem;color:var(--sub);margin-bottom:10px">${esc(t2('cfgNote'))}</div>`;
   secs.forEach((sec,si)=>{
     const secItems=items.filter(it=>it.secId===sec.id);
     h+=`<div class="cfg-sec" data-sec="${sec.id}">`;
@@ -413,33 +590,40 @@ function buildCfgUI(){
     h+=`</div>`;
   });
   area.innerHTML=h;
+  updateDirtyBadge();
+  if(typeof renderQsetUI==='function')renderQsetUI(); // 言語切替時にもセットUIを追従
 }
-function cfgSecName(secId,val){const s=cfg.sections.find(s=>s.id===secId);if(s)s.name=val}
-function cfgItemName(itemId,val){const it=cfg.items.find(i=>i.id===itemId);if(it)it.name=val}
-function cfgItemDesc(itemId,val){const it=cfg.items.find(i=>i.id===itemId);if(it)it.desc=val}
-function cfgItemAns(itemId,val){const it=cfg.items.find(i=>i.id===itemId);if(it)it.ans=val}
-function addSection(){cfg.sections.push({id:'sec_'+Date.now(),name:t('secName')});buildCfgUI()}
+function cfgSecName(secId,val){const s=cfg.sections.find(s=>s.id===secId);if(s){s.name=val;markCfgDirty()}}
+function cfgItemName(itemId,val){const it=cfg.items.find(i=>i.id===itemId);if(it){it.name=val;markCfgDirty()}}
+function cfgItemDesc(itemId,val){const it=cfg.items.find(i=>i.id===itemId);if(it){it.desc=val;markCfgDirty()}}
+function cfgItemAns(itemId,val){const it=cfg.items.find(i=>i.id===itemId);if(it){it.ans=val;markCfgDirty()}}
+function addSection(){cfg.sections.push({id:'sec_'+Date.now(),name:t('secName')});markCfgDirty();buildCfgUI()}
 function addItem(secId){
   const id='item_'+Date.now();
   const idxs=cfg.items.map((it,i)=>it.secId===secId?i:-1).filter(i=>i>=0);
   const at=idxs.length?idxs[idxs.length-1]+1:cfg.items.length;
   cfg.items.splice(at,0,{id,secId,name:'',desc:''});
+  markCfgDirty();
   buildCfgUI();
   setTimeout(()=>{const ins=document.querySelectorAll('.cfg-item input[type="text"]');if(ins.length)ins[ins.length-1].focus()},50);
 }
-function delSec(secId){if(!confirm('このセクションと全質問を削除しますか？'))return;cfg.sections=cfg.sections.filter(s=>s.id!==secId);cfg.items=cfg.items.filter(it=>it.secId!==secId);buildCfgUI()}
-function delItem(itemId){if(!confirm(t('cDelItem')))return;cfg.items=cfg.items.filter(it=>it.id!==itemId);buildCfgUI()}
-function moveSec(secId,dir){const i=cfg.sections.findIndex(s=>s.id===secId);if(i<0)return;const j=i+dir;if(j<0||j>=cfg.sections.length)return;[cfg.sections[i],cfg.sections[j]]=[cfg.sections[j],cfg.sections[i]];buildCfgUI()}
+function delSec(secId){if(!confirm(t2('delSecConfirm')))return;cfg.sections=cfg.sections.filter(s=>s.id!==secId);cfg.items=cfg.items.filter(it=>it.secId!==secId);markCfgDirty();buildCfgUI()}
+function delItem(itemId){if(!confirm(t('cDelItem')))return;cfg.items=cfg.items.filter(it=>it.id!==itemId);markCfgDirty();buildCfgUI()}
+function moveSec(secId,dir){const i=cfg.sections.findIndex(s=>s.id===secId);if(i<0)return;const j=i+dir;if(j<0||j>=cfg.sections.length)return;[cfg.sections[i],cfg.sections[j]]=[cfg.sections[j],cfg.sections[i]];markCfgDirty();buildCfgUI()}
 function moveItem(itemId,dir){
   const secId=cfg.items.find(it=>it.id===itemId)?.secId;if(!secId)return;
   const secItems=cfg.items.filter(it=>it.secId===secId);
   const li=secItems.findIndex(it=>it.id===itemId);const sj=li+dir;
   if(sj<0||sj>=secItems.length)return;
   const gi=cfg.items.indexOf(secItems[li]),gj=cfg.items.indexOf(secItems[sj]);
-  [cfg.items[gi],cfg.items[gj]]=[cfg.items[gj],cfg.items[gi]];buildCfgUI();
+  [cfg.items[gi],cfg.items[gj]]=[cfg.items[gj],cfg.items[gi]];markCfgDirty();buildCfgUI();
 }
-function saveCfg(){localStorage.setItem(CKEY,JSON.stringify(cfg));buildExamCards();toast(t('cfgSaved'))}
-function resetCfg(){if(!confirm(t('cResetCfg')))return;cfg=defaultCfg();localStorage.setItem(CKEY,JSON.stringify(cfg));buildCfgUI();buildExamCards();toast(t('cfgReset'))}
+function saveCfg(){
+  try{localStorage.setItem(CKEY,JSON.stringify(cfg))}catch(e){toast(t2('storeFail'),1);return}
+  cfgDirty=false;updateDirtyBadge();
+  buildExamCards();toast(t('cfgSaved'));
+}
+function resetCfg(){if(!confirm(t('cResetCfg')))return;cfg=defaultCfg();persistCfg();toast(t('cfgReset'))}
 
 /* ==============================================================
    作業カタログから質問を追加（大項目=作業 → 小項目=質問を選択）
@@ -462,9 +646,13 @@ function catPickCat(catId){
 function catPickWork(workId){
   const w=qaWorkById(workId),box=document.getElementById('qaChecks');
   if(!w){box.innerHTML='';return}
-  box.innerHTML=qaQuestions(w).map(q=>
-    `<label class="qa-check"><input type="checkbox" value="${esc(q.key)}" checked><div class="qat"><div class="qan">${esc(q.name)}</div><div class="qaq">${esc(q.desc)}</div><div class="qaa">${esc(q.ans)}</div></div></label>`
-  ).join('');
+  // 追加済みの質問には「追加済み」バッジを付け、初期チェックを外す（重複追加の混乱を防ぐ）
+  const sec=cfg.sections.find(s=>s.name===w.name);
+  const isDup=q=>!!(sec&&cfg.items.some(it=>it.secId===sec.id&&it.name===q.name));
+  box.innerHTML=qaQuestions(w).map(q=>{
+    const dup=isDup(q);
+    return `<label class="qa-check"><input type="checkbox" value="${esc(q.key)}" ${dup?'':'checked'}><div class="qat"><div class="qan">${esc(q.name)}${dup?` <span style="font-size:.68rem;color:var(--pri);font-weight:700;border:1px solid var(--pri);border-radius:4px;padding:0 4px">${esc(t2('added'))}</span>`:''}</div><div class="qaq">${esc(q.desc)}</div><div class="qaa">${esc(q.ans)}</div></div></label>`;
+  }).join('');
 }
 function addFromCatalog(){
   const w=qaWorkById(document.getElementById('workSel2').value);
@@ -480,8 +668,153 @@ function addFromCatalog(){
     cfg.items.push({id:'qa_'+w.id+'_'+q.key+'_'+Date.now(),secId:sec.id,name:q.name,desc:q.desc,ans:q.ans});
     added++;
   });
-  localStorage.setItem(CKEY,JSON.stringify(cfg));
-  buildCfgUI();buildExamCards();
+  persistCfg();
   closeMo();
   toast(added+t('catAdded'));
+}
+
+/* ==============================================================
+   プリセット試問セット（QBANK）＋ 質問セット管理（保存/切替）
+   - QBANK契約: qbankPresets()/qbankPreset(id) のみ使用（js/qbank.js＋data.jsアクセサ）
+   - 質問セット: oral_exam_presets_v1 = {presets:[{id,name,cfg}],activeId}
+     CKEY(oral_exam_items_v1)は常に「アクティブセットの実体」→既存データ・バックアップv1と完全互換
+   ============================================================== */
+function qbankAvailable(){return typeof qbankPresets==='function'&&typeof QBANK!=='undefined'}
+function renderQsetUI(){
+  const box=document.getElementById('qsetArea');if(!box)return;
+  const qs=getQuestionSets();
+  let h='';
+  // --- プリセット（テンプレート）適用 ---
+  h+=`<div class="cd" style="margin-bottom:12px"><div style="font-weight:700;margin-bottom:6px">${esc(t2('qbTitle'))}</div>`;
+  if(qbankAvailable()){
+    h+=`<select id="qbSel" style="width:100%" onchange="qbShowDesc()"><option value="">${t('selPh')}</option>${qbankPresets().map(p=>`<option value="${esc(sanitizeId(p.id))}">${esc(p.name)}</option>`).join('')}</select>`;
+    h+=`<div id="qbDesc" style="font-size:.78rem;color:var(--sub);margin-top:6px"></div>`;
+    h+=`<div style="display:flex;gap:8px;margin-top:10px"><button type="button" class="b b1" style="flex:1" onclick="applyQbank(false)">${esc(t2('qbReplace'))}</button><button type="button" class="b b4" style="flex:1" onclick="applyQbank(true)">${esc(t2('qbAppend'))}</button></div>`;
+  }else{
+    h+=`<div style="font-size:.78rem;color:var(--sub)">${esc(t2('qbNone'))}</div>`;
+  }
+  h+='</div>';
+  // --- 保存済み質問セットの管理 ---
+  h+=`<div class="cd" style="margin-bottom:12px"><div style="font-weight:700;margin-bottom:6px">${esc(t2('qsTitle'))}</div>`;
+  const act=qs.presets.find(p=>p.id===qs.activeId);
+  h+=`<div style="font-size:.8rem;color:var(--sub);margin-bottom:6px">${esc(t2('qsCur'))}: <strong style="color:var(--txt)">${esc(act?act.name:t2('qsNone'))}</strong>${cfgDirty?` <span style="color:var(--s2,#c60)">● ${esc(t2('dirty'))}</span>`:''}</div>`;
+  if(qs.presets.length){
+    h+=`<select id="qsSel" style="width:100%">${qs.presets.map(p=>`<option value="${esc(sanitizeId(p.id))}"${p.id===qs.activeId?' selected':''}>${esc(p.name)}</option>`).join('')}</select>`;
+    h+=`<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+      <button type="button" class="b b1" style="flex:1;min-width:70px" onclick="qsApplySel()">${esc(t2('qsApply'))}</button>
+      <button type="button" class="b b4" style="flex:1;min-width:70px" onclick="qsOverwriteSel()">${esc(t2('qsOver'))}</button>
+      <button type="button" class="b b3" style="flex:1;min-width:70px" onclick="qsRenameSel()">${esc(t2('qsRen'))}</button>
+      <button type="button" class="b b2" style="flex:1;min-width:70px" onclick="qsDeleteSel()">${esc(t2('qsDel'))}</button>
+    </div>`;
+  }
+  h+=`<button type="button" class="b b3" style="width:100%;margin-top:8px" onclick="qsSaveNew()">${esc(t2('qsSaveNew'))}</button>`;
+  h+='</div>';
+  box.innerHTML=h;
+}
+function qbShowDesc(){
+  const sel=document.getElementById('qbSel'),el=document.getElementById('qbDesc');
+  if(!sel||!el)return;
+  const p=qbankAvailable()?qbankPresets().find(x=>sanitizeId(x.id)===sel.value):null;
+  el.textContent=p?(p.desc||'')+'（'+(p.sections||[]).length+' / '+(p.items||[]).length+'）':'';
+}
+/* QBANK項目→cfg項目へ変換。模範解答ansは既存の折りたたみ表示(details.ans)に載せ、出典srcを末尾に明記 */
+function qbankToCfgItem(p,it){
+  let a=it.ans!=null?String(it.ans):'';
+  if(it.src)a+=(a?'\n':'')+'（出典: '+String(it.src)+'）';
+  const o={id:sanitizeId('qb_'+p.id+'_'+it.id),secId:sanitizeId('qb_'+p.id+'_'+it.secId),name:String(it.name||''),desc:String(it.desc||'')};
+  if(a)o.ans=a;
+  return o;
+}
+function applyQbank(append){
+  if(!qbankAvailable())return;
+  const sel=document.getElementById('qbSel');
+  const p=sel&&qbankPresets().find(x=>sanitizeId(x.id)===sel.value);
+  if(!p){toast(t('selPh'),1);return}
+  if(!append){
+    if(!confirm(t2('qbRepConfirm').replace('{n}',p.name)))return;
+    cfg={sections:(p.sections||[]).map(s=>({id:sanitizeId('qb_'+p.id+'_'+s.id),name:String(s.name||'')})),
+         items:(p.items||[]).map(it=>qbankToCfgItem(p,it))};
+    const qs=getQuestionSets();qs.activeId=null;saveQuestionSets(qs);
+    persistCfg();
+    toast(t2('qbApplied'));
+  }else{
+    let added=0;
+    (p.sections||[]).forEach(s=>{const sid=sanitizeId('qb_'+p.id+'_'+s.id);if(!cfg.sections.some(x=>x.id===sid))cfg.sections.push({id:sid,name:String(s.name||'')})});
+    (p.items||[]).forEach(it=>{
+      const o=qbankToCfgItem(p,it);
+      if(cfg.items.some(x=>x.id===o.id))return; // 同一プリセット項目の重複追加を防ぐ
+      cfg.items.push(o);added++;
+    });
+    persistCfg();
+    toast(added+t('catAdded'));
+  }
+}
+/* --- 質問セット（名前付き保存/切替） --- */
+function qsSelP(){const s=document.getElementById('qsSel');if(!s)return null;return getQuestionSets().presets.find(p=>sanitizeId(p.id)===s.value)||null}
+function qsSaveNew(){
+  const name=prompt(t2('qsNamePrompt'),'');if(name==null)return;
+  const nm=name.trim();if(!nm)return;
+  const qs=getQuestionSets();
+  const id='set_'+Date.now();
+  qs.presets.push({id,name:nm,cfg:JSON.parse(JSON.stringify(cfg))});
+  qs.activeId=id;saveQuestionSets(qs);
+  renderQsetUI();if(typeof renderExamSetSel==='function')renderExamSetSel();
+  toast(t2('qsSaved'));
+}
+function applySet(id){
+  const qs=getQuestionSets();
+  const p=qs.presets.find(x=>sanitizeId(x.id)===String(id));
+  if(!p||!p.cfg)return false;
+  if(!confirm(t2('qsSwConfirm').replace('{n}',p.name)))return false;
+  // 無害化しつつディープコピー（importBackupと同水準）
+  cfg={sections:(p.cfg.sections||[]).map(s=>({id:sanitizeId(s.id),name:String(s.name||'')})),
+       items:(p.cfg.items||[]).map(it=>{const o={id:sanitizeId(it.id),secId:sanitizeId(it.secId),name:String(it.name||''),desc:String(it.desc||'')};if(it.ans!=null)o.ans=String(it.ans);return o})};
+  qs.activeId=p.id;saveQuestionSets(qs);
+  persistCfg();
+  toast(t2('qsApplied'));
+  return true;
+}
+function qsApplySel(){const p=qsSelP();if(p)applySet(sanitizeId(p.id))}
+function qsOverwriteSel(){
+  const qs=getQuestionSets();const s=document.getElementById('qsSel');if(!s)return;
+  const p=qs.presets.find(x=>sanitizeId(x.id)===s.value);if(!p)return;
+  p.cfg=JSON.parse(JSON.stringify(cfg));qs.activeId=p.id;saveQuestionSets(qs);
+  cfgDirty=false;updateDirtyBadge();
+  renderQsetUI();if(typeof renderExamSetSel==='function')renderExamSetSel();
+  toast(t2('qsSaved'));
+}
+function qsRenameSel(){
+  const qs=getQuestionSets();const s=document.getElementById('qsSel');if(!s)return;
+  const p=qs.presets.find(x=>sanitizeId(x.id)===s.value);if(!p)return;
+  const name=prompt(t2('qsNamePrompt'),p.name);if(name==null)return;
+  const nm=name.trim();if(!nm)return;
+  p.name=nm;saveQuestionSets(qs);
+  renderQsetUI();if(typeof renderExamSetSel==='function')renderExamSetSel();
+}
+function qsDeleteSel(){
+  const qs=getQuestionSets();const s=document.getElementById('qsSel');if(!s)return;
+  const p=qs.presets.find(x=>sanitizeId(x.id)===s.value);if(!p)return;
+  if(!confirm(t2('qsDelConfirm').replace('{n}',p.name)))return;
+  qs.presets=qs.presets.filter(x=>x!==p);
+  if(qs.activeId===p.id)qs.activeId=null;
+  saveQuestionSets(qs);
+  renderQsetUI();if(typeof renderExamSetSel==='function')renderExamSetSel();
+  toast(t2('qsDeleted'));
+}
+/* 試問タブ上部のセット切替セレクト（保存済みセットがある時だけ表示） */
+function renderExamSetSel(){
+  const box=document.getElementById('examSetBox');if(!box)return;
+  const qs=getQuestionSets();
+  if(!qs.presets.length){box.style.display='none';box.innerHTML='';return}
+  box.style.display='block';
+  const act=qs.presets.find(p=>p.id===qs.activeId);
+  box.innerHTML=`<label style="display:block;font-size:.78rem;font-weight:600;color:var(--sub);margin-bottom:4px">${esc(t2('qsTitle'))}</label>
+    <select style="width:100%" onchange="examSetChange(this.value)">
+      <option value="">${esc(t2('qsCur'))}: ${esc(act?act.name:t2('qsNone'))}</option>
+      ${qs.presets.filter(p=>p.id!==qs.activeId).map(p=>`<option value="${esc(sanitizeId(p.id))}">${esc(p.name)}</option>`).join('')}
+    </select>`;
+}
+function examSetChange(v){
+  if(!v){renderExamSetSel();return}
+  if(!applySet(v))renderExamSetSel(); // confirmキャンセル時はセレクトを元に戻す
 }
