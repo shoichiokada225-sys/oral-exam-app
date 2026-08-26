@@ -152,6 +152,7 @@ function showUndoBar(sessId,itemId,old){
         cur.items[lr.itemId].draft=lr.draft;
         saveDraft();
         buildExamCards();
+        maybeAutoUpload(lr.itemId); // 復元した旧テイクをドライブにも再送（ローカルとドライブの不一致を防ぐ）
       }
       toast(t('undoDone'));
     }catch(e){toast(t2('storeFail'),1)}
