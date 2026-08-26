@@ -22,6 +22,12 @@ function sanitizeLoadedCfg(c){
   return c;
 }
 function loadCfg(){try{const r=localStorage.getItem(CKEY);return r?sanitizeLoadedCfg(JSON.parse(r)):defaultCfg()}catch{return defaultCfg()}}
+/* 多言語の任意フィールド（name_en / desc_vi 等）を文字列化して安全にコピー。
+   importBackup/applySetの無害化取り込みで翻訳を落とさないための共通ヘルパー（後方互換: 無ければ何もしない） */
+function copyLocFields(src,dst,keys){
+  if(src&&typeof src==='object')keys.forEach(k=>['en','vi','id'].forEach(l=>{const f=k+'_'+l;if(src[f]!=null&&src[f]!=='')dst[f]=String(src[f])}));
+  return dst;
+}
 function getItems(){return cfg.items}
 function getSections(){return cfg.sections}
 function getAll(){try{const r=localStorage.getItem(SKEY);return r?JSON.parse(r).sessions||[]:[]}catch{return[]}}
@@ -162,11 +168,11 @@ function importBackup(input){
       saveAll(Object.values(map));
       // 試問項目はインポート側を採用（採点との整合のため）。ID・文字列を無害化して取り込む
       if(bk.cfg&&Array.isArray(bk.cfg.sections)&&Array.isArray(bk.cfg.items)){
-        cfg={sections:bk.cfg.sections.map(s=>({id:sanitizeId(s.id),name:String(s.name||'')})),
+        cfg={sections:bk.cfg.sections.map(s=>copyLocFields(s,{id:sanitizeId(s.id),name:String(s.name||'')},['name'])),
              items:bk.cfg.items.map(it=>{
                const o={id:sanitizeId(it.id),secId:sanitizeId(it.secId),name:String(it.name||''),desc:String(it.desc||'')};
                if(it.ans!=null)o.ans=String(it.ans);
-               return o;
+               return copyLocFields(it,o,['name','desc','ans']);
              })};
         localStorage.setItem(CKEY,JSON.stringify(cfg));
       }

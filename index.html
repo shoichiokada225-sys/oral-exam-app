@@ -107,9 +107,9 @@ try{var _th=localStorage.getItem('oral_exam_theme');if(_th==='light'||_th==='dar
     <label for="gUrl" data-t="gUrl">ウェブアプリURL（GAS）</label>
     <input type="text" id="gUrl" placeholder="https://script.google.com/macros/s/.../exec">
     <label for="gToken" data-t="gToken">合言葉（GASと同じ値）</label>
-    <input type="password" id="gToken" placeholder="例：oral-exam-2026">
+    <input type="password" id="gToken" data-ph="phGToken" placeholder="例：oral-exam-2026">
     <label for="gFolder" data-t="gFolder">保存先フォルダ名</label>
-    <input type="text" id="gFolder" placeholder="口頭試問音声">
+    <input type="text" id="gFolder" data-ph="phGFolder" placeholder="口頭試問音声">
     <div class="btnrow">
       <button class="b b1 grow" onclick="saveGoogleCfg()" data-t="gSaveId">設定を保存</button>
       <button class="b b3 grow" id="gTestBtn" onclick="gasTest()" data-t="gTest">接続テスト</button>

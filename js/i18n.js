@@ -22,6 +22,8 @@ selEe:'受験者を選択してください',selPh:'-- 選択してください 
 s5:'優秀',s4:'良好',s3:'合格',s2:'要再確認',s1:'不合格',
 gTitle:'Googleドライブに自動保存（任意）',gNote:'録音した音声を、あなたのGoogleドライブへ自動保存します。Google Apps Script（GAS）の小さなウェブアプリを経由する方式です。設定手順は別紙 SETUP-GOOGLE-DRIVE.md を参照（コードは用意済み・貼り付けてデプロイするだけ）。',
 gUrl:'ウェブアプリURL（GAS）',gToken:'合言葉（任意・空でも可）',gFolder:'保存先フォルダ名',gSaveId:'設定を保存',gCfgSaved:'設定を保存しました',gTest:'接続テスト',gAuto:'録音を自動でドライブに保存する',
+phGToken:'例：oral-exam-2026',phGFolder:'口頭試問音声',
+csvStatus:'状態',csvCreated:'作成日時',csvCmt:'コメント',ansJaNote:'（日本語）',
 gConnected:'● 接続OK：自動保存できます',gDisconnected:'○ 未接続（設定を保存して接続テスト）',gNeedCfg:'ウェブアプリURLを入力して保存してください',gTestOk:'接続OK：ドライブに保存できます',gTestFail:'接続に失敗しました',
 clUp:'☁ ドライブへ保存中…',clDone:'☁ ドライブ保存済み',clFail:'⚠ ドライブ保存失敗（タップで再試行）',gAutoNoCfg:'先にウェブアプリURLを保存してください',
 gBadUrl:'保存先URLが不正です（Google Apps Scriptのhttpsのみ許可）',gConfirmCfg:'このリンクは録音の保存先を次のURLに設定します。信頼できる場合のみ適用してください：',
@@ -60,6 +62,8 @@ selEe:'Select examinee',selPh:'-- Select --',chLine:'Avg Trend',chRadar:'Radar (
 s5:'Excellent',s4:'Good',s3:'Pass',s2:'Recheck',s1:'Fail',
 gTitle:'Auto-save to Google Drive (optional)',gNote:'Auto-saves recordings to your Google Drive via a small Google Apps Script (GAS) web app. See SETUP-GOOGLE-DRIVE.md (code is ready — just paste and deploy).',
 gUrl:'Web App URL (GAS)',gToken:'Passphrase (optional)',gFolder:'Destination folder name',gSaveId:'Save settings',gCfgSaved:'Settings saved',gTest:'Test connection',gAuto:'Auto-save recordings to Drive',
+phGToken:'e.g. oral-exam-2026',phGFolder:'Oral exam audio',
+csvStatus:'Status',csvCreated:'Created',csvCmt:'Comment',ansJaNote:'(Japanese)',
 gConnected:'● OK: ready to save to Drive',gDisconnected:'○ Not set (save settings, then test)',gNeedCfg:'Enter the Web App URL, then save',gTestOk:'OK: can save to Drive',gTestFail:'Connection failed',
 clUp:'☁ Saving to Drive…',clDone:'☁ Saved to Drive',clFail:'⚠ Drive save failed (tap to retry)',gAutoNoCfg:'Save the Web App URL first',
 gBadUrl:'Invalid destination URL (only Google Apps Script https allowed)',gConfirmCfg:'This link will set where recordings are uploaded to the URL below. Apply only if you trust it:',
@@ -98,6 +102,8 @@ selEe:'Chọn thí sinh',selPh:'-- Chọn --',chLine:'Xu hướng TB',chRadar:'R
 s5:'Xuất sắc',s4:'Tốt',s3:'Đạt',s2:'Cần xem lại',s1:'Không đạt',
 gTitle:'Tự lưu lên Google Drive (tùy chọn)',gNote:'Tự động lưu ghi âm lên Google Drive của bạn qua một web app Google Apps Script (GAS) nhỏ. Xem SETUP-GOOGLE-DRIVE.md (mã đã có sẵn — chỉ dán và triển khai).',
 gUrl:'URL Web App (GAS)',gToken:'Mật khẩu (tùy chọn)',gFolder:'Tên thư mục lưu',gSaveId:'Lưu cài đặt',gCfgSaved:'Đã lưu cài đặt',gTest:'Kiểm tra kết nối',gAuto:'Tự động lưu ghi âm lên Drive',
+phGToken:'VD: oral-exam-2026',phGFolder:'Âm thanh vấn đáp',
+csvStatus:'Trạng thái',csvCreated:'Thời điểm tạo',csvCmt:'Nhận xét',ansJaNote:'(tiếng Nhật)',
 gConnected:'● OK: sẵn sàng lưu lên Drive',gDisconnected:'○ Chưa đặt (lưu rồi kiểm tra)',gNeedCfg:'Nhập URL Web App rồi lưu',gTestOk:'OK: có thể lưu lên Drive',gTestFail:'Kết nối thất bại',
 clUp:'☁ Đang lưu lên Drive…',clDone:'☁ Đã lưu lên Drive',clFail:'⚠ Lưu lên Drive thất bại (chạm để thử lại)',gAutoNoCfg:'Hãy lưu URL Web App trước',
 gBadUrl:'URL lưu không hợp lệ (chỉ cho phép https của Google Apps Script)',gConfirmCfg:'Liên kết này sẽ đặt nơi tải ghi âm lên URL dưới đây. Chỉ áp dụng nếu bạn tin tưởng:',
@@ -136,6 +142,8 @@ selEe:'Pilih peserta',selPh:'-- Pilih --',chLine:'Tren Rata-rata',chRadar:'Radar
 s5:'Sangat baik',s4:'Baik',s3:'Lulus',s2:'Periksa ulang',s1:'Tidak lulus',
 gTitle:'Simpan otomatis ke Google Drive (opsional)',gNote:'Otomatis menyimpan rekaman ke Google Drive Anda melalui web app Google Apps Script (GAS) kecil. Lihat SETUP-GOOGLE-DRIVE.md (kode sudah siap — tinggal tempel dan deploy).',
 gUrl:'URL Web App (GAS)',gToken:'Kata sandi (opsional)',gFolder:'Nama folder tujuan',gSaveId:'Simpan pengaturan',gCfgSaved:'Pengaturan disimpan',gTest:'Tes koneksi',gAuto:'Simpan otomatis rekaman ke Drive',
+phGToken:'Cth: oral-exam-2026',phGFolder:'Audio ujian lisan',
+csvStatus:'Status',csvCreated:'Dibuat',csvCmt:'Komentar',ansJaNote:'(bahasa Jepang)',
 gConnected:'● OK: siap simpan ke Drive',gDisconnected:'○ Belum diatur (simpan lalu tes)',gNeedCfg:'Isi URL Web App lalu simpan',gTestOk:'OK: bisa simpan ke Drive',gTestFail:'Koneksi gagal',
 clUp:'☁ Menyimpan ke Drive…',clDone:'☁ Tersimpan di Drive',clFail:'⚠ Gagal simpan ke Drive (ketuk untuk coba lagi)',gAutoNoCfg:'Simpan URL Web App dulu',
 gBadUrl:'URL tujuan tidak valid (hanya https Google Apps Script yang diizinkan)',gConfirmCfg:'Tautan ini akan mengatur tujuan unggah rekaman ke URL berikut. Terapkan hanya jika Anda percaya:',
@@ -160,5 +168,17 @@ const LKEY='oral_exam_lang';
 let lang=localStorage.getItem(LKEY)||'ja';
 
 function t(k){return(TX[lang]||TX.ja)[k]||TX.ja[k]||k}
+
+/* コンテンツ（試問項目・セクション等）のローカライズ。
+   任意フィールド name_en / name_vi / name_id 等があれば言語に応じて返し、
+   無ければ原文（日本語）へフォールバック＝既存データ・バックアップと完全後方互換 */
+function loc(o,k){
+  if(!o)return'';
+  if(lang!=='ja'){
+    const v=o[k+'_'+lang]||o[k+'_en'];
+    if(v)return v;
+  }
+  return o[k]!=null?o[k]:'';
+}
 
 function speechLang(){return{ja:'ja-JP',en:'en-US',vi:'vi-VN',id:'id-ID'}[lang]||'ja-JP'}

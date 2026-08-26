@@ -34,7 +34,7 @@ storeFail:'Save failed (device storage may be full). Export a backup from Settin
 gcConfirm:'{n} recording(s) belong to no session. Delete them to free space?',gcDone:' orphan recording(s) deleted',
 naLbl:'Not asked (excluded from scoring)',nextUnrec:'Next unrecorded',nextUnscored:'Next unscored',allRec:'All items recorded',allScored:'Nothing left to score',
 recBusy:'Recording in progress — press "Stop" first',noRecGroup:'Items without recording ({n})',
-spd:'Speed',sumTimes:' exam(s)',added:'Added',extraSec:'Past items (not in current settings)',prevLbl:'Prev',
+spd:'Speed',sumTimes:' exams',sumTimes1:' exam',added:'Added',extraSec:'Past items (not in current settings)',prevLbl:'Prev',
 resetCnt:'({n} recording(s) will be deleted. This cannot be undone)'},
 vi:{qsTitle:'Bộ câu hỏi',qsCur:'Bộ hiện tại',qsNone:'(chưa lưu thành bộ)',qsSaveNew:'Lưu các mục hiện tại thành bộ mới',qsOver:'Ghi đè',qsApply:'Chuyển',qsRen:'Đổi tên',qsDel:'Xóa',
 qsNamePrompt:'Nhập tên bộ',qbTitle:'Bộ câu hỏi mẫu',qbReplace:'Thay thế mục',qbAppend:'Thêm vào mục',
@@ -61,16 +61,18 @@ function buildExamCards(){
   secs.forEach((sec,si)=>{
     const secItems=items.filter(it=>it.secId===sec.id);
     if(!secItems.length)return;
-    h+=`<h2 class="stit" id="sec-i${si}">${esc(sec.name)}</h2>`;
+    const secName=loc(sec,'name'); // 多言語コンテンツ（name_en等があれば言語追従・無ければ原文）
+    h+=`<h2 class="stit" id="sec-i${si}">${esc(secName)}</h2>`;
     secItems.forEach((it,ii)=>{
       const iid=sanitizeId(it.id); // 多層防御: onclick/DOM idへの埋め込みは描画側でも無害化（loadCfg/importBackup/applySetの上流無害化に一点依存しない）
       const rec=cur&&cur.items[it.id];
       const has=rec&&rec.hasAudio;
+      const ansTxt=loc(it,'ans');
       h+=`<div class="cd qc${has?' done':''}" id="q-${iid}">
-        <div class="en">${esc(sec.name.charAt(0))}-${ii+1}</div>
-        <div class="enm">${esc(it.name)}</div>
-        <div class="ed">${esc(it.desc)}</div>
-        ${it.ans?`<details class="ans"><summary>${t('ansLbl')}</summary><div class="ansb">${esc(it.ans)}</div></details>`:''}
+        <div class="en">${esc(secName.charAt(0))}-${ii+1}</div>
+        <div class="enm">${esc(loc(it,'name'))}</div>
+        <div class="ed">${esc(loc(it,'desc'))}</div>
+        ${ansTxt?`<details class="ans"><summary>${t('ansLbl')}${lang!=='ja'&&ansTxt===it.ans?' '+esc(t('ansJaNote')):''}</summary><div class="ansb">${esc(ansTxt)}</div></details>`:''}
         <div class="recrow">
           <button class="recbtn" id="rb-${iid}" onclick="toggleRec('${iid}')"><span class="dot"></span><span class="rlab">${has?t('recRedo'):t('recStart')}</span></button>
           <span class="rectime" id="rt-${iid}"></span>
@@ -117,7 +119,7 @@ function updateExamProg(){
     const d=secItems.filter(done).length;
     const b=document.createElement('button');
     b.type='button';b.className='chip'+(d===secItems.length?' done':'');
-    b.textContent=sec.name+' '+d+'/'+secItems.length;
+    b.textContent=loc(sec,'name')+' '+d+'/'+secItems.length;
     b.onclick=()=>{const a=document.getElementById('sec-i'+si);if(a)a.scrollIntoView({behavior:'smooth',block:'start'})};
     chips.appendChild(b);
   });
@@ -152,7 +154,7 @@ function drawScoreList(){
   if(!all.length){c.innerHTML=`<div class="nd">${fil==='all'?t('noData'):t('noUnscored')}</div>`;return}
   c.innerHTML=all.map(r=>{
     const sc=r.status==='scored';
-    return `<button type="button" class="hi" onclick="openScore('${sanitizeId(r.id)}')"><span class="hii"><span class="hid">${esc(r.date)}　${t('erLbl')}: ${esc(r.examiner)}</span><span class="hin">${esc(r.examinee)}</span><span class="badge ${sc?'scored':'rec'}">${sc?t('stScored'):t('stRec')}</span></span><span class="hia ${sc?avgCls(avg(r)):''}">${sc?avg(r):'–'}</span></button>`;
+    return `<button type="button" class="hi" onclick="openScore('${sanitizeId(r.id)}')"><span class="hii"><span class="hid">${esc(r.date)} · ${t('erLbl')}: ${esc(r.examiner)}</span><span class="hin">${esc(r.examinee)}</span><span class="badge ${sc?'scored':'rec'}">${sc?t('stScored'):t('stRec')}</span></span><span class="hia ${sc?avgCls(avg(r)):''}">${sc?avg(r):'–'}</span></button>`;
   }).join('');
 }
 
@@ -220,8 +222,8 @@ function updateScoreProg(){
     }else{av.textContent='';av.className='spavg'}
   }
 }
-/* 採点カード1枚分のHTML（通常項目・過去項目で共用） */
-function scoreCardHtml(r,id,en,name,desc,ans){
+/* 採点カード1枚分のHTML（通常項目・過去項目で共用）。ansJa=表示中の模範解答が日本語フォールバックのとき言語注記を付ける */
+function scoreCardHtml(r,id,en,name,desc,ans,ansJa){
   const rec=r.items[id]||{};
   id=sanitizeId(id); // 多層防御: onclick/DOM id/data-id への埋め込みを描画側でも無害化（sessItemIdsのsafeKey・cfg無害化と同水準）
   const sc=rec.score;
@@ -229,7 +231,7 @@ function scoreCardHtml(r,id,en,name,desc,ans){
     <div class="en">${esc(en)}</div>
     <div class="enm">${esc(name)}</div>
     ${desc?`<div class="ed">${esc(desc)}</div>`:''}
-    ${ans?`<details class="ans"><summary>${t('ansLbl')}</summary><div class="ansb">${esc(ans)}</div></details>`:''}
+    ${ans?`<details class="ans"><summary>${t('ansLbl')}${ansJa&&lang!=='ja'?' '+esc(t('ansJaNote')):''}</summary><div class="ansb">${esc(ans)}</div></details>`:''}
     ${rec.hasAudio?`<audio id="sa-${id}" controls></audio>`:`<div class="recstat">${t('recReady')}</div>`}
     <div class="tlbl"><span>${t('trLbl')}</span>${rec.hasAudio?`<button class="aibtn" id="ai-${id}" onclick="aiTranscribe('${id}')">${t('aiBtn')}</button>`:''}</div>
     <textarea class="trta" id="tr-${id}" placeholder="${t('phTr')}">${esc(rec.transcript!=null?rec.transcript:(rec.draft||''))}</textarea>
@@ -247,20 +249,22 @@ async function renderScoreDetail(r){
   document.querySelector('#pgScore .hctrl').style.display='none';
   const det=document.getElementById('scDetail');det.style.display='block';
   const secs=getSections(),items=getItems();
-  let h=`<div class="cd meta"><div style="font-size:.85rem;color:var(--sub)">${esc(r.date)}　${t('erLbl')}: ${esc(r.examiner)}</div><div style="font-size:1.1rem;font-weight:700;margin-top:2px">${esc(r.examinee)}</div><div class="pmeta" style="margin-top:10px"><span>${t('progScore')}</span><span><span id="spAvg" class="spavg"></span><span id="spCnt"></span></span></div><div class="pbar"><i id="spBar"></i></div><button type="button" class="b b3" id="spdBtn" style="margin-top:10px;padding:6px 12px;font-size:.78rem" onclick="cycleSpeed()">${esc(t2('spd'))} ${playRate}x</button></div>`;
+  let h=`<div class="cd meta"><div style="font-size:.85rem;color:var(--sub)">${esc(r.date)} · ${t('erLbl')}: ${esc(r.examiner)}</div><div style="font-size:1.1rem;font-weight:700;margin-top:2px">${esc(r.examinee)}</div><div class="pmeta" style="margin-top:10px"><span>${t('progScore')}</span><span><span id="spAvg" class="spavg"></span><span id="spCnt"></span></span></div><div class="pbar"><i id="spBar"></i></div><button type="button" class="b b3" id="spdBtn" style="margin-top:10px;padding:6px 12px;font-size:.78rem" onclick="cycleSpeed()">${esc(t2('spd'))} ${playRate}x</button></div>`;
   // 録音も点も文字起こしも無い項目は折りたたみへ退避（採点すべきカードだけを本流に並べる）
   const noRec=[];
   secs.forEach(sec=>{
     const secItems=items.filter(it=>it.secId===sec.id);
     if(!secItems.length)return;
     let sh='';
+    const secName=loc(sec,'name');
     secItems.forEach((it,ii)=>{
-      const card=scoreCardHtml(r,it.id,sec.name.charAt(0)+'-'+(ii+1),it.name,it.desc,it.ans);
+      const ansTxt=loc(it,'ans');
+      const card=scoreCardHtml(r,it.id,secName.charAt(0)+'-'+(ii+1),loc(it,'name'),loc(it,'desc'),ansTxt,ansTxt===it.ans);
       const rec=r.items[it.id];
       if(rec&&(rec.hasAudio||rec.score!=null||rec.transcript))sh+=card;
       else noRec.push(card);
     });
-    if(sh)h+=`<h2 class="stit">${esc(sec.name)}</h2>`+sh;
+    if(sh)h+=`<h2 class="stit">${esc(secName)}</h2>`+sh;
   });
   // 現在の設定に無いが、このセッションに録音/採点/文字起こしが残っている過去項目（cfg変更後も採点できる）
   const extras=sessItemIds(r).filter(id=>{
@@ -402,7 +406,7 @@ function eeSummaryHtml(filterName){
     const col=arrow==='▲'?'var(--s4)':arrow==='▼'?'var(--s1)':'var(--sub)';
     return `<button type="button" class="cd" style="flex:1 1 150px;min-width:140px;text-align:left;cursor:pointer;padding:10px 12px;margin:0" onclick="eeFilterIdx(${s.idx})">
       <div style="font-weight:700;font-size:.9rem">${esc(s.name)}</div>
-      <div style="font-size:.74rem;color:var(--sub)">${s.count}${esc(t2('sumTimes'))}</div>
+      <div style="font-size:.74rem;color:var(--sub)">${s.count}${esc((s.count===1&&(TX2[lang]||{}).sumTimes1)||t2('sumTimes'))}</div>
       <div style="font-size:1.1rem;font-weight:800;margin-top:2px"><span class="${avgCls(s.last)}">${s.last.toFixed(1)}</span>${arrow?` <span style="font-size:.8rem;font-weight:700;color:${col}">${arrow} ${esc(t2('prevLbl'))} ${s.prev.toFixed(1)}</span>`:''}</div>
     </button>`;
   }).join('')+'</div>';
@@ -419,7 +423,7 @@ function drawHist(){
     const ym=(r.date||'').slice(0,7);
     if(ym&&ym!==pm){h+=`<div class="mgrp">${esc(fmtMonth(ym))}</div>`;pm=ym}
     const sc=r.status==='scored';
-    h+=`<button type="button" class="hi" onclick="showDet('${sanitizeId(r.id)}')"><span class="hii"><span class="hid">${esc(r.date)}　${t('erLbl')}: ${esc(r.examiner)}</span><span class="hin">${esc(r.examinee)}</span><span class="badge ${sc?'scored':'rec'}">${sc?t('stScored'):t('stRec')}</span></span><span class="hia ${sc?avgCls(avg(r)):''}">${sc?avg(r):'–'}</span></button>`;
+    h+=`<button type="button" class="hi" onclick="showDet('${sanitizeId(r.id)}')"><span class="hii"><span class="hid">${esc(r.date)} · ${t('erLbl')}: ${esc(r.examiner)}</span><span class="hin">${esc(r.examinee)}</span><span class="badge ${sc?'scored':'rec'}">${sc?t('stScored'):t('stRec')}</span></span><span class="hia ${sc?avgCls(avg(r)):''}">${sc?avg(r):'–'}</span></button>`;
   });
   c.innerHTML=h;
 }
@@ -430,7 +434,7 @@ async function showDet(id){
   // cfg変更後も過去項目が消えないよう「cfg ∪ セッション自身のキー」で走査、名前はスナップショット優先
   const ids=sessItemIds(r);
   let h=`<div class="mh"><h2 id="moTitle">${esc(r.examinee)} - ${esc(r.date)}</h2><button class="mx" aria-label="${t('btnClose')}" onclick="closeMo()">&times;</button></div>`;
-  h+=`<div style="font-size:.85rem;color:var(--sub);margin-bottom:12px">${t('erLbl')}: ${esc(r.examiner)}　／　${t('avgLbl')}: ${r.status==='scored'?avg(r):'-'}</div>`;
+  h+=`<div style="font-size:.85rem;color:var(--sub);margin-bottom:12px">${t('erLbl')}: ${esc(r.examiner)} · ${t('avgLbl')}: ${r.status==='scored'?avg(r):'-'}</div>`;
   ids.forEach(iid=>{
     const rec=r.items[iid]||{};
     if(!rec.hasAudio&&rec.score==null&&!rec.transcript)return;
@@ -493,11 +497,12 @@ function doCSV(){
   const all=getAll();if(!all.length){toast(t('noData'),1);return}
   // 列=現在のcfg項目 ∪ 全セッションの項目キー（cfg変更後も過去の点・文字起こしが列から消えない）
   const cols=[];const seen=new Set();
-  getItems().forEach(it=>{if(!seen.has(it.id)){seen.add(it.id);cols.push({id:it.id,name:it.name})}});
+  getItems().forEach(it=>{if(!seen.has(it.id)){seen.add(it.id);cols.push({id:it.id,name:loc(it,'name')})}});
   all.forEach(r=>Object.keys(r.items||{}).forEach(id=>{
     if(!seen.has(id)&&safeKey(id)){seen.add(id);cols.push({id,name:itemMeta(r,id).name})}
   }));
-  const hd=['試問日','試問者','受験者','状態',...cols.map(c=>c.name+'(点)'),...cols.map(c=>c.name+'(文字起こし)'),...cols.map(c=>c.name+'(コメント)'),'平均点','全体所感','作成日時'];
+  // ヘッダーはUI言語に追従（CSVは書き出し専用＝再取り込みしないため後方互換の懸念なし）
+  const hd=[t('labelDate'),t('labelExaminer'),t('labelExaminee'),t('csvStatus'),...cols.map(c=>c.name+'('+t('scoreLbl')+')'),...cols.map(c=>c.name+'('+t('trLbl')+')'),...cols.map(c=>c.name+'('+t('csvCmt')+')'),t('avgLbl'),t('overall'),t('csvCreated')];
   // 数式インジェクション対策：=,+,-,@ 等で始まる値は先頭に ' を付ける
   const cell=s=>{let v=String(s==null?'':s);if(/^[=+\-@\t\r]/.test(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"'};
   let csv='﻿'+hd.map(cell).join(',')+'\n';
@@ -553,18 +558,18 @@ function drawCharts(){
   getSections().forEach(sec=>{
     const si=items.filter(it=>it.secId===sec.id);if(!si.length)return;
     const vs=si.map(it=>lat.items[it.id]&&lat.items[it.id].score).filter(x=>x!=null);
-    if(vs.length){secLabels.push(sec.name);secData.push(+(vs.reduce((a,b)=>a+b,0)/vs.length).toFixed(2))}
+    if(vs.length){secLabels.push(loc(sec,'name'));secData.push(+(vs.reduce((a,b)=>a+b,0)/vs.length).toFixed(2))}
   });
   document.getElementById('cvS').setAttribute('aria-label',t('chSec')+': '+secLabels.map((l,i)=>l+' '+secData[i]).join(', '));
   if(cS)cS.destroy();
   cS=new Chart(document.getElementById('cvS'),{type:'bar',data:{labels:secLabels,datasets:[{data:secData,backgroundColor:secData.map(v=>th.pick(v)+'cc'),borderRadius:6,barThickness:22}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,scales:{x:{min:0,max:5,ticks:{stepSize:1}}},plugins:{legend:{display:false}}}});
-  document.getElementById('cvR').setAttribute('aria-label',t('chRadar')+': '+items.map(it=>it.name+' '+((lat.items[it.id]&&lat.items[it.id].score)||'-')).join(', '));
+  document.getElementById('cvR').setAttribute('aria-label',t('chRadar')+': '+items.map(it=>loc(it,'name')+' '+((lat.items[it.id]&&lat.items[it.id].score)||'-')).join(', '));
   if(cR)cR.destroy();
   // 前回試問のオーバーレイ（破線）＝成長が一目で見える
   const prev=all.length>1?all[all.length-2]:null;
   const rDatasets=[{label:lat.date,data:items.map(it=>(lat.items[it.id]&&lat.items[it.id].score)||0),borderColor:th.acc,backgroundColor:th.fill,pointBackgroundColor:th.acc}];
   if(prev)rDatasets.push({label:(t2('prevLbl'))+' '+prev.date,data:items.map(it=>(prev.items[it.id]&&prev.items[it.id].score)||0),borderColor:th.acc+'80',backgroundColor:'transparent',borderDash:[6,4],borderWidth:1.5,pointBackgroundColor:th.acc+'80',pointRadius:2});
-  cR=new Chart(document.getElementById('cvR'),{type:'radar',data:{labels:items.map(it=>{const n=it.name;return n.length>6?n.slice(0,6)+'…':n}),datasets:rDatasets},options:{responsive:true,maintainAspectRatio:false,scales:{r:{min:0,max:5,ticks:{stepSize:1,font:{size:10}},pointLabels:{font:{size:11}},grid:{color:th.grid},angleLines:{color:th.grid}}},plugins:{legend:{display:true,position:'bottom'}}}});
+  cR=new Chart(document.getElementById('cvR'),{type:'radar',data:{labels:items.map(it=>{const n=loc(it,'name');return n.length>(lang==='ja'?6:14)?n.slice(0,lang==='ja'?6:14)+'…':n}),datasets:rDatasets},options:{responsive:true,maintainAspectRatio:false,scales:{r:{min:0,max:5,ticks:{stepSize:1,font:{size:10}},pointLabels:{font:{size:11}},grid:{color:th.grid},angleLines:{color:th.grid}}},plugins:{legend:{display:true,position:'bottom'}}}});
 }
 
 /* ==============================================================
@@ -617,10 +622,13 @@ function buildCfgUI(){
   updateDirtyBadge();
   if(typeof renderQsetUI==='function')renderQsetUI(); // 言語切替時にもセットUIを追従
 }
-function cfgSecName(secId,val){const s=cfg.sections.find(s=>s.id===secId);if(s){s.name=val;markCfgDirty()}}
-function cfgItemName(itemId,val){const it=cfg.items.find(i=>i.id===itemId);if(it){it.name=val;markCfgDirty()}}
-function cfgItemDesc(itemId,val){const it=cfg.items.find(i=>i.id===itemId);if(it){it.desc=val;markCfgDirty()}}
-function cfgItemAns(itemId,val){const it=cfg.items.find(i=>i.id===itemId);if(it){it.ans=val;markCfgDirty()}}
+/* 原文（日本語）を編集したら対応する多言語フィールドを破棄する
+   （デフォルト項目の name_en 等が編集後も古い訳のまま表示され続ける事故を防ぐ） */
+function dropLoc(o,k){['en','vi','id'].forEach(l=>delete o[k+'_'+l])}
+function cfgSecName(secId,val){const s=cfg.sections.find(s=>s.id===secId);if(s){s.name=val;dropLoc(s,'name');markCfgDirty()}}
+function cfgItemName(itemId,val){const it=cfg.items.find(i=>i.id===itemId);if(it){it.name=val;dropLoc(it,'name');markCfgDirty()}}
+function cfgItemDesc(itemId,val){const it=cfg.items.find(i=>i.id===itemId);if(it){it.desc=val;dropLoc(it,'desc');markCfgDirty()}}
+function cfgItemAns(itemId,val){const it=cfg.items.find(i=>i.id===itemId);if(it){it.ans=val;dropLoc(it,'ans');markCfgDirty()}}
 function addSection(){cfg.sections.push({id:'sec_'+Date.now(),name:t('secName')});markCfgDirty();buildCfgUI()}
 function addItem(secId){
   const id='item_'+Date.now();
@@ -664,7 +672,7 @@ function openCatalog(){
 }
 function catPickCat(catId){
   const sel=document.getElementById('workSel2');
-  sel.innerHTML=`<option value="">${t('selWorkPh')}</option>`+(catId?qaWorksInCat(catId).map(w=>`<option value="${esc(w.id)}">${esc(w.name)}</option>`).join(''):'');
+  sel.innerHTML=`<option value="">${t('selWorkPh')}</option>`+(catId?qaWorksInCat(catId).map(w=>`<option value="${esc(w.id)}">${esc(qaWorkLabel(w))}</option>`).join(''):'');
   document.getElementById('qaChecks').innerHTML='';
 }
 function catPickWork(workId){
@@ -675,7 +683,7 @@ function catPickWork(workId){
   const isDup=q=>!!(sec&&cfg.items.some(it=>it.secId===sec.id&&it.name===q.name));
   box.innerHTML=qaQuestions(w).map(q=>{
     const dup=isDup(q);
-    return `<label class="qa-check"><input type="checkbox" value="${esc(q.key)}" ${dup?'':'checked'}><div class="qat"><div class="qan">${esc(q.name)}${dup?` <span style="font-size:.68rem;color:var(--pri);font-weight:700;border:1px solid var(--pri);border-radius:4px;padding:0 4px">${esc(t2('added'))}</span>`:''}</div><div class="qaq">${esc(q.desc)}</div><div class="qaa">${esc(q.ans)}</div></div></label>`;
+    return `<label class="qa-check"><input type="checkbox" value="${esc(q.key)}" ${dup?'':'checked'}><div class="qat"><div class="qan">${esc(q.name)}${dup?` <span style="font-size:.68rem;color:var(--pri);font-weight:700;border:1px solid var(--pri);border-radius:4px;padding:0 4px">${esc(t2('added'))}</span>`:''}</div><div class="qaq">${esc(q.desc)}</div><div class="qaa">${lang!=='ja'?esc(t('ansJaNote'))+' ':''}${esc(q.ans)}</div></div></label>`;
   }).join('');
 }
 function addFromCatalog(){
@@ -685,7 +693,7 @@ function addFromCatalog(){
   if(!keys.length){toast(t('eNoQa'),1);return}
   // セクションは作業名で再利用（同じ作業を2回追加しても散らからない）
   let sec=cfg.sections.find(s=>s.name===w.name);
-  if(!sec){sec={id:'sec_'+w.id+'_'+Date.now(),name:w.name};cfg.sections.push(sec)}
+  if(!sec){sec={id:'sec_'+w.id+'_'+Date.now(),name:w.name};if(w.name_en)sec.name_en=w.name_en;cfg.sections.push(sec)}
   let added=0;
   qaQuestions(w).filter(q=>keys.includes(q.key)).forEach(q=>{
     if(cfg.items.some(it=>it.secId===sec.id&&it.name===q.name))return; // 同一質問の重複を防ぐ
@@ -790,9 +798,9 @@ function applySet(id){
   const p=qs.presets.find(x=>sanitizeId(x.id)===String(id));
   if(!p||!p.cfg)return false;
   if(!confirm(t2('qsSwConfirm').replace('{n}',p.name)))return false;
-  // 無害化しつつディープコピー（importBackupと同水準）
-  cfg={sections:(p.cfg.sections||[]).map(s=>({id:sanitizeId(s.id),name:String(s.name||'')})),
-       items:(p.cfg.items||[]).map(it=>{const o={id:sanitizeId(it.id),secId:sanitizeId(it.secId),name:String(it.name||''),desc:String(it.desc||'')};if(it.ans!=null)o.ans=String(it.ans);return o})};
+  // 無害化しつつディープコピー（importBackupと同水準。多言語フィールドはcopyLocFieldsで保持）
+  cfg={sections:(p.cfg.sections||[]).map(s=>copyLocFields(s,{id:sanitizeId(s.id),name:String(s.name||'')},['name'])),
+       items:(p.cfg.items||[]).map(it=>{const o={id:sanitizeId(it.id),secId:sanitizeId(it.secId),name:String(it.name||''),desc:String(it.desc||'')};if(it.ans!=null)o.ans=String(it.ans);return copyLocFields(it,o,['name','desc','ans'])})};
   qs.activeId=p.id;saveQuestionSets(qs);
   persistCfg();
   toast(t2('qsApplied'));

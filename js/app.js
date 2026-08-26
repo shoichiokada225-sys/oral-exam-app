@@ -5,6 +5,7 @@
 function setLang(l){
   if(active){toast(t2('recBusy'),1);return} // 録音中は切替不可（カード再描画でUIが壊れるため）
   lang=l;localStorage.setItem(LKEY,l);document.documentElement.lang=l;
+  document.title=t('appTitle'); // ブラウザタブ名も言語に追従
   document.querySelectorAll('.lsw button').forEach(b=>{const on=b.textContent.trim()==={ja:'JP',en:'EN',vi:'VI',id:'ID'}[l];b.classList.toggle('on',on);b.setAttribute('aria-pressed',on?'true':'false')});
   applyT();buildExamCards();buildCfgUI();
   if(typeof renderExamSetSel==='function')renderExamSetSel(); // セット切替UIも言語に追従

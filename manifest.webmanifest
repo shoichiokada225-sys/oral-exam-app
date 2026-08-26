@@ -1,6 +1,6 @@
 {
-  "name": "口頭試問 評価システム",
-  "short_name": "口頭試問",
+  "name": "口頭試問 Oral Exam",
+  "short_name": "口頭試問/Oral",
   "description": "口頭試問の録音・文字起こし・採点を1つで行う評価システム",
   "lang": "ja",
   "start_url": ".",
