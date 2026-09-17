@@ -71,6 +71,7 @@ styles.css      スタイル一式
 js/util.js      汎用ユーティリティ（toast/esc/Blob変換/sanitizeId）
 js/i18n.js      UI文言辞書（ja/en/vi/id）・t()・音声認識言語
 js/works-qa.js  作業カタログ（睦沢pptx由来44作業。修正時は pig-farm-evaluation 側と揃える）
+js/qbank.js     質問バンク（プリセット試問集。実在ソース採録のみ・模範解答つき）
 js/data.js      静的データ層：デフォルト試問項目・カタログのアクセサ/質問生成
 js/store.js     永続化層：localStorage/IndexedDB・セッション・バックアップ
 js/media.js     録音（MediaRecorder/WebSpeech）・GASドライブ保存・AI文字起こし
@@ -78,12 +79,12 @@ js/ui.js        描画層：試問カード/採点/履歴/グラフ/CSV/設定/�
 js/app.js       アプリ層：初期化・タブ・セッションフロー
 ```
 
-読み込みは util → i18n → works-qa → data → store → media → ui → app の順（後のレイヤほど前に依存する）。
+読み込みは util → i18n → works-qa → qbank → data → store → media → ui → app の順（後のレイヤほど前に依存する）。
 
 ## テスト実行
 
 ```bash
-node smoke.js   # Playwright（フェイクマイクで録音フローまで検証、31項目）
+node smoke.js   # Playwright（フェイクマイクで録音フローまで検証、33項目）
 ```
 
 ## 技術メモ
