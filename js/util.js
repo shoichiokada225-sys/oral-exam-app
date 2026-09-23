@@ -12,3 +12,5 @@ function b64ToBlob(b64,mime){const bin=atob(b64);const arr=new Uint8Array(bin.le
 function safeName(s){return String(s||'').replace(/[\\/:*?"<>|]+/g,'_').replace(/\s+/g,'_').slice(0,80)}
 /* onclick属性等に埋め込むIDの無害化（バックアップ由来の注入対策） */
 function sanitizeId(s){return String(s).replace(/[^a-zA-Z0-9_\-]/g,'_')}
+/* 端末の現地時刻での今日（YYYY-MM-DD）。toISOString()はUTC基準で、日本の0:00〜9:00は前日になるため使わない */
+function todayStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
