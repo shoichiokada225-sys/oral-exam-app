@@ -1,13 +1,13 @@
 /* 合否（録音横の合格/不合格・ドライブ送信名・採点画面との連携）の回帰テスト。実行: node tests/verdict.test.js
    Googleドライブ送信は page.route でモック（本番GASには送らない） */
-const { chromium } = require(process.env.PLAYWRIGHT_PATH||'/Users/okadashoichi/anpi-kakunin/node_modules/playwright');
+const env=require('./_env');
 let pass=0,fail=0;const ok=(n,c)=>{c?pass++:fail++;console.log((c?'  OK ':'  NG ')+n)};
 (async()=>{
-  const b=await chromium.launch({channel:process.env.PW_CHANNEL||'chrome',args:['--use-fake-ui-for-media-stream','--use-fake-device-for-media-stream']});
-  const p=await b.newPage();const errs=[];p.on('pageerror',e=>errs.push(String(e)));
+  const b=await env.launch();
+  const {page:p,errors:errs}=await env.newPage(b);
   const posts=[];let n=0;
   await p.route('https://script.google.com/**',async r=>{const j=JSON.parse(r.request().postData());posts.push({name:j.name,replaceId:j.replaceId||null});n++;await new Promise(s=>setTimeout(s,300));r.fulfill({contentType:'application/json',body:JSON.stringify({ok:true,id:'F'+n,url:'https://drive/F'+n})})});
-  await p.goto('file://'+require('path').resolve(__dirname,'..','index.html'));
+  await p.goto(env.URL);
   await p.evaluate(()=>localStorage.setItem('oral_exam_google_v1',JSON.stringify({url:'https://script.google.com/macros/s/x/exec',auto:true})));
   await p.reload();await p.waitForTimeout(300);
   ok('合否ボタンが各カードにある',await p.locator('#examCards .verd').count()===await p.locator('#examCards .qc').count());
@@ -57,4 +57,5 @@ let pass=0,fail=0;const ok=(n,c)=>{c?pass++:fail++;console.log((c?'  OK ':'  NG 
   await p.screenshot({path:require('os').tmpdir()+'/oral-verdict.png',clip:{x:0,y:0,width:375,height:800}});
   ok('JSエラーなし '+errs.join('|'),errs.length===0);
   console.log(`結果: ${pass} passed / ${fail} failed`);await b.close();
-})();
+  process.exit(fail?1:0);
+})().catch(e=>{console.error(e);process.exit(2)});

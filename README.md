@@ -77,17 +77,39 @@ js/qbank.js     質問バンク（プリセット試問集。実在ソース採�
 js/data.js      静的データ層：デフォルト試問項目・カタログのアクセサ/質問生成
 js/store.js     永続化層：localStorage/IndexedDB・セッション・バックアップ
 js/media.js     録音（MediaRecorder/WebSpeech）・GASドライブ保存・AI文字起こし
-js/ui.js        描画層：試問カード/採点/履歴/グラフ/CSV/設定/カタログモーダル
+js/ui-core.js   描画層・共通：ui内文言TX2（4言語）・t2・合否ラベル・一覧行の状態
+js/ui-exam.js   描画層・試問タブ：カード生成・録音進捗
+js/ui-score.js  描画層・採点タブ：一覧/詳細（再生・文字起こし・合否）
+js/ui-hist.js   描画層・履歴（サマリ/詳細モーダル）とCSV
+js/ui-chart.js  描画層・グラフ（Chart.js）
+js/ui-cfg.js    描画層・設定：試問項目/カタログモーダル/プリセット・質問セット
 js/app.js       アプリ層：初期化・タブ・セッションフロー
 ```
 
-読み込みは util → i18n → works-qa → qbank → data → store → media → ui → app の順（後のレイヤほど前に依存する）。
+読み込みは util → i18n → works-qa → qbank → data → store → media → ui-core → ui-exam → ui-score → ui-hist → ui-chart → ui-cfg → app の順（後のレイヤほど前に依存する）。
+ui-*.js はプレーンスクリプトで、関数はグローバルのまま（テストと onclick が直接呼ぶ）。ファイルを増やしたら index.html・`sw.js` の ASSETS・VER を揃えて更新する（`tests/sw-assets.test.js` が検査）。
 
 ## テスト実行
 
 ```bash
-node smoke.js   # Playwright（フェイクマイクで録音フローまで検証、33項目）
+node tests/run.js            # 全テスト（tests/*.test.js を順に実行して集計。1本でもNGなら exit 1）
+node tests/run.js verdict    # ファイル名で絞り込み
+node smoke.js                # 旧来の入口（tests/smoke.test.js の互換ラッパー）
 ```
+
+| ファイル | 内容 |
+|---|---|
+| `tests/smoke.test.js` | 録音→採点→履歴→グラフ→カタログ→バックアップ→言語切替（フェイクマイク） |
+| `tests/verdict.test.js` | 合否トグルとドライブ送信名・付け直し（GAS送信はモック） |
+| `tests/pf-ripple.test.js` | 旧5段階データ・合否混在・未確定・未実施 |
+| `tests/i18n.test.js` | TX/TX2 の ja/en/vi/id キー集合の一致 |
+| `tests/sw-assets.test.js` | sw.js の ASSETS 実在・index.html 参照の網羅・VER 上げ忘れ警告 |
+| `tests/globals.test.js` | 分割前のグローバル関数/変数名がすべて残っているか |
+
+環境（`tests/_env.js`）:
+- Playwright は `PLAYWRIGHT_PATH` → `~/anpi-kakunin` → `~/farm-shift-app` → `C:/Users/so/farm-shift-app` の順に探す（npm install 不要）
+- ブラウザは `PW_CHANNEL`（Mac 既定 `chrome`、他OSは同梱 Chromium。`PW_CHANNEL=` で同梱 Chromium）
+- Chart.js CDN はローカルの写し（`CHART_JS_PATH` → `tests/fixtures/chart.umd.min.js` → `~/.cache/oral-exam-app/`）で応答。初回オンライン時に SRI 一致を確かめて `~/.cache` に保存。写しも回線も無ければスタブで代用し、run.js が「グラフ検査はスタブ（オフライン）」と表示する（`OFFLINE=1` で取得を試さない／`CHART_STUB=1` でスタブ強制）
 
 ## 技術メモ
 - 音声は `MediaRecorder`（webm/opus、非対応時 mp4）で録音し、`IndexedDB` に `セッションID_項目ID` で保存

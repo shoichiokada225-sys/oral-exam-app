@@ -2,9 +2,9 @@
    旧5段階データ・合否混在・試問中の○×のみ（未確定）・質問しなかった の表示/保存/送信名を検査する。
    Googleドライブ送信は page.route でモック（本番GASには送らない） */
 const path=require('path'),fs=require('fs');
-const { chromium } = require(process.env.PLAYWRIGHT_PATH||'/Users/okadashoichi/anpi-kakunin/node_modules/playwright');
+const env=require('./_env');
 let pass=0,fail=0;const ok=(n,c)=>{c?pass++:fail++;console.log((c?'  OK ':'  NG ')+n)};
-const URL0='file://'+path.resolve(__dirname,'..','index.html');
+const URL0=env.URL;
 const it=(o)=>Object.assign({hasAudio:true},o);
 const S=(id,ee,date,status,items)=>({id,date,examiner:'岡田',examinee:ee,status,items,overall:'',createdAt:date+'T00:00:00Z',updatedAt:date+'T00:00:00Z'});
 const SESS=[
@@ -18,9 +18,9 @@ const SESS=[
   S('na1','デウィ','2026-09-21','rec',{q1:it({score:'pass',driveFileId:'D1',driveLink:'https://drive/D1',driveName:'x'})}),
 ];
 (async()=>{
-  const b=await chromium.launch({channel:process.env.PW_CHANNEL||'chrome',args:['--use-fake-ui-for-media-stream','--use-fake-device-for-media-stream','--autoplay-policy=no-user-gesture-required']});
+  const b=await env.launch();
   const ctx=await b.newContext({acceptDownloads:true});
-  const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(String(e)));
+  const {page:p,errors:errs}=await env.newPage(ctx);
   const dialogs=[];let dialogAns=false;
   p.on('dialog',async d=>{dialogs.push(d.message());dialogAns?await d.accept():await d.dismiss()});
   const posts=[];let n=0;
@@ -139,4 +139,4 @@ const SESS=[
   ok('JSエラーなし '+errs.join('|'),errs.length===0);
   console.log(`結果: ${pass} passed / ${fail} failed`);await b.close();
   process.exit(fail?1:0);
-})();
+})().catch(e=>{console.error(e);process.exit(2)});

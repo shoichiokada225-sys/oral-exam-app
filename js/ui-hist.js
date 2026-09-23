@@ -1,0 +1,145 @@
+/* ui-hist.js — 履歴（受験者別サマリ・詳細モーダル）とCSV書き出し
+   ※ js/ui.js を機械的に分割したもの（プレーンスクリプト・グローバル名は不変）。読み込み順は ui-core → ui-exam → ui-score → ui-hist → ui-chart → ui-cfg */
+/* ==============================================================
+   履歴
+   ============================================================== */
+function fmtMonth(ym){const[y,m]=ym.split('-');return lang==='ja'?y+'年'+(+m)+'月':y+'-'+m}
+/* 受験者別サマリ（採点済み試問から：回数/最新平均/前回比） */
+let _eeSums=[];
+function eeSummary(){
+  const map={};
+  getAll().filter(s=>s.status==='scored').forEach(s=>{(map[s.examinee]=map[s.examinee]||[]).push(s)});
+  return Object.keys(map).sort().map(n=>{
+    const arr=map[n].sort((a,b)=>(a.date||'').localeCompare(b.date||'')||(a.createdAt||'').localeCompare(b.createdAt||''));
+    // 合否採点のある試問だけで比較（旧5段階のみの試問は合格率を出せない）
+    const pf=arr.filter(x=>!isNaN(passRate(x)));
+    // 旧5段階のみの受験者もカードは出す（合格率の対象外と明示）
+    if(!pf.length){const lo=arr[arr.length-1];return oldCount(lo)?{name:n,count:arr.length,oldOnly:true,lastLbl:resLbl(lo),lastCls:'old'}:null}
+    const lr=pf[pf.length-1],pr=pf.length>1?pf[pf.length-2]:null;
+    return{name:n,count:arr.length,last:passRate(lr),lastLbl:resLbl(lr),lastCls:resCls(lr),prev:pr?passRate(pr):null,prevLbl:pr?resLbl(pr):'',mixed:!!(oldCount(lr)||(pr&&oldCount(pr)))};
+  }).filter(Boolean);
+}
+function eeFilterIdx(i){const s=_eeSums[i];if(!s)return;const hf=document.getElementById('hFil');hf.value=s.name;drawHist()}
+function eeSummaryHtml(filterName){
+  _eeSums=eeSummary();
+  let sums=_eeSums.map((s,i)=>({...s,idx:i}));
+  if(filterName)sums=sums.filter(s=>s.name===filterName);
+  if(!sums.length)return'';
+  return `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">`+sums.map(s=>{
+    const arrow=(s.oldOnly||s.prev==null)?'':s.last>s.prev?'▲':s.last<s.prev?'▼':'→';
+    const col=arrow==='▲'?'var(--s4)':arrow==='▼'?'var(--s1)':'var(--sub)';
+    return `<button type="button" class="cd" style="flex:1 1 150px;min-width:140px;text-align:left;cursor:pointer;padding:10px 12px;margin:0" onclick="eeFilterIdx(${s.idx})">
+      <div style="font-weight:700;font-size:.9rem">${esc(s.name)}</div>
+      <div style="font-size:.74rem;color:var(--sub)">${s.count}${esc((s.count===1&&(TX2[lang]||{}).sumTimes1)||t2('sumTimes'))}</div>
+      <div style="font-size:${s.oldOnly?'.9rem':'1.1rem'};font-weight:800;margin-top:2px"><span class="${s.lastCls}">${s.oldOnly?'':esc(t2('passCnt'))+' '}${esc(s.lastLbl)}</span>${arrow?` <span style="font-size:.8rem;font-weight:700;color:${col}">${arrow} ${esc(t2('prevLbl'))} ${esc(s.prevLbl)}</span>`:''}</div>
+      ${s.oldOnly?`<div class="eenote">${esc(t2('oldOnly'))}</div>`:s.mixed?`<div class="eenote">${esc(t2('mixNote'))}</div>`:''}
+    </button>`;
+  }).join('')+'</div>';
+}
+function drawHist(){
+  const f=document.getElementById('hFil').value;let all=getAll();if(f)all=all.filter(e=>e.examinee===f);
+  const q=(document.getElementById('hQ').value||'').trim().toLowerCase();
+  if(q)all=all.filter(e=>((e.examinee||'')+' '+(e.examiner||'')).toLowerCase().includes(q));
+  all.sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.createdAt||'').localeCompare(a.createdAt||''));
+  const c=document.getElementById('hList');
+  if(!all.length){c.innerHTML=`<div class="nd">${t('noData')}</div>`;return}
+  let h=q?'':eeSummaryHtml(f),pm='';
+  all.forEach(r=>{
+    const ym=(r.date||'').slice(0,7);
+    if(ym&&ym!==pm){h+=`<div class="mgrp">${esc(fmtMonth(ym))}</div>`;pm=ym}
+    const x=rowRes(r);
+    h+=`<button type="button" class="hi" onclick="showDet('${sanitizeId(r.id)}')"><span class="hii"><span class="hid">${esc(r.date)} · ${t('erLbl')}: ${esc(r.examiner)}</span><span class="hin">${esc(r.examinee)}</span>${x.badge}</span><span class="hia ${x.cls}">${esc(x.lbl)}</span></button>`;
+  });
+  c.innerHTML=h;
+}
+
+async function showDet(id){
+  const r=getAll().find(e=>e.id===id);if(!r)return;
+  releaseScoreUrls();
+  // cfg変更後も過去項目が消えないよう「cfg ∪ セッション自身のキー」で走査、名前はスナップショット優先
+  const ids=sessItemIds(r);
+  let h=`<div class="mh"><h2 id="moTitle">${esc(r.examinee)} - ${esc(r.date)}</h2><button class="mx" aria-label="${t('btnClose')}" onclick="closeMo()">&times;</button></div>`;
+  h+=`<div style="font-size:.85rem;color:var(--sub);margin-bottom:12px">${t('erLbl')}: ${esc(r.examiner)} · ${esc(resHead(r))}: ${esc(r.status==='scored'?resLbl(r):hasPF(r)?resLbl(r)+t2('unconf'):'-')}</div>`;
+  ids.forEach(iid=>{
+    const rec=r.items[iid]||{};
+    if(!rec.hasAudio&&rec.score==null&&!rec.transcript)return;
+    const sc=rec.score;
+    const m=itemMeta(r,iid);
+    h+=`<div class="di"><div class="dih"><span class="din">${esc(m.name)}</span>${sc!=null?`<span class="dis ${isPF(sc)?'pf-'+sc:'old'}">${esc(scoreTxt(sc))}</span>`:''}</div>`;
+    if(rec.hasAudio)h+=`<audio id="da-${iid}" controls></audio>`;
+    if(rec.transcript)h+=`<div class="ditr">${esc(rec.transcript)}</div>`;
+    if(rec.comment)h+=`<div class="dic">${esc(rec.comment)}</div>`;
+    h+=`</div>`;
+  });
+  if(r.overall)h+=`<div class="dov"><strong>${t('ovLbl')}:</strong><br>${esc(r.overall)}</div>`;
+  h+=`<div class="ma"><button class="b b4" style="flex:1" onclick="closeMo();gotoScore('${sanitizeId(r.id)}')">${t('btnScore')}</button><button class="b b2" style="flex:1" onclick="doDel('${sanitizeId(r.id)}')">${t('btnDel')}</button><button class="b b3" style="flex:1" onclick="closeMo()">${t('btnClose')}</button></div>`;
+  document.getElementById('moBody').innerHTML=h;
+  moShow();
+  for(const iid of ids){
+    if(r.items[iid]&&r.items[iid].hasAudio){
+      const b=await getAudio(r.id+'_'+iid);
+      if(b){const au=document.getElementById('da-'+iid);if(au){const u=URL.createObjectURL(b);curScoreUrls.push(u);au.src=u}}
+    }
+  }
+}
+function gotoScore(id){
+  // 採点タブへ移動して詳細を開く
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('on'));
+  document.querySelector('[data-pg="pgScore"]').classList.add('on');
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+  document.getElementById('pgScore').classList.add('on');
+  openScore(id);
+}
+/* モーダルを開く（開いた要素を記憶し、閉じるボタンへフォーカス移動） */
+let moOpener=null;
+function moShow(){
+  moOpener=document.activeElement;
+  document.getElementById('modal').classList.add('show');
+  const mx=document.querySelector('#moBody .mx');
+  if(mx)setTimeout(()=>mx.focus(),60);
+}
+function closeMo(){
+  document.getElementById('modal').classList.remove('show');
+  releaseScoreUrls();
+  if(moOpener&&moOpener.isConnected&&moOpener.focus)moOpener.focus();
+  moOpener=null;
+}
+function doDel(id){
+  if(!confirm(t('cDel')))return;
+  // セッション自身のキーで削除（cfg変更後でも旧項目の音声がIndexedDBに孤児残留しない）
+  const r=getAll().find(e=>e.id===id);
+  if(r)Object.keys(r.items||{}).forEach(k=>delAudio(id+'_'+k));
+  saveAll(getAll().filter(e=>e.id!==id));
+  closeMo();drawHist();refreshSel();
+  if(document.getElementById('pgScore').classList.contains('on'))drawScoreList();
+  toast(t('tDel'));
+}
+
+/* ==============================================================
+   CSV
+   ============================================================== */
+function doCSV(){
+  const all=getAll();if(!all.length){toast(t('noData'),1);return}
+  // 列=現在のcfg項目 ∪ 全セッションの項目キー（cfg変更後も過去の点・文字起こしが列から消えない）
+  const cols=[];const seen=new Set();
+  getItems().forEach(it=>{if(!seen.has(it.id)){seen.add(it.id);cols.push({id:it.id,name:loc(it,'name')})}});
+  all.forEach(r=>Object.keys(r.items||{}).forEach(id=>{
+    if(!seen.has(id)&&safeKey(id)){seen.add(id);cols.push({id,name:itemMeta(r,id).name})}
+  }));
+  // ヘッダーはUI言語に追従（CSVは書き出し専用＝再取り込みしないため後方互換の懸念なし）
+  const hd=[t('labelDate'),t('labelExaminer'),t('labelExaminee'),t('csvStatus'),...cols.map(c=>c.name+'('+t2('pfLbl')+')'),...cols.map(c=>c.name+'('+t('trLbl')+')'),...cols.map(c=>c.name+'('+t('csvCmt')+')'),t2('csvPass'),t('overall'),t('csvCreated')];
+  // 数式インジェクション対策：=,+,-,@ 等で始まる値は先頭に ' を付ける
+  const cell=s=>{let v=String(s==null?'':s);if(/^[=+\-@\t\r]/.test(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"'};
+  let csv='﻿'+hd.map(cell).join(',')+'\n';
+  all.forEach(r=>{
+    const row=[r.date,r.examiner,r.examinee,r.status==='scored'?t('stScored'):t('stRec'),
+      ...cols.map(c=>{const v=r.items[c.id]&&r.items[c.id].score;return v==null?'':scoreTxt(v)}),
+      ...cols.map(c=>(r.items[c.id]&&r.items[c.id].transcript)||''),
+      ...cols.map(c=>(r.items[c.id]&&r.items[c.id].comment)||''),
+      r.status==='scored'?resLbl(r):hasPF(r)?resLbl(r)+t2('unconf'):'',r.overall||'',r.createdAt||''];
+    csv+=row.map(cell).join(',')+'\n';
+  });
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+  a.download='oral_exam_'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'.csv';a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000); // 書き出しの度にBlobが端末メモリへ残るのを防ぐ（exportBackupと同じ後始末）
+}

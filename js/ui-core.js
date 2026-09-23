@@ -1,0 +1,113 @@
+/* ui-core.js — 描画層の共通部：ui内ローカル文言(TX2)・t2・合否ラベル・一覧行の状態表示
+   ※ js/ui.js を機械的に分割したもの（プレーンスクリプト・グローバル名は不変）。読み込み順は ui-core → ui-exam → ui-score → ui-hist → ui-chart → ui-cfg */
+/* ==============================================================
+   ui.js内ローカル文言（i18n.jsはコンテンツ担当が編集中のため触らない。
+   ja/en/vi/id の4言語すべてに入れる。欠けは tests/i18n.test.js で検出。sumTimes1 は英語の単数形専用）
+   ============================================================== */
+const TX2={
+ja:{oldN:'旧評価{n}問',oldAvg:'旧評価 平均',oldTag:'旧',unconf:'（未確定）',stPending:'判定済み・確定待ち',notAsked:'（未実施）',
+oldReplace:'旧5段階評価（{v}）を合否に置き換えますか？（元の点数は消えます）',oldNA:'旧5段階評価（{v}）を消して「質問しなかった」にしますか？',
+confirmScored:'録音した全問に合否が付いています。採点も確定しますか？\n（キャンセルすると録音のみで保存し、あとで採点タブから確定できます）',
+oldOnly:'旧5段階評価の記録のみです（合格率の対象外）。履歴タブで点数を確認できます',
+mixNote:'※旧5段階評価が混ざる試問は、合否を付けた設問だけで合格率を計算しています（旧評価の設問は含みません）',
+chPending:'判定済み・確定待ちの試問があります。採点タブで開いて「採点を保存」するとグラフに表示されます',
+qsTitle:'試問セット',qsCur:'現在のセット',qsNone:'（セット未保存の構成）',qsSaveNew:'現在の項目を新しいセットとして保存',qsOver:'上書き保存',qsApply:'切替',qsRen:'名前変更',qsDel:'削除',
+qsNamePrompt:'セット名を入力してください（例：新人向け／繁殖担当／棚倉農場）',
+qsSwConfirm:'試問項目をセット「{n}」に切り替えます。現在の未保存の編集は失われます（過去の試問データは消えません）。よろしいですか？',
+qsDelConfirm:'セット「{n}」を削除しますか？（過去の試問データは消えません）',
+qsSaved:'セットを保存しました',qsApplied:'セットに切り替えました',qsDeleted:'セットを削除しました',
+qbTitle:'プリセット試問セット（テンプレート）',qbReplace:'項目を置き換え',qbAppend:'項目に追記',
+qbRepConfirm:'現在の試問項目をプリセット「{n}」で置き換えます（過去の試問データは消えません）。よろしいですか？',
+qbApplied:'プリセットを適用しました',qbNone:'プリセット（qbank.js）が読み込まれていません',
+dirty:'未保存の変更があります',dirtyLeave:'試問項目に未保存の変更があります。保存せずに移動しますか？（変更は破棄されます）',
+delSecConfirm:'このセクションと全質問を削除しますか？',cfgNote:'※質問を削除・差し替えても、過去の試問の採点・録音・文字起こしは履歴とCSVに残ります',
+storeFail:'保存に失敗しました（端末の空き容量不足の可能性）。設定タブからバックアップの書き出しをおすすめします',
+gcConfirm:'どのセッションにも属さない録音データが{n}件見つかりました。削除して端末の容量を空けますか？',gcDone:'件の不要な録音を削除しました',
+naLbl:'質問しなかった（採点対象外）',nextUnrec:'次の未録音へ',nextUnscored:'次の未採点へ',allRec:'すべて録音済みです',allScored:'未採点の項目はありません',
+recBusy:'録音中です。先に「停止」を押してください',noRecGroup:'録音のない項目（{n}）',
+spd:'速度',pauseAll:'再生を停止',sumTimes:'回受験',added:'追加済み',prevLbl:'前回',extraSec:'過去の項目（現在の設定にない質問）',
+resetCnt:'（録音{n}件を削除します。元に戻せません）',
+pass:'合格',fail:'不合格',pfLbl:'合否',passCnt:'合格',oldScore:'旧5段階評価',csvPass:'合格数（合格/採点）',chRate:'合格率の推移（%）',chSecRate:'分野別の合格率（%）',chItem:'設問別の合否（直近）'},
+en:{oldN:'{n} old-scale',oldAvg:'Old avg ',oldTag:'old',unconf:' (unconfirmed)',stPending:'Judged – to confirm',notAsked:' (not asked)',
+oldReplace:'Replace the old 5-level score ({v}) with Pass/Fail? (the old score will be lost)',oldNA:'Remove the old 5-level score ({v}) and mark as "Not asked"?',
+confirmScored:'Every recorded question has Pass/Fail. Confirm the scoring too?\n(Cancel = save as recorded only; you can confirm later in the Score tab)',
+oldOnly:'Only old 5-level scores (not included in pass rate). See the History tab for the scores',
+mixNote:'* For exams that include old 5-level scores, the pass rate uses only the Pass/Fail questions',
+chPending:'There are judged exams waiting for confirmation. Open them in the Score tab and press "Save score" to show them here',
+qsTitle:'Question set',qsCur:'Active set',qsNone:'(unsaved layout)',qsSaveNew:'Save current items as a new set',qsOver:'Overwrite',qsApply:'Switch',qsRen:'Rename',qsDel:'Delete',
+qsNamePrompt:'Enter a set name',
+qsSwConfirm:'Switch items to set "{n}"? Unsaved edits will be lost (past exam data is kept).',
+qsDelConfirm:'Delete set "{n}"? (past exam data is kept)',
+qsSaved:'Set saved',qsApplied:'Switched to set',qsDeleted:'Set deleted',
+qbTitle:'Preset question sets (templates)',qbReplace:'Replace items',qbAppend:'Append items',
+qbRepConfirm:'Replace current items with preset "{n}"? (past exam data is kept)',
+qbApplied:'Preset applied',qbNone:'Presets (qbank.js) not loaded',
+dirty:'Unsaved changes',dirtyLeave:'Exam items have unsaved changes. Leave without saving? (changes will be discarded)',
+delSecConfirm:'Delete this section and all its questions?',cfgNote:'Deleting/replacing questions does not remove past scores, recordings or transcripts from history and CSV',
+storeFail:'Save failed (device storage may be full). Export a backup from Settings',
+gcConfirm:'{n} recording(s) belong to no session. Delete them to free space?',gcDone:' orphan recording(s) deleted',
+naLbl:'Not asked (excluded from scoring)',nextUnrec:'Next unrecorded',nextUnscored:'Next unscored',allRec:'All items recorded',allScored:'Nothing left to score',
+recBusy:'Recording in progress — press "Stop" first',noRecGroup:'Items without recording ({n})',
+spd:'Speed',pauseAll:'Pause playback',sumTimes:' exams',sumTimes1:' exam',added:'Added',extraSec:'Past items (not in current settings)',prevLbl:'Prev',
+resetCnt:'({n} recording(s) will be deleted. This cannot be undone)',
+pass:'Pass',fail:'Fail',pfLbl:'Pass/Fail',passCnt:'Passed',oldScore:'Old 5-level score',csvPass:'Passed (pass/scored)',chRate:'Pass rate trend (%)',chSecRate:'Pass rate by section (%)',chItem:'Pass/Fail by question (latest)'},
+vi:{oldN:'{n} câu điểm cũ',oldAvg:'Điểm cũ TB ',oldTag:'cũ',unconf:' (chưa xác nhận)',stPending:'Đã đánh giá – chờ xác nhận',notAsked:' (không hỏi)',
+oldReplace:'Thay điểm cũ 5 mức ({v}) bằng Đạt/Không đạt? (điểm cũ sẽ mất)',oldNA:'Xóa điểm cũ 5 mức ({v}) và đánh dấu "Không hỏi"?',
+confirmScored:'Tất cả câu đã ghi âm đều có Đạt/Không đạt. Xác nhận chấm điểm luôn?\n(Hủy = chỉ lưu ghi âm, có thể xác nhận sau ở tab Chấm điểm)',
+oldOnly:'Chỉ có điểm cũ 5 mức (không tính tỷ lệ đạt). Xem điểm ở tab Lịch sử',
+mixNote:'* Bài thi có điểm cũ 5 mức: tỷ lệ đạt chỉ tính các câu Đạt/Không đạt',
+chPending:'Có bài thi đã đánh giá đang chờ xác nhận. Mở ở tab Chấm điểm và nhấn "Lưu điểm" để hiển thị',
+qsTitle:'Bộ câu hỏi',qsCur:'Bộ hiện tại',qsNone:'(chưa lưu thành bộ)',qsSaveNew:'Lưu các mục hiện tại thành bộ mới',qsOver:'Ghi đè',qsApply:'Chuyển',qsRen:'Đổi tên',qsDel:'Xóa',
+qsNamePrompt:'Nhập tên bộ',qbTitle:'Bộ câu hỏi mẫu',qbReplace:'Thay thế mục',qbAppend:'Thêm vào mục',
+naLbl:'Không hỏi (không chấm)',nextUnrec:'Mục chưa ghi tiếp theo',nextUnscored:'Mục chưa chấm tiếp theo',allRec:'Đã ghi tất cả',allScored:'Không còn mục chưa chấm',
+recBusy:'Đang ghi âm — hãy nhấn "Dừng" trước',noRecGroup:'Mục không có ghi âm ({n})',
+spd:'Tốc độ',pauseAll:'Dừng phát',sumTimes:' lần thi',added:'Đã thêm',extraSec:'Mục cũ (không có trong cài đặt hiện tại)',prevLbl:'Lần trước',
+resetCnt:'({n} bản ghi âm sẽ bị xóa. Không thể hoàn tác)',
+pass:'Đạt',fail:'Không đạt',pfLbl:'Đạt/Không đạt',passCnt:'Đạt',oldScore:'Điểm cũ (5 mức)',
+qsSwConfirm:'Chuyển các mục thi sang bộ "{n}"? Các chỉnh sửa chưa lưu sẽ bị mất (dữ liệu các bài thi trước vẫn giữ nguyên).',
+qsDelConfirm:'Xóa bộ "{n}"? (dữ liệu các bài thi trước vẫn giữ nguyên)',
+qsSaved:'Đã lưu bộ',qsApplied:'Đã chuyển bộ',qsDeleted:'Đã xóa bộ',
+qbRepConfirm:'Thay các mục thi hiện tại bằng bộ mẫu "{n}"? (dữ liệu các bài thi trước vẫn giữ nguyên)',
+qbApplied:'Đã áp dụng bộ mẫu',qbNone:'Chưa tải được bộ mẫu (qbank.js)',
+dirty:'Có thay đổi chưa lưu',dirtyLeave:'Các mục thi có thay đổi chưa lưu. Rời đi mà không lưu? (thay đổi sẽ bị hủy)',
+delSecConfirm:'Xóa phần này và tất cả câu hỏi trong đó?',cfgNote:'* Xóa hoặc thay câu hỏi thì điểm, ghi âm và bản ghi lời của các bài thi trước vẫn còn trong lịch sử và CSV',
+storeFail:'Lưu thất bại (có thể bộ nhớ thiết bị đã đầy). Hãy xuất bản sao lưu ở tab Cài đặt',
+gcConfirm:'Có {n} bản ghi âm không thuộc bài thi nào. Xóa để giải phóng bộ nhớ?',gcDone:' bản ghi âm thừa đã được xóa',
+csvPass:'Số câu đạt (đạt/đã chấm)',chRate:'Xu hướng tỷ lệ đạt (%)',chSecRate:'Tỷ lệ đạt theo lĩnh vực (%)',chItem:'Đạt/Không đạt theo câu hỏi (gần nhất)'},
+id:{oldN:'{n} nilai lama',oldAvg:'Rata nilai lama ',oldTag:'lama',unconf:' (belum final)',stPending:'Sudah dinilai – tunggu konfirmasi',notAsked:' (tidak ditanya)',
+oldReplace:'Ganti nilai lama 5 tingkat ({v}) dengan Lulus/Tidak lulus? (nilai lama akan hilang)',oldNA:'Hapus nilai lama 5 tingkat ({v}) dan tandai "Tidak ditanya"?',
+confirmScored:'Semua pertanyaan yang direkam sudah Lulus/Tidak lulus. Konfirmasi penilaian juga?\n(Batal = simpan rekaman saja; bisa dikonfirmasi nanti di tab Penilaian)',
+oldOnly:'Hanya nilai lama 5 tingkat (tidak dihitung tingkat lulus). Lihat nilai di tab Riwayat',
+mixNote:'* Untuk ujian dengan nilai lama 5 tingkat, tingkat lulus hanya dari pertanyaan Lulus/Tidak lulus',
+chPending:'Ada ujian yang sudah dinilai dan menunggu konfirmasi. Buka di tab Penilaian lalu tekan "Simpan nilai"',
+qsTitle:'Set pertanyaan',qsCur:'Set aktif',qsNone:'(belum disimpan sebagai set)',qsSaveNew:'Simpan item saat ini sebagai set baru',qsOver:'Timpa',qsApply:'Ganti',qsRen:'Ubah nama',qsDel:'Hapus',
+qsNamePrompt:'Masukkan nama set',qbTitle:'Set pertanyaan preset',qbReplace:'Ganti item',qbAppend:'Tambahkan item',
+naLbl:'Tidak ditanya (tidak dinilai)',nextUnrec:'Item belum direkam berikutnya',nextUnscored:'Item belum dinilai berikutnya',allRec:'Semua sudah direkam',allScored:'Tidak ada yang belum dinilai',
+recBusy:'Sedang merekam — tekan "Stop" dulu',noRecGroup:'Item tanpa rekaman ({n})',
+spd:'Kecepatan',pauseAll:'Jeda pemutaran',sumTimes:' ujian',added:'Sudah ditambah',extraSec:'Item lama (tidak ada di pengaturan)',prevLbl:'Sebelumnya',
+resetCnt:'({n} rekaman akan dihapus. Tidak dapat dibatalkan)',
+pass:'Lulus',fail:'Tidak lulus',pfLbl:'Lulus/Tidak',passCnt:'Lulus',oldScore:'Nilai lama (5 tingkat)',
+qsSwConfirm:'Ganti item ujian ke set "{n}"? Perubahan yang belum disimpan akan hilang (data ujian sebelumnya tetap ada).',
+qsDelConfirm:'Hapus set "{n}"? (data ujian sebelumnya tetap ada)',
+qsSaved:'Set disimpan',qsApplied:'Set diganti',qsDeleted:'Set dihapus',
+qbRepConfirm:'Ganti item ujian saat ini dengan preset "{n}"? (data ujian sebelumnya tetap ada)',
+qbApplied:'Preset diterapkan',qbNone:'Preset (qbank.js) belum dimuat',
+dirty:'Ada perubahan yang belum disimpan',dirtyLeave:'Item ujian memiliki perubahan yang belum disimpan. Keluar tanpa menyimpan? (perubahan akan dibuang)',
+delSecConfirm:'Hapus bagian ini beserta semua pertanyaannya?',cfgNote:'* Menghapus/mengganti pertanyaan tidak menghapus nilai, rekaman, dan transkrip ujian sebelumnya dari riwayat dan CSV',
+storeFail:'Gagal menyimpan (penyimpanan perangkat mungkin penuh). Ekspor cadangan dari tab Pengaturan',
+gcConfirm:'Ada {n} rekaman yang tidak termasuk ujian mana pun. Hapus untuk mengosongkan ruang?',gcDone:' rekaman tak terpakai dihapus',
+csvPass:'Jumlah lulus (lulus/dinilai)',chRate:'Tren tingkat lulus (%)',chSecRate:'Tingkat lulus per bidang (%)',chItem:'Lulus/Tidak lulus per pertanyaan (terbaru)'}
+};
+function t2(k){const d=TX2[lang]||TX2.ja;return d[k]||TX2.en[k]||TX2.ja[k]||k}
+/* 採点値→表示ラベル（合格/不合格。旧5段階の数値は「4 — 良好」形式） */
+function pfLabel(v){return isPF(v)?t2(v):(isOld(v)?Number(v)+' — '+t('s'+Number(v)):(v!=null?String(v):''))}
+/* 各問の採点表示（旧5段階は「旧 4 — 良好」と明示＝合否と取り違えない） */
+function scoreTxt(v){return isOld(v)?t2('oldTag')+' '+pfLabel(v):pfLabel(v)}
+/* 一覧行の状態バッジ・結果（採点済／試問中の○×だけ付いた確定待ち／録音のみ） */
+function rowRes(r){
+  const sc=r.status==='scored',pend=!sc&&hasPF(r);
+  const badge=sc?`<span class="badge scored">${t('stScored')}</span>`:pend?`<span class="badge pend">${esc(t2('stPending'))}</span>`:`<span class="badge rec">${t('stRec')}</span>`;
+  if(!sc&&!pend)return{badge,cls:'',lbl:'–'};
+  const lbl=resLbl(r)+(pend?t2('unconf'):'');
+  return{badge,cls:resCls(r)+(lbl.length>5?' lng':''),lbl};
+}
