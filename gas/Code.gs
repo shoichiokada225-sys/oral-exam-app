@@ -35,6 +35,16 @@ function doPost(e) {
     var blob = Utilities.newBlob(bytes, body.mime || 'audio/webm', body.name || 'audio.webm');
     var file = sub.createFile(blob);
 
+    // 合否の付け直し：同じ受験者フォルダ内の旧ファイルだけをゴミ箱へ（他の場所のファイルは触らない）
+    if (body.replaceId) {
+      try {
+        var old = DriveApp.getFileById(String(body.replaceId));
+        var ps = old.getParents(), inSub = false;
+        while (ps.hasNext()) { if (ps.next().getId() === sub.getId()) { inSub = true; break; } }
+        if (inSub && old.getId() !== file.getId()) old.setTrashed(true);
+      } catch (e2) { /* 旧ファイルが無い等は無視（新ファイルは作成済み） */ }
+    }
+
     return json({ ok: true, id: file.getId(), url: file.getUrl() });
   } catch (err) {
     return json({ ok: false, error: String(err) });

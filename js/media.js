@@ -234,7 +234,9 @@ async function gasTest(){
   }catch(e){gConnected=false;updateGoogleStatus();toast(t('gTestFail')+'（'+e.message+'）',1)}
   finally{btn.disabled=false;btn.textContent=old}
 }
-async function gasUpload(session,itemId){
+// 合否ラベル（ドライブのファイル名用。受け取るのは社長側なので言語に関わらず日本語固定）
+function verdictTag(v){return v==='pass'?'合格':v==='fail'?'不合格':'未判定'}
+async function gasUpload(session,itemId,replaceId){
   const g=getGoogleCfg();
   const blob=await getAudio(session.id+'_'+itemId);if(!blob)return null;
   const b64=await blobToB64(blob);
@@ -243,24 +245,61 @@ async function gasUpload(session,itemId){
   const ii=sec?getItems().filter(x=>x.secId===sec.id).findIndex(x=>x.id===itemId):0;
   const tag=sec?sec.name.charAt(0)+'-'+(ii+1):itemId;
   const ext=(blob.type.indexOf('mp4')>=0)?'mp4':'webm';
-  const name=safeName(tag+'_'+(it?it.name:itemId))+'.'+ext;
-  const j=await gasPost({token:g.token,folder:g.folder||'口頭試問音声',examinee:session.examinee||'受験者',date:session.date||'',name,mime:blob.type||'audio/webm',dataB64:b64});
-  return{id:j.id,link:j.url};
+  const rec=session.items[itemId]||{};
+  const name=safeName(tag+'_'+verdictTag(rec.verdict)+'_'+(it?it.name:itemId))+'.'+ext;
+  const body={token:g.token,folder:g.folder||'口頭試問音声',examinee:session.examinee||'受験者',date:session.date||'',name,mime:blob.type||'audio/webm',dataB64:b64};
+  if(replaceId)body.replaceId=replaceId; // 合否変更時：旧名のファイルをGAS側でゴミ箱へ（旧GASは無視＝新旧2本残るだけ）
+  const j=await gasPost(body);
+  return{id:j.id,link:j.url,name};
 }
 
 // 録音停止後に呼ばれる：自動アップロード
-async function maybeAutoUpload(itemId){
+// opt.replace=true は合否変更による「付け直し」（前回アップロード分を置き換える）
+const upBusy={},upPend={};
+async function maybeAutoUpload(itemId,opt){
   const g=getGoogleCfg();
   if(!g.auto||!g.url)return;
   const sess=cur; // 対象セッションを固定（アップロード中にcurが切り替わっても取り違えない）
   if(!sess)return;
+  const key=sess.id+'_'+itemId;
+  // 送信中に合否が変わった等：終わってから最新の状態でもう一度送る（多重送信・順序逆転を防ぐ）
+  if(upBusy[key]){upPend[key]=upPend[key]||opt||{};return}
+  upBusy[key]=true;
   setCloud(itemId,'up');
   try{
-    const res=await gasUpload(sess,itemId);
+    const prev=sess.items[itemId]||{};
+    const res=await gasUpload(sess,itemId,opt&&opt.replace?prev.driveFileId:null);
     sess.items[itemId]=sess.items[itemId]||{};
-    sess.items[itemId].driveFileId=res&&res.id;sess.items[itemId].driveLink=res&&res.link;
+    sess.items[itemId].driveFileId=res&&res.id;sess.items[itemId].driveLink=res&&res.link;sess.items[itemId].driveName=res&&res.name;
     if(cur===sess){saveDraft();setCloud(itemId,'done')} // 表示更新は同じセッションを開いている時だけ
   }catch(e){if(cur===sess)setCloud(itemId,'fail')}
+  finally{
+    upBusy[key]=false;
+    const p=upPend[key];delete upPend[key];
+    if(p&&cur===sess)maybeAutoUpload(itemId,p);
+  }
+}
+
+// 合否ボタン：同じボタンをもう一度押すと解除。アップロード済みならファイル名を付け直す
+const vdTimers={};
+function setVerdict(itemId,v){
+  if(!cur)return;
+  cur.items[itemId]=cur.items[itemId]||{};
+  const rec=cur.items[itemId];
+  rec.verdict=(rec.verdict===v)?null:v;
+  saveDraft();
+  const vp=document.getElementById('vp-'+itemId),vf=document.getElementById('vf-'+itemId);
+  if(vp){vp.classList.toggle('on',rec.verdict==='pass');vp.setAttribute('aria-pressed',rec.verdict==='pass'?'true':'false')}
+  if(vf){vf.classList.toggle('on',rec.verdict==='fail');vf.setAttribute('aria-pressed',rec.verdict==='fail'?'true':'false')}
+  if(!rec.hasAudio)return; // 録音前に判定した場合は、録音停止時のアップロードで名前に入る
+  // 連打で何本も送らないよう少し待ってから1回だけ送る
+  clearTimeout(vdTimers[itemId]);
+  vdTimers[itemId]=setTimeout(()=>{
+    const r=cur&&cur.items[itemId];if(!r)return;
+    const key=cur.id+'_'+itemId;
+    if(upBusy[key]){maybeAutoUpload(itemId,{replace:true});return} // 送信中→完了後に置き換え送信
+    if(r.driveFileId)maybeAutoUpload(itemId,{replace:true});
+  },1500);
 }
 function setCloud(itemId,state){
   const el=document.getElementById('cl-'+itemId);if(!el)return;

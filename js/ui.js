@@ -16,7 +16,7 @@ dirty:'未保存の変更があります',dirtyLeave:'試問項目に未保存�
 delSecConfirm:'このセクションと全質問を削除しますか？',cfgNote:'※質問を削除・差し替えても、過去の試問の採点・録音・文字起こしは履歴とCSVに残ります',
 storeFail:'保存に失敗しました（端末の空き容量不足の可能性）。設定タブからバックアップの書き出しをおすすめします',
 gcConfirm:'どのセッションにも属さない録音データが{n}件見つかりました。削除して端末の容量を空けますか？',gcDone:'件の不要な録音を削除しました',
-naLbl:'質問しなかった（採点対象外）',nextUnrec:'次の未録音へ',nextUnscored:'次の未採点へ',allRec:'すべて録音済みです',allScored:'未採点の項目はありません',
+naLbl:'質問しなかった（採点対象外）',vdLbl:'合否',vdPass:'合格',vdFail:'不合格',nextUnrec:'次の未録音へ',nextUnscored:'次の未採点へ',allRec:'すべて録音済みです',allScored:'未採点の項目はありません',
 recBusy:'録音中です。先に「停止」を押してください',noRecGroup:'録音のない項目（{n}）',
 spd:'速度',pauseAll:'再生を停止',sumTimes:'回受験',added:'追加済み',prevLbl:'前回',extraSec:'過去の項目（現在の設定にない質問）',
 resetCnt:'（録音{n}件を削除します。元に戻せません）',
@@ -33,21 +33,21 @@ dirty:'Unsaved changes',dirtyLeave:'Exam items have unsaved changes. Leave witho
 delSecConfirm:'Delete this section and all its questions?',cfgNote:'Deleting/replacing questions does not remove past scores, recordings or transcripts from history and CSV',
 storeFail:'Save failed (device storage may be full). Export a backup from Settings',
 gcConfirm:'{n} recording(s) belong to no session. Delete them to free space?',gcDone:' orphan recording(s) deleted',
-naLbl:'Not asked (excluded from scoring)',nextUnrec:'Next unrecorded',nextUnscored:'Next unscored',allRec:'All items recorded',allScored:'Nothing left to score',
+naLbl:'Not asked (excluded from scoring)',vdLbl:'Pass/Fail',vdPass:'Pass',vdFail:'Fail',nextUnrec:'Next unrecorded',nextUnscored:'Next unscored',allRec:'All items recorded',allScored:'Nothing left to score',
 recBusy:'Recording in progress — press "Stop" first',noRecGroup:'Items without recording ({n})',
 spd:'Speed',pauseAll:'Pause playback',sumTimes:' exams',sumTimes1:' exam',added:'Added',extraSec:'Past items (not in current settings)',prevLbl:'Prev',
 resetCnt:'({n} recording(s) will be deleted. This cannot be undone)',
 pass:'Pass',fail:'Fail',pfLbl:'Pass/Fail',passCnt:'Passed',oldScore:'Old 5-level score',csvPass:'Passed (pass/scored)',chRate:'Pass rate trend (%)',chSecRate:'Pass rate by section (%)',chItem:'Pass/Fail by question (latest)'},
 vi:{qsTitle:'Bộ câu hỏi',qsCur:'Bộ hiện tại',qsNone:'(chưa lưu thành bộ)',qsSaveNew:'Lưu các mục hiện tại thành bộ mới',qsOver:'Ghi đè',qsApply:'Chuyển',qsRen:'Đổi tên',qsDel:'Xóa',
 qsNamePrompt:'Nhập tên bộ',qbTitle:'Bộ câu hỏi mẫu',qbReplace:'Thay thế mục',qbAppend:'Thêm vào mục',
-naLbl:'Không hỏi (không chấm)',nextUnrec:'Mục chưa ghi tiếp theo',nextUnscored:'Mục chưa chấm tiếp theo',allRec:'Đã ghi tất cả',allScored:'Không còn mục chưa chấm',
+naLbl:'Không hỏi (không chấm)',vdLbl:'Đạt/Không đạt',vdPass:'Đạt',vdFail:'Không đạt',nextUnrec:'Mục chưa ghi tiếp theo',nextUnscored:'Mục chưa chấm tiếp theo',allRec:'Đã ghi tất cả',allScored:'Không còn mục chưa chấm',
 recBusy:'Đang ghi âm — hãy nhấn "Dừng" trước',noRecGroup:'Mục không có ghi âm ({n})',
 spd:'Tốc độ',pauseAll:'Dừng phát',sumTimes:' lần thi',added:'Đã thêm',extraSec:'Mục cũ (không có trong cài đặt hiện tại)',prevLbl:'Lần trước',
 resetCnt:'({n} bản ghi âm sẽ bị xóa. Không thể hoàn tác)',
 pass:'Đạt',fail:'Không đạt',pfLbl:'Đạt/Không đạt',passCnt:'Đạt',oldScore:'Điểm cũ (5 mức)'},
 id:{qsTitle:'Set pertanyaan',qsCur:'Set aktif',qsNone:'(belum disimpan sebagai set)',qsSaveNew:'Simpan item saat ini sebagai set baru',qsOver:'Timpa',qsApply:'Ganti',qsRen:'Ubah nama',qsDel:'Hapus',
 qsNamePrompt:'Masukkan nama set',qbTitle:'Set pertanyaan preset',qbReplace:'Ganti item',qbAppend:'Tambahkan item',
-naLbl:'Tidak ditanya (tidak dinilai)',nextUnrec:'Item belum direkam berikutnya',nextUnscored:'Item belum dinilai berikutnya',allRec:'Semua sudah direkam',allScored:'Tidak ada yang belum dinilai',
+naLbl:'Tidak ditanya (tidak dinilai)',vdLbl:'Lulus/Tidak lulus',vdPass:'Lulus',vdFail:'Tidak lulus',nextUnrec:'Item belum direkam berikutnya',nextUnscored:'Item belum dinilai berikutnya',allRec:'Semua sudah direkam',allScored:'Tidak ada yang belum dinilai',
 recBusy:'Sedang merekam — tekan "Stop" dulu',noRecGroup:'Item tanpa rekaman ({n})',
 spd:'Kecepatan',pauseAll:'Jeda pemutaran',sumTimes:' ujian',added:'Sudah ditambah',extraSec:'Item lama (tidak ada di pengaturan)',prevLbl:'Sebelumnya',
 resetCnt:'({n} rekaman akan dihapus. Tidak dapat dibatalkan)',
@@ -83,6 +83,7 @@ function buildExamCards(){
           <button class="recbtn" id="rb-${iid}" onclick="toggleRec('${iid}')"><span class="dot"></span><span class="rlab">${has?t('recRedo'):t('recStart')}</span></button>
           <span class="rectime" id="rt-${iid}"></span>
           <span class="recstat${has?' ok':''}" id="rs-${iid}">${has?'● '+t('recDone'):t('recReady')}</span>
+          <span class="verd" role="group" aria-label="${esc(t2('vdLbl'))}"><button type="button" class="vb vpass${rec&&rec.verdict==='pass'?' on':''}" id="vp-${iid}" aria-pressed="${rec&&rec.verdict==='pass'?'true':'false'}" onclick="setVerdict('${iid}','pass')">${esc(t2('vdPass'))}</button><button type="button" class="vb vfail${rec&&rec.verdict==='fail'?' on':''}" id="vf-${iid}" aria-pressed="${rec&&rec.verdict==='fail'?'true':'false'}" onclick="setVerdict('${iid}','fail')">${esc(t2('vdFail'))}</button></span>
           <button type="button" class="b b3" id="nx-${iid}" style="display:${has?'inline-block':'none'};flex:0 0 auto;padding:6px 10px;font-size:.74rem;margin-left:auto" onclick="gotoNextUnrec('${iid}')">${esc(t2('nextUnrec'))} ▾</button>
         </div>
         <audio id="au-${iid}" controls style="display:${has?'block':'none'}"></audio>
