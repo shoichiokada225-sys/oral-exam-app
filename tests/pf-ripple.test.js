@@ -70,6 +70,14 @@ const SESS=[
   const mo=await p.textContent('#moBody');
   ok('詳細「合格: 1/1＋旧評価2問」',mo.includes('合格: 1/1＋旧評価2問'));
   ok('詳細の各問に「旧 1 — 不合格」',mo.includes('旧 1 — 不合格')&&mo.includes('旧 2 — 要再確認'));
+  // 旧点数チップが読めること（文字色≠背景色）をライト/ダーク両方で実測
+  const chipCol=()=>p.evaluate(()=>[...document.querySelectorAll('#moBody .dis.old')].map(e=>{const c=getComputedStyle(e);return{t:e.textContent,c:c.color,b:c.backgroundColor}}));
+  for(const cs of ['light','dark']){
+    await p.emulateMedia({colorScheme:cs});await p.waitForTimeout(100);
+    const cc=await chipCol();
+    ok(`旧点数チップの文字色≠背景色（${cs}）: `+JSON.stringify(cc[0]||null),cc.length>=2&&cc.every(x=>x.c!==x.b&&x.b!=='rgba(0, 0, 0, 0)'));
+  }
+  await p.emulateMedia({colorScheme:'light'});
   await p.evaluate(()=>closeMo());
   ok('サマリに混在の注記',await p.evaluate(()=>{const c=[...document.querySelectorAll('#hList button.cd')].find(x=>x.textContent.includes('チャウ'));return !!c&&c.textContent.includes('旧5段階評価が混ざる')}));
   // CSV
