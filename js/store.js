@@ -109,12 +109,26 @@ function scoredVals(r){return sessItemIds(r).map(id=>r.items[id]&&r.items[id].sc
 function pfCount(r){const v=scoredVals(r).filter(isPF);return{pass:v.filter(x=>x==='pass').length,total:v.length}}
 /* 合格率(0〜100)。合否採点が無ければNaN */
 function passRate(r){const c=pfCount(r);return c.total?Math.round(c.pass/c.total*100):NaN}
+/* 旧5段階の数値か（数値1〜5。文字列'4'等の混入にも耐える）。pass/fail・null・N/Aは偽 */
+function isOld(v){if(v==null||v===''||isPF(v))return false;const n=Number(v);return isFinite(n)&&n>=1&&n<=5}
+/* 旧5段階の採点が付いた項目数 */
+function oldCount(r){return scoredVals(r).filter(isOld).length}
 /* 旧5段階の平均（旧データ表示用） */
-function avg(r){const v=scoredVals(r).filter(x=>typeof x==='number');return v.length?(v.reduce((a,b)=>a+b,0)/v.length).toFixed(1):'-'}
-/* 一覧・詳細に出す結果ラベル：合否があれば「合格 2/3」、旧データのみなら平均点 */
-function resLbl(r){const c=pfCount(r);if(c.total)return c.pass+'/'+c.total;return avg(r)}
-/* 結果の色クラス：全問合格=a5・全問不合格=a1・混在=a3（旧データは平均点の色） */
-function resCls(r){const c=pfCount(r);if(c.total)return c.pass===c.total?'a5':c.pass===0?'a1':'a3';return avgCls(avg(r))}
+function avg(r){const v=scoredVals(r).filter(isOld).map(Number);return v.length?(v.reduce((a,b)=>a+b,0)/v.length).toFixed(1):'-'}
+/* 一覧・詳細に出す結果ラベル：合否のみ「2/3」、旧評価が混ざれば「1/1＋旧評価2問」、旧データのみ「旧評価 平均4.0」
+   （旧5段階の点数を黙って捨てない＝低評価が合格表示に化けない） */
+function resLbl(r){
+  const c=pfCount(r),o=oldCount(r);
+  if(c.total)return c.pass+'/'+c.total+(o?'＋'+t2('oldN').replace('{n}',o):'');
+  if(o)return t2('oldAvg')+avg(r);
+  return '-';
+}
+/* 詳細等で結果ラベルの前に付ける見出し（合否があれば「合格」、旧データのみなら「旧5段階評価」） */
+function resHead(r){return pfCount(r).total||!oldCount(r)?t2('passCnt'):t2('oldScore')}
+/* 結果の色クラス：全問合格=a5・全問不合格=a1・混在=a3。旧5段階が1問でも残れば中立色(old)＝全問合格の緑に見せない */
+function resCls(r){const c=pfCount(r);if(oldCount(r))return'old';if(c.total)return c.pass===c.total?'a5':c.pass===0?'a1':'a3';return''}
+/* 合否が1問以上付いているか（試問中の○×だけで未確定のものも含む） */
+function hasPF(r){return pfCount(r).total>0}
 
 /* ==============================================================
    孤児音声GC（どのセッションにも属さないIndexedDBの録音を削除）

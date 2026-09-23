@@ -182,6 +182,9 @@ async function saveSession(){
   const recd=getItems().some(it=>cur.items[it.id]&&cur.items[it.id].hasAudio);
   if(!recd){toast(t('eNoRec'),1);return}
   snapMeta(cur); // 項目名スナップショット（cfg変更後も履歴・CSVで名前が出る）
+  // 試問中に録音した全問へ○×が付いていれば、採点の確定も選べる（キャンセル＝従来どおり録音のみで保存）
+  const recIds=Object.keys(cur.items).filter(k=>cur.items[k]&&cur.items[k].hasAudio);
+  if(cur.status!=='scored'&&recIds.length&&recIds.every(k=>isPF(cur.items[k].score))&&confirm(t2('confirmScored')))cur.status='scored';
   const all=getAll();
   const idx=all.findIndex(s=>s.id===cur.id);
   cur.updatedAt=new Date().toISOString();

@@ -4,7 +4,13 @@
    短いUIラベルは4言語、確認ダイアログ等の長文はja中心でenフォールバック）
    ============================================================== */
 const TX2={
-ja:{qsTitle:'試問セット',qsCur:'現在のセット',qsNone:'（セット未保存の構成）',qsSaveNew:'現在の項目を新しいセットとして保存',qsOver:'上書き保存',qsApply:'切替',qsRen:'名前変更',qsDel:'削除',
+ja:{oldN:'旧評価{n}問',oldAvg:'旧評価 平均',oldTag:'旧',unconf:'（未確定）',stPending:'判定済み・確定待ち',notAsked:'（未実施）',
+oldReplace:'旧5段階評価（{v}）を合否に置き換えますか？（元の点数は消えます）',oldNA:'旧5段階評価（{v}）を消して「質問しなかった」にしますか？',
+confirmScored:'録音した全問に合否が付いています。採点も確定しますか？\n（キャンセルすると録音のみで保存し、あとで採点タブから確定できます）',
+oldOnly:'旧5段階評価の記録のみです（合格率の対象外）。履歴タブで点数を確認できます',
+mixNote:'※旧5段階評価が混ざる試問は、合否を付けた設問だけで合格率を計算しています（旧評価の設問は含みません）',
+chPending:'判定済み・確定待ちの試問があります。採点タブで開いて「採点を保存」するとグラフに表示されます',
+qsTitle:'試問セット',qsCur:'現在のセット',qsNone:'（セット未保存の構成）',qsSaveNew:'現在の項目を新しいセットとして保存',qsOver:'上書き保存',qsApply:'切替',qsRen:'名前変更',qsDel:'削除',
 qsNamePrompt:'セット名を入力してください（例：新人向け／繁殖担当／棚倉農場）',
 qsSwConfirm:'試問項目をセット「{n}」に切り替えます。現在の未保存の編集は失われます（過去の試問データは消えません）。よろしいですか？',
 qsDelConfirm:'セット「{n}」を削除しますか？（過去の試問データは消えません）',
@@ -21,7 +27,13 @@ recBusy:'録音中です。先に「停止」を押してください',noRecGrou
 spd:'速度',pauseAll:'再生を停止',sumTimes:'回受験',added:'追加済み',prevLbl:'前回',extraSec:'過去の項目（現在の設定にない質問）',
 resetCnt:'（録音{n}件を削除します。元に戻せません）',
 pass:'合格',fail:'不合格',pfLbl:'合否',passCnt:'合格',oldScore:'旧5段階評価',csvPass:'合格数（合格/採点）',chRate:'合格率の推移（%）',chSecRate:'分野別の合格率（%）',chItem:'設問別の合否（直近）'},
-en:{qsTitle:'Question set',qsCur:'Active set',qsNone:'(unsaved layout)',qsSaveNew:'Save current items as a new set',qsOver:'Overwrite',qsApply:'Switch',qsRen:'Rename',qsDel:'Delete',
+en:{oldN:'{n} old-scale',oldAvg:'Old avg ',oldTag:'old',unconf:' (unconfirmed)',stPending:'Judged – to confirm',notAsked:' (not asked)',
+oldReplace:'Replace the old 5-level score ({v}) with Pass/Fail? (the old score will be lost)',oldNA:'Remove the old 5-level score ({v}) and mark as "Not asked"?',
+confirmScored:'Every recorded question has Pass/Fail. Confirm the scoring too?\n(Cancel = save as recorded only; you can confirm later in the Score tab)',
+oldOnly:'Only old 5-level scores (not included in pass rate). See the History tab for the scores',
+mixNote:'* For exams that include old 5-level scores, the pass rate uses only the Pass/Fail questions',
+chPending:'There are judged exams waiting for confirmation. Open them in the Score tab and press "Save score" to show them here',
+qsTitle:'Question set',qsCur:'Active set',qsNone:'(unsaved layout)',qsSaveNew:'Save current items as a new set',qsOver:'Overwrite',qsApply:'Switch',qsRen:'Rename',qsDel:'Delete',
 qsNamePrompt:'Enter a set name',
 qsSwConfirm:'Switch items to set "{n}"? Unsaved edits will be lost (past exam data is kept).',
 qsDelConfirm:'Delete set "{n}"? (past exam data is kept)',
@@ -38,14 +50,26 @@ recBusy:'Recording in progress — press "Stop" first',noRecGroup:'Items without
 spd:'Speed',pauseAll:'Pause playback',sumTimes:' exams',sumTimes1:' exam',added:'Added',extraSec:'Past items (not in current settings)',prevLbl:'Prev',
 resetCnt:'({n} recording(s) will be deleted. This cannot be undone)',
 pass:'Pass',fail:'Fail',pfLbl:'Pass/Fail',passCnt:'Passed',oldScore:'Old 5-level score',csvPass:'Passed (pass/scored)',chRate:'Pass rate trend (%)',chSecRate:'Pass rate by section (%)',chItem:'Pass/Fail by question (latest)'},
-vi:{qsTitle:'Bộ câu hỏi',qsCur:'Bộ hiện tại',qsNone:'(chưa lưu thành bộ)',qsSaveNew:'Lưu các mục hiện tại thành bộ mới',qsOver:'Ghi đè',qsApply:'Chuyển',qsRen:'Đổi tên',qsDel:'Xóa',
+vi:{oldN:'{n} câu điểm cũ',oldAvg:'Điểm cũ TB ',oldTag:'cũ',unconf:' (chưa xác nhận)',stPending:'Đã đánh giá – chờ xác nhận',notAsked:' (không hỏi)',
+oldReplace:'Thay điểm cũ 5 mức ({v}) bằng Đạt/Không đạt? (điểm cũ sẽ mất)',oldNA:'Xóa điểm cũ 5 mức ({v}) và đánh dấu "Không hỏi"?',
+confirmScored:'Tất cả câu đã ghi âm đều có Đạt/Không đạt. Xác nhận chấm điểm luôn?\n(Hủy = chỉ lưu ghi âm, có thể xác nhận sau ở tab Chấm điểm)',
+oldOnly:'Chỉ có điểm cũ 5 mức (không tính tỷ lệ đạt). Xem điểm ở tab Lịch sử',
+mixNote:'* Bài thi có điểm cũ 5 mức: tỷ lệ đạt chỉ tính các câu Đạt/Không đạt',
+chPending:'Có bài thi đã đánh giá đang chờ xác nhận. Mở ở tab Chấm điểm và nhấn "Lưu điểm" để hiển thị',
+qsTitle:'Bộ câu hỏi',qsCur:'Bộ hiện tại',qsNone:'(chưa lưu thành bộ)',qsSaveNew:'Lưu các mục hiện tại thành bộ mới',qsOver:'Ghi đè',qsApply:'Chuyển',qsRen:'Đổi tên',qsDel:'Xóa',
 qsNamePrompt:'Nhập tên bộ',qbTitle:'Bộ câu hỏi mẫu',qbReplace:'Thay thế mục',qbAppend:'Thêm vào mục',
 naLbl:'Không hỏi (không chấm)',nextUnrec:'Mục chưa ghi tiếp theo',nextUnscored:'Mục chưa chấm tiếp theo',allRec:'Đã ghi tất cả',allScored:'Không còn mục chưa chấm',
 recBusy:'Đang ghi âm — hãy nhấn "Dừng" trước',noRecGroup:'Mục không có ghi âm ({n})',
 spd:'Tốc độ',pauseAll:'Dừng phát',sumTimes:' lần thi',added:'Đã thêm',extraSec:'Mục cũ (không có trong cài đặt hiện tại)',prevLbl:'Lần trước',
 resetCnt:'({n} bản ghi âm sẽ bị xóa. Không thể hoàn tác)',
 pass:'Đạt',fail:'Không đạt',pfLbl:'Đạt/Không đạt',passCnt:'Đạt',oldScore:'Điểm cũ (5 mức)'},
-id:{qsTitle:'Set pertanyaan',qsCur:'Set aktif',qsNone:'(belum disimpan sebagai set)',qsSaveNew:'Simpan item saat ini sebagai set baru',qsOver:'Timpa',qsApply:'Ganti',qsRen:'Ubah nama',qsDel:'Hapus',
+id:{oldN:'{n} nilai lama',oldAvg:'Rata nilai lama ',oldTag:'lama',unconf:' (belum final)',stPending:'Sudah dinilai – tunggu konfirmasi',notAsked:' (tidak ditanya)',
+oldReplace:'Ganti nilai lama 5 tingkat ({v}) dengan Lulus/Tidak lulus? (nilai lama akan hilang)',oldNA:'Hapus nilai lama 5 tingkat ({v}) dan tandai "Tidak ditanya"?',
+confirmScored:'Semua pertanyaan yang direkam sudah Lulus/Tidak lulus. Konfirmasi penilaian juga?\n(Batal = simpan rekaman saja; bisa dikonfirmasi nanti di tab Penilaian)',
+oldOnly:'Hanya nilai lama 5 tingkat (tidak dihitung tingkat lulus). Lihat nilai di tab Riwayat',
+mixNote:'* Untuk ujian dengan nilai lama 5 tingkat, tingkat lulus hanya dari pertanyaan Lulus/Tidak lulus',
+chPending:'Ada ujian yang sudah dinilai dan menunggu konfirmasi. Buka di tab Penilaian lalu tekan "Simpan nilai"',
+qsTitle:'Set pertanyaan',qsCur:'Set aktif',qsNone:'(belum disimpan sebagai set)',qsSaveNew:'Simpan item saat ini sebagai set baru',qsOver:'Timpa',qsApply:'Ganti',qsRen:'Ubah nama',qsDel:'Hapus',
 qsNamePrompt:'Masukkan nama set',qbTitle:'Set pertanyaan preset',qbReplace:'Ganti item',qbAppend:'Tambahkan item',
 naLbl:'Tidak ditanya (tidak dinilai)',nextUnrec:'Item belum direkam berikutnya',nextUnscored:'Item belum dinilai berikutnya',allRec:'Semua sudah direkam',allScored:'Tidak ada yang belum dinilai',
 recBusy:'Sedang merekam — tekan "Stop" dulu',noRecGroup:'Item tanpa rekaman ({n})',
@@ -55,7 +79,17 @@ pass:'Lulus',fail:'Tidak lulus',pfLbl:'Lulus/Tidak',passCnt:'Lulus',oldScore:'Ni
 };
 function t2(k){const d=TX2[lang]||TX2.ja;return d[k]||TX2.en[k]||TX2.ja[k]||k}
 /* 採点値→表示ラベル（合格/不合格。旧5段階の数値は「4 — 良好」形式） */
-function pfLabel(v){return isPF(v)?t2(v):(v!=null?v+' — '+t('s'+v):'')}
+function pfLabel(v){return isPF(v)?t2(v):(isOld(v)?Number(v)+' — '+t('s'+Number(v)):(v!=null?String(v):''))}
+/* 各問の採点表示（旧5段階は「旧 4 — 良好」と明示＝合否と取り違えない） */
+function scoreTxt(v){return isOld(v)?t2('oldTag')+' '+pfLabel(v):pfLabel(v)}
+/* 一覧行の状態バッジ・結果（採点済／試問中の○×だけ付いた確定待ち／録音のみ） */
+function rowRes(r){
+  const sc=r.status==='scored',pend=!sc&&hasPF(r);
+  const badge=sc?`<span class="badge scored">${t('stScored')}</span>`:pend?`<span class="badge pend">${esc(t2('stPending'))}</span>`:`<span class="badge rec">${t('stRec')}</span>`;
+  if(!sc&&!pend)return{badge,cls:'',lbl:'–'};
+  const lbl=resLbl(r)+(pend?t2('unconf'):'');
+  return{badge,cls:resCls(r)+(lbl.length>5?' lng':''),lbl};
+}
 
 /* ==============================================================
    試問タブ：カード生成
@@ -160,8 +194,8 @@ function drawScoreList(){
   document.querySelector('#pgScore .hctrl').style.display='flex';
   if(!all.length){c.innerHTML=`<div class="nd">${fil==='all'?t('noData'):t('noUnscored')}</div>`;return}
   c.innerHTML=all.map(r=>{
-    const sc=r.status==='scored';
-    return `<button type="button" class="hi" onclick="openScore('${sanitizeId(r.id)}')"><span class="hii"><span class="hid">${esc(r.date)} · ${t('erLbl')}: ${esc(r.examiner)}</span><span class="hin">${esc(r.examinee)}</span><span class="badge ${sc?'scored':'rec'}">${sc?t('stScored'):t('stRec')}</span></span><span class="hia ${sc?resCls(r):''}">${sc?resLbl(r):'–'}</span></button>`;
+    const x=rowRes(r);
+    return `<button type="button" class="hi" onclick="openScore('${sanitizeId(r.id)}')"><span class="hii"><span class="hid">${esc(r.date)} · ${t('erLbl')}: ${esc(r.examiner)}</span><span class="hin">${esc(r.examinee)}</span>${x.badge}</span><span class="hia ${x.cls}">${esc(x.lbl)}</span></button>`;
   }).join('');
 }
 
@@ -214,7 +248,9 @@ function updateScoreProg(){
     return r.hasAudio||r.score!=null;
   });
   const scorable=ids.length;
-  const n=ids.filter(id=>document.querySelector('.sb[data-id="'+id+'"].sel')).length;
+  // 旧5段階の点が残る項目は「旧評価で採点済み」（合否ボタンは未選択でも分子に数える）
+  const n=ids.filter(id=>document.querySelector('.sb[data-id="'+id+'"].sel')||isOld(curScore.items[id].score)).length;
+  const nOld=ids.filter(id=>!document.querySelector('.sb[data-id="'+id+'"].sel')&&isOld(curScore.items[id].score)).length;
   const c=document.getElementById('spCnt'),b=document.getElementById('spBar');
   if(c)c.textContent=n+' / '+scorable;
   if(b){b.style.width=(scorable?Math.round(n/scorable*100):0)+'%';const card=b.closest('.cd');if(card)card.classList.toggle('complete',scorable>0&&n===scorable)}
@@ -224,9 +260,10 @@ function updateScoreProg(){
     const vals=[...document.querySelectorAll('#scDetail .sb.sel')].map(el=>el.dataset.s);
     if(vals.length){
       const p=vals.filter(v=>v==='pass').length;
-      av.textContent=t2('passCnt')+' '+p+'/'+vals.length;
-      av.className='spavg '+(p===vals.length?'a5':p===0?'a1':'a3');
-    }else{av.textContent='';av.className='spavg'}
+      av.textContent=t2('passCnt')+' '+p+'/'+vals.length+(nOld?'＋'+t2('oldN').replace('{n}',nOld):'');
+      av.className='spavg '+(nOld?'old':p===vals.length?'a5':p===0?'a1':'a3');
+    }else if(nOld){av.textContent=t2('oldN').replace('{n}',nOld);av.className='spavg old'}
+    else{av.textContent='';av.className='spavg'}
   }
   // savebar常時表示の進捗+平均（表示のみの複製・保存形式に影響なし）
   const sb2=document.getElementById('sbCnt');
@@ -323,12 +360,18 @@ function pauseAllAudio(){document.querySelectorAll('#scDetail audio').forEach(a=
 function pickNA(id,checked){
   if(!curScore)return;
   curScore.items[id]=curScore.items[id]||{};
+  const prevSc=curScore.items[id].score;
+  if(checked&&isOld(prevSc)&&!confirm(t2('oldNA').replace('{v}',pfLabel(prevSc)))){
+    const el=document.querySelector('.nachk[data-id="'+id+'"]');if(el)el.checked=false;return;
+  }
   curScore.items[id].na=checked;
   if(checked){
     document.querySelectorAll('.sb[data-id="'+id+'"]').forEach(b=>{b.classList.remove('sel');b.setAttribute('aria-checked','false')});
     curScore.items[id].score=null;
     const sp=document.getElementById('sp-'+id);if(sp)sp.textContent='';
     const c=document.getElementById('sc-'+id);if(c)c.classList.remove('scored');
+    // ドライブ上の名前（合格/不合格）も「未判定」に付け直す（合否があった時だけ）
+    if(prevSc!=null&&typeof resyncDriveName==='function')resyncDriveName(curScore,id);
   }
   updateScoreProg();queueScoreDraft();
 }
@@ -340,6 +383,7 @@ function findUnscoredId(){
     if(!rec||!rec.hasAudio)return false;
     const na=document.querySelector('.nachk[data-id="'+id+'"]');
     if(na&&na.checked)return false;
+    if(isOld(rec.score))return false; // 旧5段階で採点済み
     return !document.querySelector('.sb[data-id="'+id+'"].sel');
   })||null;
 }
@@ -364,6 +408,9 @@ function queueAutoNext(){
   },600);
 }
 function pickScore(id,s,btn){
+  // 旧5段階の点を合否で上書きする時は確認（1タップ＋自動保存で旧点数が黙って消えないように）
+  const prevSc=curScore&&curScore.items[id]&&curScore.items[id].score;
+  if(isOld(prevSc)&&!confirm(t2('oldReplace').replace('{v}',pfLabel(prevSc))))return;
   // 押した瞬間にcurScoreへ反映（進捗カウンタの分母・分子がDOM選択と一致する）
   if(curScore){curScore.items[id]=curScore.items[id]||{};curScore.items[id].score=s}
   if(curScore&&typeof resyncDriveName==='function')resyncDriveName(curScore,id); // ドライブのファイル名の合否も付け直す
@@ -383,7 +430,7 @@ function saveScore(){
     if(!rec.hasAudio)return; // 録音のない項目は採点対象外
     if(isNA(id))return;      // 「質問しなかった」は必須採点から除外
     const sel=document.querySelector('.sb[data-id="'+id+'"].sel');
-    if(!sel)miss.push(id);
+    if(!sel&&!isOld(rec.score))miss.push(id); // 旧5段階の点が残る項目は採点済み扱い（旧データのまま保存できる）
   });
   if(miss.length){
     miss.forEach(id=>{const c=document.getElementById('sc-'+id);if(c){c.classList.add('warn');setTimeout(()=>c.classList.remove('warn'),1000)}});
@@ -427,9 +474,10 @@ function eeSummary(){
     const arr=map[n].sort((a,b)=>(a.date||'').localeCompare(b.date||'')||(a.createdAt||'').localeCompare(b.createdAt||''));
     // 合否採点のある試問だけで比較（旧5段階のみの試問は合格率を出せない）
     const pf=arr.filter(x=>!isNaN(passRate(x)));
-    if(!pf.length)return null;
+    // 旧5段階のみの受験者もカードは出す（合格率の対象外と明示）
+    if(!pf.length){const lo=arr[arr.length-1];return oldCount(lo)?{name:n,count:arr.length,oldOnly:true,lastLbl:resLbl(lo),lastCls:'old'}:null}
     const lr=pf[pf.length-1],pr=pf.length>1?pf[pf.length-2]:null;
-    return{name:n,count:arr.length,last:passRate(lr),lastLbl:resLbl(lr),lastCls:resCls(lr),prev:pr?passRate(pr):null,prevLbl:pr?resLbl(pr):''};
+    return{name:n,count:arr.length,last:passRate(lr),lastLbl:resLbl(lr),lastCls:resCls(lr),prev:pr?passRate(pr):null,prevLbl:pr?resLbl(pr):'',mixed:!!(oldCount(lr)||(pr&&oldCount(pr)))};
   }).filter(Boolean);
 }
 function eeFilterIdx(i){const s=_eeSums[i];if(!s)return;const hf=document.getElementById('hFil');hf.value=s.name;drawHist()}
@@ -439,12 +487,13 @@ function eeSummaryHtml(filterName){
   if(filterName)sums=sums.filter(s=>s.name===filterName);
   if(!sums.length)return'';
   return `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">`+sums.map(s=>{
-    const arrow=s.prev==null?'':s.last>s.prev?'▲':s.last<s.prev?'▼':'→';
+    const arrow=(s.oldOnly||s.prev==null)?'':s.last>s.prev?'▲':s.last<s.prev?'▼':'→';
     const col=arrow==='▲'?'var(--s4)':arrow==='▼'?'var(--s1)':'var(--sub)';
     return `<button type="button" class="cd" style="flex:1 1 150px;min-width:140px;text-align:left;cursor:pointer;padding:10px 12px;margin:0" onclick="eeFilterIdx(${s.idx})">
       <div style="font-weight:700;font-size:.9rem">${esc(s.name)}</div>
       <div style="font-size:.74rem;color:var(--sub)">${s.count}${esc((s.count===1&&(TX2[lang]||{}).sumTimes1)||t2('sumTimes'))}</div>
-      <div style="font-size:1.1rem;font-weight:800;margin-top:2px"><span class="${s.lastCls}">${esc(t2('passCnt'))} ${esc(s.lastLbl)}</span>${arrow?` <span style="font-size:.8rem;font-weight:700;color:${col}">${arrow} ${esc(t2('prevLbl'))} ${esc(s.prevLbl)}</span>`:''}</div>
+      <div style="font-size:${s.oldOnly?'.9rem':'1.1rem'};font-weight:800;margin-top:2px"><span class="${s.lastCls}">${s.oldOnly?'':esc(t2('passCnt'))+' '}${esc(s.lastLbl)}</span>${arrow?` <span style="font-size:.8rem;font-weight:700;color:${col}">${arrow} ${esc(t2('prevLbl'))} ${esc(s.prevLbl)}</span>`:''}</div>
+      ${s.oldOnly?`<div class="eenote">${esc(t2('oldOnly'))}</div>`:s.mixed?`<div class="eenote">${esc(t2('mixNote'))}</div>`:''}
     </button>`;
   }).join('')+'</div>';
 }
@@ -459,8 +508,8 @@ function drawHist(){
   all.forEach(r=>{
     const ym=(r.date||'').slice(0,7);
     if(ym&&ym!==pm){h+=`<div class="mgrp">${esc(fmtMonth(ym))}</div>`;pm=ym}
-    const sc=r.status==='scored';
-    h+=`<button type="button" class="hi" onclick="showDet('${sanitizeId(r.id)}')"><span class="hii"><span class="hid">${esc(r.date)} · ${t('erLbl')}: ${esc(r.examiner)}</span><span class="hin">${esc(r.examinee)}</span><span class="badge ${sc?'scored':'rec'}">${sc?t('stScored'):t('stRec')}</span></span><span class="hia ${sc?resCls(r):''}">${sc?resLbl(r):'–'}</span></button>`;
+    const x=rowRes(r);
+    h+=`<button type="button" class="hi" onclick="showDet('${sanitizeId(r.id)}')"><span class="hii"><span class="hid">${esc(r.date)} · ${t('erLbl')}: ${esc(r.examiner)}</span><span class="hin">${esc(r.examinee)}</span>${x.badge}</span><span class="hia ${x.cls}">${esc(x.lbl)}</span></button>`;
   });
   c.innerHTML=h;
 }
@@ -471,13 +520,13 @@ async function showDet(id){
   // cfg変更後も過去項目が消えないよう「cfg ∪ セッション自身のキー」で走査、名前はスナップショット優先
   const ids=sessItemIds(r);
   let h=`<div class="mh"><h2 id="moTitle">${esc(r.examinee)} - ${esc(r.date)}</h2><button class="mx" aria-label="${t('btnClose')}" onclick="closeMo()">&times;</button></div>`;
-  h+=`<div style="font-size:.85rem;color:var(--sub);margin-bottom:12px">${t('erLbl')}: ${esc(r.examiner)} · ${esc(t2('passCnt'))}: ${r.status==='scored'?resLbl(r):'-'}</div>`;
+  h+=`<div style="font-size:.85rem;color:var(--sub);margin-bottom:12px">${t('erLbl')}: ${esc(r.examiner)} · ${esc(resHead(r))}: ${esc(r.status==='scored'?resLbl(r):hasPF(r)?resLbl(r)+t2('unconf'):'-')}</div>`;
   ids.forEach(iid=>{
     const rec=r.items[iid]||{};
     if(!rec.hasAudio&&rec.score==null&&!rec.transcript)return;
     const sc=rec.score;
     const m=itemMeta(r,iid);
-    h+=`<div class="di"><div class="dih"><span class="din">${esc(m.name)}</span>${sc!=null?`<span class="dis ${isPF(sc)?'pf-'+sc:'sb'+sc}">${esc(isPF(sc)?t2(sc):String(sc))}</span>`:''}</div>`;
+    h+=`<div class="di"><div class="dih"><span class="din">${esc(m.name)}</span>${sc!=null?`<span class="dis ${isPF(sc)?'pf-'+sc:'old'}">${esc(scoreTxt(sc))}</span>`:''}</div>`;
     if(rec.hasAudio)h+=`<audio id="da-${iid}" controls></audio>`;
     if(rec.transcript)h+=`<div class="ditr">${esc(rec.transcript)}</div>`;
     if(rec.comment)h+=`<div class="dic">${esc(rec.comment)}</div>`;
@@ -545,10 +594,10 @@ function doCSV(){
   let csv='﻿'+hd.map(cell).join(',')+'\n';
   all.forEach(r=>{
     const row=[r.date,r.examiner,r.examinee,r.status==='scored'?t('stScored'):t('stRec'),
-      ...cols.map(c=>{const v=r.items[c.id]&&r.items[c.id].score;return v==null?'':isPF(v)?t2(v):v}),
+      ...cols.map(c=>{const v=r.items[c.id]&&r.items[c.id].score;return v==null?'':scoreTxt(v)}),
       ...cols.map(c=>(r.items[c.id]&&r.items[c.id].transcript)||''),
       ...cols.map(c=>(r.items[c.id]&&r.items[c.id].comment)||''),
-      r.status==='scored'?resLbl(r):'',r.overall||'',r.createdAt||''];
+      r.status==='scored'?resLbl(r):hasPF(r)?resLbl(r)+t2('unconf'):'',r.overall||'',r.createdAt||''];
     csv+=row.map(cell).join(',')+'\n';
   });
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
@@ -577,9 +626,24 @@ function chartTheme(){
 function drawCharts(){
   const who=document.getElementById('chSel').value,area=document.getElementById('chArea'),none=document.getElementById('chNone');
   if(!who){area.style.display='none';none.style.display='block';none.textContent=t('selEe');return}
-  const all=getAll().filter(e=>e.examinee===who&&e.status==='scored'&&!isNaN(passRate(e))); // 合否採点のある試問のみ
-  if(!all.length){area.style.display='none';none.style.display='block';none.textContent=t('chNone');return}
+  const mine=getAll().filter(e=>e.examinee===who);
+  const all=mine.filter(e=>e.status==='scored'&&!isNaN(passRate(e))); // 合否採点のある試問のみ
+  // 注記：旧5段階が混ざる試問／確定待ち（試問中の○×のみ）の試問があれば明示（黙って除外しない）
+  const notes=[];
+  if(all.some(e=>oldCount(e)))notes.push(t2('mixNote'));
+  if(mine.some(e=>e.status!=='scored'&&hasPF(e)))notes.push(t2('chPending'));
+  if(!all.length){
+    area.style.display='none';none.style.display='block';
+    const oldOnly=mine.some(e=>e.status==='scored'&&oldCount(e));
+    none.textContent=oldOnly?t2('oldOnly'):t('chNone');
+    if(mine.some(e=>e.status!=='scored'&&hasPF(e)))none.textContent+='\n'+t2('chPending');
+    none.style.whiteSpace='pre-line';
+    return;
+  }
   area.style.display='block';none.style.display='none';
+  let nt=document.getElementById('chNote');
+  if(!nt){nt=document.createElement('div');nt.id='chNote';nt.className='eenote';area.insertBefore(nt,area.firstChild)}
+  nt.textContent=notes.join('\n');nt.style.whiteSpace='pre-line';nt.style.display=notes.length?'block':'none';
   all.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
   const items=getItems();
   const th=chartTheme();
@@ -601,13 +665,15 @@ function drawCharts(){
   document.getElementById('cvS').setAttribute('aria-label',t('chSec')+': '+secLabels.map((l,i)=>l+' '+secData[i]).join(', '));
   if(cS)cS.destroy();
   cS=new Chart(document.getElementById('cvS'),{type:'bar',data:{labels:secLabels,datasets:[{data:secData,backgroundColor:secData.map(v=>th.pick(v)+'cc'),borderRadius:6,barThickness:22}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,scales:{x:{min:0,max:100,ticks:{stepSize:25}}},plugins:{legend:{display:false}}}});
-  document.getElementById('cvR').setAttribute('aria-label',t('chRadar')+': '+items.map(it=>{const v=lat.items[it.id]&&lat.items[it.id].score;return loc(it,'name')+' '+(isPF(v)?t2(v):'-')}).join(', '));
+  // 合否の付いていない設問（質問しなかった・未採点・旧5段階）は0点=不合格と区別して欠損(null)で描く
+  const pfv=(r,it)=>{const v=r&&r.items[it.id]&&r.items[it.id].score;return v==='pass'?100:v==='fail'?0:null};
+  document.getElementById('cvR').setAttribute('aria-label',t('chRadar')+': '+items.map(it=>{const v=lat.items[it.id]&&lat.items[it.id].score;return loc(it,'name')+' '+(isPF(v)?t2(v):t2('notAsked').trim())}).join(', '));
   if(cR)cR.destroy();
   // 前回試問のオーバーレイ（破線）＝成長が一目で見える
   const prev=all.length>1?all[all.length-2]:null;
-  const rDatasets=[{label:lat.date,data:items.map(it=>(lat.items[it.id]&&lat.items[it.id].score)==='pass'?100:0),borderColor:th.acc,backgroundColor:th.fill,pointBackgroundColor:th.acc}];
-  if(prev)rDatasets.push({label:(t2('prevLbl'))+' '+prev.date,data:items.map(it=>(prev.items[it.id]&&prev.items[it.id].score)==='pass'?100:0),borderColor:th.acc+'80',backgroundColor:'transparent',borderDash:[6,4],borderWidth:1.5,pointBackgroundColor:th.acc+'80',pointRadius:2});
-  cR=new Chart(document.getElementById('cvR'),{type:'radar',data:{labels:items.map(it=>{const n=loc(it,'name');return n.length>(lang==='ja'?6:14)?n.slice(0,lang==='ja'?6:14)+'…':n}),datasets:rDatasets},options:{responsive:true,maintainAspectRatio:false,scales:{r:{min:0,max:100,ticks:{stepSize:50,font:{size:10}},pointLabels:{font:{size:11}},grid:{color:th.grid},angleLines:{color:th.grid}}},plugins:{legend:{display:true,position:'bottom'}}}});
+  const rDatasets=[{label:lat.date,data:items.map(it=>pfv(lat,it)),spanGaps:true,borderColor:th.acc,backgroundColor:th.fill,pointBackgroundColor:th.acc}];
+  if(prev)rDatasets.push({label:(t2('prevLbl'))+' '+prev.date,data:items.map(it=>pfv(prev,it)),spanGaps:true,borderColor:th.acc+'80',backgroundColor:'transparent',borderDash:[6,4],borderWidth:1.5,pointBackgroundColor:th.acc+'80',pointRadius:2});
+  cR=new Chart(document.getElementById('cvR'),{type:'radar',data:{labels:items.map(it=>{const n0=loc(it,'name');const n=n0.length>(lang==='ja'?6:14)?n0.slice(0,lang==='ja'?6:14)+'…':n0;return pfv(lat,it)==null?n+t2('notAsked'):n}),datasets:rDatasets},options:{responsive:true,maintainAspectRatio:false,scales:{r:{min:0,max:100,ticks:{stepSize:50,font:{size:10}},pointLabels:{font:{size:11}},grid:{color:th.grid},angleLines:{color:th.grid}}},plugins:{legend:{display:true,position:'bottom'}}}});
 }
 
 /* ==============================================================
