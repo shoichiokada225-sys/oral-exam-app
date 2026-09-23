@@ -35,6 +35,14 @@ function buildExamCards(){
       </div>`;
     });
   });
+  // 質問が0件（全削除・空のセットに切替えた直後など）：説明とフォームだけの行き止まりにせず、次の手を示す
+  if(!items.length)h=`<div class="cd" id="examEmpty" role="status" style="text-align:center;padding:18px 14px">
+    <div style="font-weight:800;font-size:1rem;margin-bottom:6px">${esc(t2('noItemsT'))}</div>
+    <div style="font-size:.85rem;color:var(--sub);line-height:1.6;margin-bottom:12px">${esc(t2('noItems'))}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+      <button type="button" class="b b1" id="emGoCfg" style="flex:1 1 160px" onclick="gotoCfgPart('btnCatAdd')">${esc(t2('goCfg'))}</button>
+      <button type="button" class="b b4" id="emPickSet" style="flex:1 1 160px" onclick="gotoCfgPart('qsetArea')">${esc(t2('pickSet'))}</button>
+    </div></div>`;
   el.innerHTML=h;
   // 旧ObjectURLを解放してから既存録音の再生用URLを復元
   examUrls.forEach(u=>{try{URL.revokeObjectURL(u)}catch(e){}});examUrls=[];
@@ -45,6 +53,19 @@ function buildExamCards(){
     }
   });
   updateExamProg();
+  if(cur)getItems().forEach(it=>{
+    const iid=sanitizeId(it.id);
+    // 録音の端末保存に失敗したテイク（保存し直す／ダウンロード）を再描画後も出し続ける
+    if(typeof renderRecFail==='function')renderRecFail(iid);
+    // ドライブへ届いていない録音（前回の失敗・送信中の終了）は「未送信（タップで再送）」を出す
+    if(typeof isUnsent==='function'&&isUnsent(cur,it.id))setCloud(iid,'fail');
+  });
+}
+/* 空状態の導線：設定タブを開いて該当箇所へスクロール */
+function gotoCfgPart(anchorId){
+  const tb=document.querySelector('.tabs [data-pg="pgCfg"]');if(!tb)return;
+  swTab(tb);
+  const a=document.getElementById(anchorId);if(a)setTimeout(()=>a.scrollIntoView({behavior:'smooth',block:'start'}),80);
 }
 
 /* 試問タブ：録音進捗バー＋セクションジャンプ */

@@ -109,6 +109,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(gImported)setTimeout(()=>toast(t('gCfgSaved')),400);
   // 孤児音声GC（どのセッションにも属さない録音を検出→件数確認のうえ削除）
   setTimeout(()=>gcOrphanAudio(),2500);
+  // 前回ドライブへ届かなかった録音（送信失敗・送信中に終了）を、電波があれば起動時にまとめて再送
+  setTimeout(()=>{if(navigator.onLine!==false&&typeof resendAllUnsent==='function')resendAllUnsent()},4000);
   window.addEventListener('beforeunload',e=>{if(active){e.preventDefault();e.returnValue=''}});
   // スクロール中はsticky進捗ヒーローを小型化して可視窓を広げる（先頭へ戻るとchips付きフル表示に自動復帰）
   addEventListener('scroll',()=>{const p=document.getElementById('examProg');if(p)p.classList.toggle('mini',window.scrollY>240)},{passive:true});
@@ -131,7 +133,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>applyTheme(theme))}catch(e){}
   // オフライン/復帰の通知（現場の電波切れでも記録は端末内に残ることを伝える）
   window.addEventListener('offline',()=>toast(t('tOffline'),1));
-  window.addEventListener('online',()=>toast(t('tOnline')));
+  window.addEventListener('online',()=>{toast(t('tOnline'));setTimeout(()=>{if(typeof resendAllUnsent==='function')resendAllUnsent()},1500)});
   // PWA: オフライン利用・ホーム画面インストール（https/localhostのみ。file://直開きでは何もしない）
   if('serviceWorker' in navigator&&(location.protocol==='https:'||['localhost','127.0.0.1'].includes(location.hostname))){
     navigator.serviceWorker.register('sw.js').catch(()=>{});
@@ -179,17 +181,22 @@ async function saveSession(){
   cur.examinee=document.getElementById('fEe').value.trim();
   if(!cur.examiner||!cur.examinee){toast(t('eNm'),1);return}
   if(!cur.date){toast(t('eDt'),1);return}
+  if(!getItems().length){toast(t2('noItems'),1);return} // 質問が0件＝録音以前に設定が必要（「録音がありません」では次の手が分からない）
   const recd=getItems().some(it=>cur.items[it.id]&&cur.items[it.id].hasAudio);
   if(!recd){toast(t('eNoRec'),1);return}
   snapMeta(cur); // 項目名スナップショット（cfg変更後も履歴・CSVで名前が出る）
   // 試問中に録音した全問へ○×が付いていれば、採点の確定も選べる（キャンセル＝従来どおり録音のみで保存）
   const recIds=Object.keys(cur.items).filter(k=>cur.items[k]&&cur.items[k].hasAudio);
+  const prevStatus=cur.status,prevUpd=cur.updatedAt;
   if(cur.status!=='scored'&&recIds.length&&recIds.every(k=>isPF(cur.items[k].score))&&confirm(t2('confirmScored')))cur.status='scored';
   const all=getAll();
   const idx=all.findIndex(s=>s.id===cur.id);
   cur.updatedAt=new Date().toISOString();
   if(idx>=0)all[idx]=cur;else all.push(cur);
-  saveAll(all);
+  // 保存に失敗したら（容量不足等）下書きを消さず・新しい試問にもせず、入力と録音をそのまま残す
+  //（storeFailのトーストを「保存しました」で上書きしない。画面内に退避の案内を常設する）
+  if(!saveAll(all)){cur.status=prevStatus;cur.updatedAt=prevUpd;saveDraft();showSaveErr(true);return}
+  showSaveErr(false);
   localStorage.removeItem(DRAFTKEY);
   try{localStorage.setItem(EKEY,cur.examiner)}catch(e){} // 試問者名を次回の初期値に
   toast(t('tSaved'));
@@ -201,6 +208,19 @@ async function saveSession(){
   document.getElementById('fEe').value='';
   document.getElementById('fDate').value=new Date().toISOString().split('T')[0];
   buildExamCards();refreshSel();
+}
+/* 試問の保存に失敗した時の常設案内（トーストは5秒で消えるため）。バックアップ書き出しは未保存の試問も同梱する */
+function showSaveErr(on){
+  let el=document.getElementById('saveErr');
+  if(!on){if(el)el.remove();return}
+  if(!el){
+    el=document.createElement('div');el.id='saveErr';el.className='cd';el.setAttribute('role','alert');
+    el.style.cssText='border:2px solid var(--s1);color:var(--s1);font-size:.85rem;font-weight:700;line-height:1.6';
+    const bg=document.querySelector('#pgExam > .bg');
+    if(bg&&bg.parentElement)bg.parentElement.insertBefore(el,bg);else return;
+  }
+  el.innerHTML=`<div>⚠ ${esc(t2('saveErrMsg'))}</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button type="button" class="b b1" style="flex:1 1 140px" onclick="exportBackup()">${esc(t('bkExport'))}</button><button type="button" class="b b3" style="flex:1 1 140px" onclick="saveSession()">${esc(t2('retrySave'))}</button></div>`;
+  el.scrollIntoView({behavior:'smooth',block:'center'});
 }
 async function resetExam(){
   // 消える録音の件数を明示（confirm一発で試問1回分が消える事故の抑止）
@@ -214,6 +234,7 @@ async function resetExam(){
   document.getElementById('fEr').value='';document.getElementById('fEe').value='';
   document.getElementById('fDate').value=new Date().toISOString().split('T')[0];
   localStorage.removeItem(DRAFTKEY);
+  showSaveErr(false);
   buildExamCards();
   toast(t('tReset'));
 }

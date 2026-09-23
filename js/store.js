@@ -41,8 +41,9 @@ function copyLocFields(src,dst,keys){
 function getItems(){return cfg.items}
 function getSections(){return cfg.sections}
 function getAll(){try{const r=localStorage.getItem(SKEY);return r?JSON.parse(r).sessions||[]:[]}catch{return[]}}
-/* QuotaExceeded等で採点が無言で消えないよう、書込失敗は必ずToastで知らせる */
-function saveAll(arr){try{localStorage.setItem(SKEY,JSON.stringify({sessions:arr}))}catch(e){toast(t2('storeFail'),1)}}
+/* QuotaExceeded等で採点が無言で消えないよう、書込失敗は必ずToastで知らせる。
+   戻り値: 成功=true／失敗=false（呼び出し側は失敗時に下書き削除・画面遷移をしないこと） */
+function saveAll(arr){try{localStorage.setItem(SKEY,JSON.stringify({sessions:arr}));return true}catch(e){toast(t2('storeFail'),1);return false}}
 function getStt(){try{return JSON.parse(localStorage.getItem(STTKEY))||{}}catch{return{}}}
 function getGoogleCfg(){try{return JSON.parse(localStorage.getItem(GKEY))||{}}catch{return{}}}
 /* 質問セット（名前付きセット）。形状: {presets:[{id,name,cfg}],activeId} */
@@ -142,7 +143,12 @@ async function gcOrphanAudio(){
     const valid=new Set();
     getAll().forEach(s=>Object.keys(s.items||{}).forEach(k=>valid.add(s.id+'_'+k)));
     if(typeof cur!=='undefined'&&cur)Object.keys(cur.items||{}).forEach(k=>valid.add(cur.id+'_'+k));
-    const orphans=keys.filter(k=>!valid.has(k));
+    // 下書き（未保存の試問）のセッションに属する録音は、項目キーが下書きに無くても消さない
+    //（保存失敗・録音の書込途中の終了などで下書きと録音がずれても、最後の写しを守る）
+    const keep=new Set();
+    if(typeof cur!=='undefined'&&cur&&cur.id)keep.add(cur.id);
+    try{const d=JSON.parse(localStorage.getItem(DRAFTKEY));if(d&&d.id)keep.add(String(d.id))}catch(e){}
+    const orphans=keys.filter(k=>!valid.has(k)&&![...keep].some(id=>String(k).startsWith(id+'_')));
     if(!orphans.length)return;
     if(!confirm(t2('gcConfirm').replace('{n}',orphans.length)))return;
     for(const k of orphans)await delAudio(k);
@@ -159,6 +165,11 @@ async function exportBackup(){
   const btn=document.getElementById('bkExportBtn');const old=btn.textContent;btn.disabled=true;btn.textContent=t('bkExporting');
   try{
     const sessions=getAll();
+    // 保存できなかった（または保存前の）試問も書き出す：録音のある下書きは「録音のみ」のセッションとして同梱
+    //（容量不足で「試問を保存」が失敗した時の退避先。形式は通常のセッションと同じ）
+    if(typeof cur!=='undefined'&&cur&&cur.id&&!sessions.some(s=>s.id===cur.id)&&Object.values(cur.items||{}).some(x=>x&&x.hasAudio)){
+      const c=JSON.parse(JSON.stringify(cur));snapMeta(c);if(!c.updatedAt)c.updatedAt=new Date().toISOString();sessions.push(c);
+    }
     const audio={};
     for(const s of sessions){
       // cfg変更後でも旧項目の音声が漏れないよう、セッション自身のキーで走査する
@@ -200,7 +211,7 @@ function importBackup(input){
         if(!ex){map[s.id]=s;added++;}
         else if((s.updatedAt||'')>(ex.updatedAt||'')){map[s.id]=s;added++;}
       });
-      saveAll(Object.values(map));
+      if(!saveAll(Object.values(map))){input.value='';return} // 保存失敗（storeFail表示済み）＝取り込み件数を偽って出さない
       // 試問項目はインポート側を採用（採点との整合のため）。ID・文字列を無害化して取り込む
       if(bk.cfg&&Array.isArray(bk.cfg.sections)&&Array.isArray(bk.cfg.items)){
         cfg={sections:bk.cfg.sections.map(s=>copyLocFields(s,{id:sanitizeId(s.id),name:String(s.name||'')},['name'])),

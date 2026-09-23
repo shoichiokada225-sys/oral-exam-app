@@ -54,7 +54,8 @@ function persistScoreDraft(showHint){
   captureScoreForm();
   const all=getAll();const idx=all.findIndex(s=>s.id===curScore.id);
   if(idx<0)return;
-  all[idx]=curScore;saveAll(all);
+  all[idx]=curScore;
+  if(!saveAll(all))return; // 保存失敗（storeFail表示済み）＝「下書き保存」の表示を出さない
   if(showHint){const el=document.getElementById('scAutoSt');if(el){el.textContent=t('draftSaved');el.style.opacity='1';setTimeout(()=>{el.style.opacity='0'},1600)}}
 }
 function updateScoreProg(){
@@ -106,6 +107,7 @@ function scoreCardHtml(r,id,en,name,desc,ans,ansJa){
     <div class="tlbl">${t('scoreLbl')}</div>
     <div class="sr" role="radiogroup" aria-label="${esc(name)} ${esc(t2('pfLbl'))}">${['pass','fail'].map(s=>`<button class="sb pf${sc===s?' sel':''}" role="radio" aria-checked="${sc===s?'true':'false'}" data-id="${id}" data-s="${s}" onclick="pickScore('${id}','${s}',this)">${s==='pass'?'○':'×'}<span class="sl">${esc(t2(s))}</span></button>`).join('')}</div>
     <div class="spick" id="sp-${id}">${isPF(sc)?esc(t2(sc)):(sc!=null?esc(t2('oldScore'))+': '+esc(pfLabel(sc)):'')}</div>
+    ${rec.hasAudio?`<div class="cloud" id="scl-${id}" role="status" style="font-size:.78rem;font-weight:700;margin-top:6px;display:none"></div>`:''}
     ${rec.hasAudio?`<label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:.8rem;color:var(--sub);cursor:pointer"><input type="checkbox" class="nachk" data-id="${id}" ${rec.na?'checked':''} onchange="pickNA('${id}',this.checked)" style="width:auto"> ${esc(t2('naLbl'))}</label>`:''}
     <div class="clbl">${t('cmtLbl')}</div>
     <textarea id="cm-${id}" placeholder="${t('phCmt')}">${esc(rec.comment||'')}</textarea>
@@ -154,6 +156,8 @@ async function renderScoreDetail(r){
   h+=`<div class="savebar"><div style="display:flex;justify-content:space-between;align-items:flex-end;gap:8px"><span id="sbCnt" style="font-size:.78rem;font-weight:700;color:var(--sub)"></span><span class="autost" id="scAutoSt" role="status" style="flex:1"></span></div><div class="bg" style="margin:0"><button type="button" class="b b3 sbico" id="sbPause" onclick="pauseAllAudio()" aria-label="${esc(t2('pauseAll'))}" title="${esc(t2('pauseAll'))}">⏸</button><button type="button" class="b b3 sbico" id="sbSpd" onclick="cycleSpeed()" aria-label="${esc(t2('spd'))}" title="${esc(t2('spd'))}">${playRate}x</button><button class="b b4" onclick="nextUnscored()">${esc(t2('nextUnscored'))}</button><button class="b b1" onclick="saveScore()">${t('btnSaveScore')}</button><button class="b b3" onclick="backToScoreList()">${t('btnBack')}</button></div></div>`;
   det.innerHTML=h;
   det.querySelectorAll('textarea').forEach(el=>el.addEventListener('input',queueScoreDraft));
+  // ドライブへ届いていない録音に「☁未送信（タップで再送）」を出す
+  if(typeof isUnsent==='function')sessItemIds(r).forEach(id=>{if(isUnsent(r,id))setScoreCloud(r,id,'fail')});
   updateScoreProg();
   window.scrollTo({top:0,behavior:'smooth'});
   // 音声URL（セッション自身のキーで走査＝過去項目の録音も再生できる）
@@ -269,10 +273,12 @@ function saveScore(){
   });
   r.overall=document.getElementById('scOv').value;
   snapMeta(r); // 項目名スナップショットを追記（cfg変更後も履歴・CSVで名前が出る）
+  const prevStatus=r.status;
   r.status='scored';
   r.updatedAt=new Date().toISOString();
   const all=getAll();const idx=all.findIndex(s=>s.id===r.id);if(idx>=0)all[idx]=r;else all.push(r);
-  saveAll(all);
+  // 保存に失敗したら（容量不足等）採点画面を閉じない＝入力した合否・文字起こし・コメントを画面に残す
+  if(!saveAll(all)){r.status=prevStatus;return}
   toast(t('tScored'));
   curScore=null;releaseScoreUrls();
   document.getElementById('scDetail').style.display='none';

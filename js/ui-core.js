@@ -5,7 +5,14 @@
    ja/en/vi/id の4言語すべてに入れる。欠けは tests/i18n.test.js で検出。sumTimes1 は英語の単数形専用）
    ============================================================== */
 const TX2={
-ja:{oldN:'旧評価{n}問',oldAvg:'旧評価 平均',oldTag:'旧',unconf:'（未確定）',stPending:'判定済み・確定待ち',notAsked:'（未実施）',
+ja:{noItems:'質問がありません。設定タブで質問を追加するか、質問セットを選んでください',noItemsT:'質問がありません',goCfg:'設定タブで質問を追加',pickSet:'質問セットを選ぶ',
+saveErrMsg:'試問を保存できませんでした（端末の空き容量不足の可能性）。入力と録音はこの画面に残っています。先にバックアップを書き出してから、不要なデータを消して「もう一度保存」を押してください',retrySave:'もう一度保存',
+recSaveFail:'録音を端末に保存できませんでした',recKeptOld:'（前の録音が残っています）',recRetryStore:'保存し直す',recDl:'この録音をダウンロード',
+micInsecure:'この画面ではマイクを使えません。https:// のアドレスで開いてください',micInsecureS:'マイク不可—httpsで開く',
+micNotFound:'マイクが見つかりません。イヤホン・マイクの接続を確認してください',micNotFoundS:'マイクが見つかりません',
+micBusy:'他のアプリがマイクを使用中です。通話やBluetoothイヤホンを終了してから録音してください',micBusyS:'マイク使用中（通話を終了）',
+drvFailToast:'Googleドライブへ送れませんでした。電波が戻ったら自動で再送します（各問の「☁未送信」をタップでも再送）',drvUnsent:'☁ 未送信（タップで再送）',
+oldN:'旧評価{n}問',oldAvg:'旧評価 平均',oldTag:'旧',unconf:'（未確定）',stPending:'判定済み・確定待ち',notAsked:'（未実施）',
 oldReplace:'旧5段階評価（{v}）を合否に置き換えますか？（元の点数は消えます）',oldNA:'旧5段階評価（{v}）を消して「質問しなかった」にしますか？',
 confirmScored:'録音した全問に合否が付いています。採点も確定しますか？\n（キャンセルすると録音のみで保存し、あとで採点タブから確定できます）',
 oldOnly:'旧5段階評価の記録のみです（合格率の対象外）。履歴タブで点数を確認できます',
@@ -28,7 +35,14 @@ recBusy:'録音中です。先に「停止」を押してください',noRecGrou
 spd:'速度',pauseAll:'再生を停止',sumTimes:'回受験',added:'追加済み',prevLbl:'前回',extraSec:'過去の項目（現在の設定にない質問）',
 resetCnt:'（録音{n}件を削除します。元に戻せません）',
 pass:'合格',fail:'不合格',pfLbl:'合否',passCnt:'合格',oldScore:'旧5段階評価',csvPass:'合格数（合格/採点）',chRate:'合格率の推移（%）',chSecRate:'分野別の合格率（%）',chItem:'設問別の合否（直近）'},
-en:{oldN:'{n} old-scale',oldAvg:'Old avg ',oldTag:'old',unconf:' (unconfirmed)',stPending:'Judged – to confirm',notAsked:' (not asked)',
+en:{noItems:'No questions. Add questions in Settings or choose a question set',noItemsT:'No questions',goCfg:'Add questions in Settings',pickSet:'Choose a question set',
+saveErrMsg:'The exam could not be saved (device storage may be full). Your entries and recordings are still on this screen. Export a backup first, free up space, then press "Save again"',retrySave:'Save again',
+recSaveFail:'Recording could not be saved on this device',recKeptOld:'(previous recording kept)',recRetryStore:'Save again',recDl:'Download this recording',
+micInsecure:'The microphone cannot be used on this page. Open it with an https:// address',micInsecureS:'No mic – open via https',
+micNotFound:'No microphone found. Check the earphone/microphone connection',micNotFoundS:'No microphone found',
+micBusy:'Another app is using the microphone. End the call or disconnect the Bluetooth earphones, then record',micBusyS:'Mic in use (end the call)',
+drvFailToast:'Could not send to Google Drive. It will resend automatically when online (or tap "☁ Not sent" on the question)',drvUnsent:'☁ Not sent (tap to resend)',
+oldN:'{n} old-scale',oldAvg:'Old avg ',oldTag:'old',unconf:' (unconfirmed)',stPending:'Judged – to confirm',notAsked:' (not asked)',
 oldReplace:'Replace the old 5-level score ({v}) with Pass/Fail? (the old score will be lost)',oldNA:'Remove the old 5-level score ({v}) and mark as "Not asked"?',
 confirmScored:'Every recorded question has Pass/Fail. Confirm the scoring too?\n(Cancel = save as recorded only; you can confirm later in the Score tab)',
 oldOnly:'Only old 5-level scores (not included in pass rate). See the History tab for the scores',
@@ -51,7 +65,14 @@ recBusy:'Recording in progress — press "Stop" first',noRecGroup:'Items without
 spd:'Speed',pauseAll:'Pause playback',sumTimes:' exams',sumTimes1:' exam',added:'Added',extraSec:'Past items (not in current settings)',prevLbl:'Prev',
 resetCnt:'({n} recording(s) will be deleted. This cannot be undone)',
 pass:'Pass',fail:'Fail',pfLbl:'Pass/Fail',passCnt:'Passed',oldScore:'Old 5-level score',csvPass:'Passed (pass/scored)',chRate:'Pass rate trend (%)',chSecRate:'Pass rate by section (%)',chItem:'Pass/Fail by question (latest)'},
-vi:{oldN:'{n} câu điểm cũ',oldAvg:'Điểm cũ TB ',oldTag:'cũ',unconf:' (chưa xác nhận)',stPending:'Đã đánh giá – chờ xác nhận',notAsked:' (không hỏi)',
+vi:{noItems:'Chưa có câu hỏi. Hãy thêm câu hỏi ở tab Cài đặt hoặc chọn bộ câu hỏi',noItemsT:'Chưa có câu hỏi',goCfg:'Thêm câu hỏi ở tab Cài đặt',pickSet:'Chọn bộ câu hỏi',
+saveErrMsg:'Không lưu được bài thi (có thể bộ nhớ thiết bị đã đầy). Thông tin và ghi âm vẫn còn trên màn hình này. Hãy xuất bản sao lưu trước, giải phóng bộ nhớ rồi nhấn "Lưu lại"',retrySave:'Lưu lại',
+recSaveFail:'Không lưu được ghi âm vào thiết bị',recKeptOld:'(bản ghi trước vẫn còn)',recRetryStore:'Lưu lại',recDl:'Tải bản ghi âm này',
+micInsecure:'Không dùng được micro trên trang này. Hãy mở bằng địa chỉ https://',micInsecureS:'Không có micro – mở bằng https',
+micNotFound:'Không tìm thấy micro. Hãy kiểm tra kết nối tai nghe/micro',micNotFoundS:'Không tìm thấy micro',
+micBusy:'Ứng dụng khác đang dùng micro. Hãy kết thúc cuộc gọi hoặc ngắt tai nghe Bluetooth rồi ghi âm',micBusyS:'Micro đang bận (kết thúc cuộc gọi)',
+drvFailToast:'Không gửi được lên Google Drive. Sẽ tự gửi lại khi có mạng (hoặc chạm "☁ Chưa gửi" ở câu hỏi)',drvUnsent:'☁ Chưa gửi (chạm để gửi lại)',
+oldN:'{n} câu điểm cũ',oldAvg:'Điểm cũ TB ',oldTag:'cũ',unconf:' (chưa xác nhận)',stPending:'Đã đánh giá – chờ xác nhận',notAsked:' (không hỏi)',
 oldReplace:'Thay điểm cũ 5 mức ({v}) bằng Đạt/Không đạt? (điểm cũ sẽ mất)',oldNA:'Xóa điểm cũ 5 mức ({v}) và đánh dấu "Không hỏi"?',
 confirmScored:'Tất cả câu đã ghi âm đều có Đạt/Không đạt. Xác nhận chấm điểm luôn?\n(Hủy = chỉ lưu ghi âm, có thể xác nhận sau ở tab Chấm điểm)',
 oldOnly:'Chỉ có điểm cũ 5 mức (không tính tỷ lệ đạt). Xem điểm ở tab Lịch sử',
@@ -74,7 +95,14 @@ delSecConfirm:'Xóa phần này và tất cả câu hỏi trong đó?',cfgNote:'
 storeFail:'Lưu thất bại (có thể bộ nhớ thiết bị đã đầy). Hãy xuất bản sao lưu ở tab Cài đặt',
 gcConfirm:'Có {n} bản ghi âm không thuộc bài thi nào. Xóa để giải phóng bộ nhớ?',gcDone:' bản ghi âm thừa đã được xóa',
 csvPass:'Số câu đạt (đạt/đã chấm)',chRate:'Xu hướng tỷ lệ đạt (%)',chSecRate:'Tỷ lệ đạt theo lĩnh vực (%)',chItem:'Đạt/Không đạt theo câu hỏi (gần nhất)'},
-id:{oldN:'{n} nilai lama',oldAvg:'Rata nilai lama ',oldTag:'lama',unconf:' (belum final)',stPending:'Sudah dinilai – tunggu konfirmasi',notAsked:' (tidak ditanya)',
+id:{noItems:'Belum ada pertanyaan. Tambahkan pertanyaan di tab Pengaturan atau pilih set pertanyaan',noItemsT:'Belum ada pertanyaan',goCfg:'Tambah pertanyaan di Pengaturan',pickSet:'Pilih set pertanyaan',
+saveErrMsg:'Ujian tidak dapat disimpan (penyimpanan perangkat mungkin penuh). Isian dan rekaman masih ada di layar ini. Ekspor cadangan dulu, kosongkan ruang, lalu tekan "Simpan lagi"',retrySave:'Simpan lagi',
+recSaveFail:'Rekaman tidak dapat disimpan di perangkat',recKeptOld:'(rekaman sebelumnya masih ada)',recRetryStore:'Simpan lagi',recDl:'Unduh rekaman ini',
+micInsecure:'Mikrofon tidak dapat dipakai di halaman ini. Buka dengan alamat https://',micInsecureS:'Mik tidak bisa – buka via https',
+micNotFound:'Mikrofon tidak ditemukan. Periksa sambungan earphone/mikrofon',micNotFoundS:'Mikrofon tidak ditemukan',
+micBusy:'Aplikasi lain sedang memakai mikrofon. Akhiri panggilan atau putuskan earphone Bluetooth, lalu rekam',micBusyS:'Mik sedang dipakai (akhiri panggilan)',
+drvFailToast:'Gagal mengirim ke Google Drive. Akan dikirim ulang otomatis saat online (atau ketuk "☁ Belum terkirim" di pertanyaan)',drvUnsent:'☁ Belum terkirim (ketuk untuk kirim ulang)',
+oldN:'{n} nilai lama',oldAvg:'Rata nilai lama ',oldTag:'lama',unconf:' (belum final)',stPending:'Sudah dinilai – tunggu konfirmasi',notAsked:' (tidak ditanya)',
 oldReplace:'Ganti nilai lama 5 tingkat ({v}) dengan Lulus/Tidak lulus? (nilai lama akan hilang)',oldNA:'Hapus nilai lama 5 tingkat ({v}) dan tandai "Tidak ditanya"?',
 confirmScored:'Semua pertanyaan yang direkam sudah Lulus/Tidak lulus. Konfirmasi penilaian juga?\n(Batal = simpan rekaman saja; bisa dikonfirmasi nanti di tab Penilaian)',
 oldOnly:'Hanya nilai lama 5 tingkat (tidak dihitung tingkat lulus). Lihat nilai di tab Riwayat',
@@ -106,7 +134,9 @@ function scoreTxt(v){return isOld(v)?t2('oldTag')+' '+pfLabel(v):pfLabel(v)}
 /* 一覧行の状態バッジ・結果（採点済／試問中の○×だけ付いた確定待ち／録音のみ） */
 function rowRes(r){
   const sc=r.status==='scored',pend=!sc&&hasPF(r);
-  const badge=sc?`<span class="badge scored">${t('stScored')}</span>`:pend?`<span class="badge pend">${esc(t2('stPending'))}</span>`:`<span class="badge rec">${t('stRec')}</span>`;
+  const nU=typeof unsentCount==='function'?unsentCount(r):0; // ドライブ未送信の録音数（一覧でも分かるように）
+  const badge=(sc?`<span class="badge scored">${t('stScored')}</span>`:pend?`<span class="badge pend">${esc(t2('stPending'))}</span>`:`<span class="badge rec">${t('stRec')}</span>`)
+    +(nU?`<span class="badge unsent" title="${esc(t2('drvUnsent'))}" style="background:transparent;color:var(--s1);border:1px solid var(--s1)">☁ ${nU}</span>`:'');
   if(!sc&&!pend)return{badge,cls:'',lbl:'–'};
   const lbl=resLbl(r)+(pend?t2('unconf'):'');
   return{badge,cls:resCls(r)+(lbl.length>5?' lng':''),lbl};
