@@ -26,12 +26,15 @@ function drawCharts(){
   // 注記：旧5段階が混ざる試問／確定待ち（試問中の○×のみ）の試問があれば明示（黙って除外しない）
   const notes=[];
   if(all.some(e=>oldCount(e)))notes.push(t2('mixNote'));
-  if(mine.some(e=>e.status!=='scored'&&hasPF(e)))notes.push(t2('chPending'));
+  // 未確定：録音した全問に○×済み（確定待ち）と、途中まで（採点途中）を分けて案内
+  const unc=mine.filter(e=>e.status!=='scored'&&hasPF(e));
+  const pendMsg=[unc.some(e=>judgeState(e).full)?t2('chPending'):'',unc.some(e=>!judgeState(e).full)?t2('chPartial'):''].filter(Boolean);
+  notes.push(...pendMsg);
   if(!all.length){
     area.style.display='none';none.style.display='block';
     const oldOnly=mine.some(e=>e.status==='scored'&&oldCount(e));
     none.textContent=oldOnly?t2('oldOnly'):t('chNone');
-    if(mine.some(e=>e.status!=='scored'&&hasPF(e)))none.textContent+='\n'+t2('chPending');
+    if(pendMsg.length)none.textContent+='\n'+pendMsg.join('\n');
     none.style.whiteSpace='pre-line';
     return;
   }

@@ -59,7 +59,7 @@ async function showDet(id){
   // cfg変更後も過去項目が消えないよう「cfg ∪ セッション自身のキー」で走査、名前はスナップショット優先
   const ids=sessItemIds(r);
   let h=`<div class="mh"><h2 id="moTitle">${esc(r.examinee)} - ${esc(r.date)}</h2><button class="mx" aria-label="${t('btnClose')}" onclick="closeMo()">&times;</button></div>`;
-  h+=`<div style="font-size:.85rem;color:var(--sub);margin-bottom:12px">${t('erLbl')}: ${esc(r.examiner)} · ${esc(resHead(r))}: ${esc(r.status==='scored'?resLbl(r):hasPF(r)?resLbl(r)+t2('unconf'):'-')}</div>`;
+  h+=`<div style="font-size:.85rem;color:var(--sub);margin-bottom:12px">${t('erLbl')}: ${esc(r.examiner)} · ${esc(resHead(r))}: ${esc(r.status==='scored'?resLbl(r):pendLbl(r)||'-')}</div>`;
   ids.forEach(iid=>{
     const rec=r.items[iid]||{};
     if(!rec.hasAudio&&rec.score==null&&!rec.transcript)return;
@@ -139,7 +139,7 @@ function doCSV(){
       ...cols.map(c=>{const v=r.items[c.id]&&r.items[c.id].score;return v==null?'':scoreTxt(v)}),
       ...cols.map(c=>(r.items[c.id]&&r.items[c.id].transcript)||''),
       ...cols.map(c=>(r.items[c.id]&&r.items[c.id].comment)||''),
-      r.status==='scored'?resLbl(r):hasPF(r)?resLbl(r)+t2('unconf'):'',r.overall||'',r.createdAt||''];
+      r.status==='scored'?resLbl(r):pendLbl(r),r.overall||'',r.createdAt||''];
     csv+=row.map(cell).join(',')+'\n';
   });
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));

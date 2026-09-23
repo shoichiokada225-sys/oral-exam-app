@@ -208,9 +208,11 @@ async function saveSession(){
   dropPendingTakes(); // 確認のうえで保存した＝取り戻さないと決めた録音はメモリからも手放す
   localStorage.removeItem(DRAFTKEY);
   try{localStorage.setItem(EKEY,cur.examiner)}catch(e){} // 試問者名を次回の初期値に
-  toast(t('tSaved'));
-  // 成果物の行き先（採点タブ）へ視覚誘導（保存直後の「消えた」誤解を防ぐ）
-  const sb=document.querySelector('.tabs button[data-pg="pgScore"]');
+  // 成果物の行き先へ視覚誘導（保存直後の「消えた」誤解を防ぐ）。
+  // 採点まで確定した試問は採点タブの既定表示（採点待ち）に出ないため、履歴タブへ案内する
+  const scored=cur.status==='scored';
+  toast(scored?t2('savedScored'):t('tSaved'));
+  const sb=document.querySelector('.tabs button[data-pg="'+(scored?'pgHi':'pgScore')+'"]');
   if(sb){sb.classList.add('attn');setTimeout(()=>sb.classList.remove('attn'),5000)}
   newSession();
   document.getElementById('fEr').value=cur.examiner=(localStorage.getItem(EKEY)||'');

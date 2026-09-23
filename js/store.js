@@ -130,6 +130,20 @@ function resHead(r){return pfCount(r).total||!oldCount(r)?t2('passCnt'):t2('oldS
 function resCls(r){const c=pfCount(r);if(oldCount(r))return'old';if(c.total)return c.pass===c.total?'a5':c.pass===0?'a1':'a3';return''}
 /* 合否が1問以上付いているか（試問中の○×だけで未確定のものも含む） */
 function hasPF(r){return pfCount(r).total>0}
+/* 未確定の試問の判定状況：録音した問（rec）のうち合否または「質問しなかった」が付いた数（judged）。
+   full=録音した全問が判定済み（＝「判定済み・確定待ち」）。途中までなら「採点途中」として区別する */
+function judgeState(r){
+  const ids=Object.keys((r&&r.items)||{}).filter(id=>r.items[id]&&r.items[id].hasAudio);
+  const judged=ids.filter(id=>{const x=r.items[id];return isPF(x.score)||isOld(x.score)||!!x.na}).length;
+  return{rec:ids.length,judged,full:ids.length>0&&judged===ids.length};
+}
+/* 未確定の試問の結果ラベル：全問判定済み→「2/3（未確定）」、途中→「合格1・判定1/録音2」、合否なし→'' */
+function pendLbl(r){
+  if(!hasPF(r))return'';
+  const j=judgeState(r);
+  if(j.full)return resLbl(r)+t2('unconf');
+  return t2('partLbl').replace('{p}',pfCount(r).pass).replace('{j}',j.judged).replace('{m}',j.rec);
+}
 
 /* ==============================================================
    孤児音声GC（どのセッションにも属さないIndexedDBの録音を削除）

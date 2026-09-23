@@ -17,10 +17,13 @@ oldReplace:'旧5段階評価（{v}）を合否に置き換えますか？（元�
 confirmScored:'録音した全問に合否が付いています。採点も確定しますか？\n（キャンセルすると録音のみで保存し、あとで採点タブから確定できます）',
 oldOnly:'旧5段階評価の記録のみです（合格率の対象外）。履歴タブで点数を確認できます',
 mixNote:'※旧5段階評価が混ざる試問は、合否を付けた設問だけで合格率を計算しています（旧評価の設問は含みません）',
-chPending:'判定済み・確定待ちの試問があります。採点タブで開いて「採点を保存」するとグラフに表示されます',
-qsTitle:'試問セット',qsCur:'現在のセット',qsNone:'（セット未保存の構成）',qsSaveNew:'現在の項目を新しいセットとして保存',qsOver:'上書き保存',qsApply:'切替',qsRen:'名前変更',qsDel:'削除',
+chPending:'判定済み・確定待ちの試問があります。「採点」タブで開いて「採点を保存」するとグラフに表示されます',
+stPartial:'採点途中',partLbl:'合格{p}・判定{j}/録音{m}',chPartial:'○×が途中までの試問（採点途中）があります。「採点」タブで残りの合否を付けて「採点を保存」するとグラフに表示されます',
+pfProg:'合否 {j} / 録音 {n}',pfMiss:'○×未入力 {n}問',nextUnjudged:'次の未判定へ',allJudged:'録音した問はすべて○×済みです',
+savedScored:'試問と採点を保存しました。結果は「履歴」タブで確認できます',cfgSavedSet:'項目を保存しました（セット「{n}」にも反映）',
+qsTitle:'試問セット',qsCur:'現在のセット',qsNone:'（セット未保存の構成）',qsSaveNew:'名前を付けて別のセットに保存',qsOver:'上書き保存',qsApply:'切替',qsRen:'名前変更',qsDel:'削除',
 qsNamePrompt:'セット名を入力してください（例：新人向け／繁殖担当／棚倉農場）',
-qsSwConfirm:'試問項目をセット「{n}」に切り替えます。現在の未保存の編集は失われます（過去の試問データは消えません）。よろしいですか？',
+qsSwConfirm:'セット「{n}」の保存済みの内容に切り替えます。「項目を保存」していない編集は失われます（過去の試問データは消えません）。よろしいですか？',
 qsDelConfirm:'セット「{n}」を削除しますか？（過去の試問データは消えません）',
 qsSaved:'セットを保存しました',qsApplied:'セットに切り替えました',qsDeleted:'セットを削除しました',
 qbTitle:'プリセット試問セット（テンプレート）',qbReplace:'項目を置き換え',qbAppend:'項目に追記',
@@ -44,13 +47,16 @@ micBusy:'Another app is using the microphone. End the call or disconnect the Blu
 drvFailToast:'Could not send to Google Drive. It will resend automatically when online (or tap "☁ Not sent" on the question)',drvUnsent:'☁ Not sent (tap to resend)',
 oldN:'{n} old-scale',oldAvg:'Old avg ',oldTag:'old',unconf:' (unconfirmed)',stPending:'Judged – to confirm',notAsked:' (not asked)',
 oldReplace:'Replace the old 5-level score ({v}) with Pass/Fail? (the old score will be lost)',oldNA:'Remove the old 5-level score ({v}) and mark as "Not asked"?',
-confirmScored:'Every recorded question has Pass/Fail. Confirm the scoring too?\n(Cancel = save as recorded only; you can confirm later in the Score tab)',
+confirmScored:'Every recorded question has Pass/Fail. Confirm the scoring too?\n(Cancel = save as recorded only; you can confirm later in the "Score" tab)',
 oldOnly:'Only old 5-level scores (not included in pass rate). See the History tab for the scores',
 mixNote:'* For exams that include old 5-level scores, the pass rate uses only the Pass/Fail questions',
-chPending:'There are judged exams waiting for confirmation. Open them in the Score tab and press "Save score" to show them here',
-qsTitle:'Question set',qsCur:'Active set',qsNone:'(unsaved layout)',qsSaveNew:'Save current items as a new set',qsOver:'Overwrite',qsApply:'Switch',qsRen:'Rename',qsDel:'Delete',
+chPending:'There are judged exams waiting for confirmation. Open them in the "Score" tab and press "Save Score" to show them here',
+stPartial:'Partly judged',partLbl:'Pass {p} · judged {j}/rec {m}',chPartial:'Some exams are only partly judged. Open them in the "Score" tab, judge the rest and press "Save Score" to show them here',
+pfProg:'Pass/Fail {j} / Rec {n}',pfMiss:'{n} without ○/×',nextUnjudged:'Next unjudged',allJudged:'Every recorded question has ○/×',
+savedScored:'Exam and scores saved. See the result in the "History" tab',cfgSavedSet:'Items saved (also to set "{n}")',
+qsTitle:'Question set',qsCur:'Active set',qsNone:'(unsaved layout)',qsSaveNew:'Save as a new set (name it)',qsOver:'Overwrite',qsApply:'Switch',qsRen:'Rename',qsDel:'Delete',
 qsNamePrompt:'Enter a set name',
-qsSwConfirm:'Switch items to set "{n}"? Unsaved edits will be lost (past exam data is kept).',
+qsSwConfirm:'Switch to the saved contents of set "{n}"? Edits not saved with "Save Items" will be lost (past exam data is kept).',
 qsDelConfirm:'Delete set "{n}"? (past exam data is kept)',
 qsSaved:'Set saved',qsApplied:'Switched to set',qsDeleted:'Set deleted',
 qbTitle:'Preset question sets (templates)',qbReplace:'Replace items',qbAppend:'Append items',
@@ -74,18 +80,21 @@ micBusy:'Ứng dụng khác đang dùng micro. Hãy kết thúc cuộc gọi ho�
 drvFailToast:'Không gửi được lên Google Drive. Sẽ tự gửi lại khi có mạng (hoặc chạm "☁ Chưa gửi" ở câu hỏi)',drvUnsent:'☁ Chưa gửi (chạm để gửi lại)',
 oldN:'{n} câu điểm cũ',oldAvg:'Điểm cũ TB ',oldTag:'cũ',unconf:' (chưa xác nhận)',stPending:'Đã đánh giá – chờ xác nhận',notAsked:' (không hỏi)',
 oldReplace:'Thay điểm cũ 5 mức ({v}) bằng Đạt/Không đạt? (điểm cũ sẽ mất)',oldNA:'Xóa điểm cũ 5 mức ({v}) và đánh dấu "Không hỏi"?',
-confirmScored:'Tất cả câu đã ghi âm đều có Đạt/Không đạt. Xác nhận chấm điểm luôn?\n(Hủy = chỉ lưu ghi âm, có thể xác nhận sau ở tab Chấm điểm)',
+confirmScored:'Tất cả câu đã ghi âm đều có Đạt/Không đạt. Xác nhận chấm điểm luôn?\n(Hủy = chỉ lưu ghi âm, có thể xác nhận sau ở thẻ "Chấm")',
 oldOnly:'Chỉ có điểm cũ 5 mức (không tính tỷ lệ đạt). Xem điểm ở tab Lịch sử',
 mixNote:'* Bài thi có điểm cũ 5 mức: tỷ lệ đạt chỉ tính các câu Đạt/Không đạt',
-chPending:'Có bài thi đã đánh giá đang chờ xác nhận. Mở ở tab Chấm điểm và nhấn "Lưu điểm" để hiển thị',
-qsTitle:'Bộ câu hỏi',qsCur:'Bộ hiện tại',qsNone:'(chưa lưu thành bộ)',qsSaveNew:'Lưu các mục hiện tại thành bộ mới',qsOver:'Ghi đè',qsApply:'Chuyển',qsRen:'Đổi tên',qsDel:'Xóa',
+chPending:'Có bài thi đã đánh giá đang chờ xác nhận. Mở ở thẻ "Chấm" và nhấn "Lưu điểm" để hiển thị',
+stPartial:'Đang chấm dở',partLbl:'Đạt {p} · đã đánh giá {j}/ghi âm {m}',chPartial:'Có bài thi mới đánh giá một phần. Mở ở thẻ "Chấm", đánh giá các câu còn lại và nhấn "Lưu điểm" để hiển thị',
+pfProg:'Đạt/Không {j} / Ghi âm {n}',pfMiss:'{n} câu chưa chọn ○/×',nextUnjudged:'Câu chưa đánh giá tiếp theo',allJudged:'Tất cả câu đã ghi âm đều đã có ○/×',
+savedScored:'Đã lưu bài thi và điểm. Xem kết quả ở thẻ "Lịch sử"',cfgSavedSet:'Đã lưu (cũng lưu vào bộ "{n}")',
+qsTitle:'Bộ câu hỏi',qsCur:'Bộ hiện tại',qsNone:'(chưa lưu thành bộ)',qsSaveNew:'Lưu thành bộ mới (đặt tên)',qsOver:'Ghi đè',qsApply:'Chuyển',qsRen:'Đổi tên',qsDel:'Xóa',
 qsNamePrompt:'Nhập tên bộ',qbTitle:'Bộ câu hỏi mẫu',qbReplace:'Thay thế mục',qbAppend:'Thêm vào mục',
 naLbl:'Không hỏi (không chấm)',nextUnrec:'Mục chưa ghi tiếp theo',nextUnscored:'Mục chưa chấm tiếp theo',allRec:'Đã ghi tất cả',allScored:'Không còn mục chưa chấm',
 recBusy:'Đang ghi âm — hãy nhấn "Dừng" trước',noRecGroup:'Mục không có ghi âm ({n})',
 spd:'Tốc độ',pauseAll:'Dừng phát',sumTimes:' lần thi',added:'Đã thêm',extraSec:'Mục cũ (không có trong cài đặt hiện tại)',prevLbl:'Lần trước',
 resetCnt:'({n} bản ghi âm sẽ bị xóa. Không thể hoàn tác)',
 pass:'Đạt',fail:'Không đạt',pfLbl:'Đạt/Không đạt',passCnt:'Đạt',oldScore:'Điểm cũ (5 mức)',
-qsSwConfirm:'Chuyển các mục thi sang bộ "{n}"? Các chỉnh sửa chưa lưu sẽ bị mất (dữ liệu các bài thi trước vẫn giữ nguyên).',
+qsSwConfirm:'Chuyển sang nội dung đã lưu của bộ "{n}"? Các chỉnh sửa chưa nhấn "Lưu" sẽ bị mất (dữ liệu các bài thi trước vẫn giữ nguyên).',
 qsDelConfirm:'Xóa bộ "{n}"? (dữ liệu các bài thi trước vẫn giữ nguyên)',
 qsSaved:'Đã lưu bộ',qsApplied:'Đã chuyển bộ',qsDeleted:'Đã xóa bộ',
 qbRepConfirm:'Thay các mục thi hiện tại bằng bộ mẫu "{n}"? (dữ liệu các bài thi trước vẫn giữ nguyên)',
@@ -104,18 +113,21 @@ micBusy:'Aplikasi lain sedang memakai mikrofon. Akhiri panggilan atau putuskan e
 drvFailToast:'Gagal mengirim ke Google Drive. Akan dikirim ulang otomatis saat online (atau ketuk "☁ Belum terkirim" di pertanyaan)',drvUnsent:'☁ Belum terkirim (ketuk untuk kirim ulang)',
 oldN:'{n} nilai lama',oldAvg:'Rata nilai lama ',oldTag:'lama',unconf:' (belum final)',stPending:'Sudah dinilai – tunggu konfirmasi',notAsked:' (tidak ditanya)',
 oldReplace:'Ganti nilai lama 5 tingkat ({v}) dengan Lulus/Tidak lulus? (nilai lama akan hilang)',oldNA:'Hapus nilai lama 5 tingkat ({v}) dan tandai "Tidak ditanya"?',
-confirmScored:'Semua pertanyaan yang direkam sudah Lulus/Tidak lulus. Konfirmasi penilaian juga?\n(Batal = simpan rekaman saja; bisa dikonfirmasi nanti di tab Penilaian)',
+confirmScored:'Semua pertanyaan yang direkam sudah Lulus/Tidak lulus. Konfirmasi penilaian juga?\n(Batal = simpan rekaman saja; bisa dikonfirmasi nanti di tab "Nilai")',
 oldOnly:'Hanya nilai lama 5 tingkat (tidak dihitung tingkat lulus). Lihat nilai di tab Riwayat',
 mixNote:'* Untuk ujian dengan nilai lama 5 tingkat, tingkat lulus hanya dari pertanyaan Lulus/Tidak lulus',
-chPending:'Ada ujian yang sudah dinilai dan menunggu konfirmasi. Buka di tab Penilaian lalu tekan "Simpan nilai"',
-qsTitle:'Set pertanyaan',qsCur:'Set aktif',qsNone:'(belum disimpan sebagai set)',qsSaveNew:'Simpan item saat ini sebagai set baru',qsOver:'Timpa',qsApply:'Ganti',qsRen:'Ubah nama',qsDel:'Hapus',
+chPending:'Ada ujian yang sudah dinilai dan menunggu konfirmasi. Buka di tab "Nilai" lalu tekan "Simpan Nilai"',
+stPartial:'Penilaian belum selesai',partLbl:'Lulus {p} · dinilai {j}/rekam {m}',chPartial:'Ada ujian yang baru sebagian dinilai. Buka di tab "Nilai", nilai sisanya, lalu tekan "Simpan Nilai" agar tampil di sini',
+pfProg:'Lulus/Tidak {j} / Rekam {n}',pfMiss:'{n} belum ○/×',nextUnjudged:'Belum dinilai berikutnya',allJudged:'Semua yang direkam sudah ○/×',
+savedScored:'Ujian dan nilai tersimpan. Lihat hasil di tab "Riwayat"',cfgSavedSet:'Tersimpan (juga ke set "{n}")',
+qsTitle:'Set pertanyaan',qsCur:'Set aktif',qsNone:'(belum disimpan sebagai set)',qsSaveNew:'Simpan sebagai set baru (beri nama)',qsOver:'Timpa',qsApply:'Ganti',qsRen:'Ubah nama',qsDel:'Hapus',
 qsNamePrompt:'Masukkan nama set',qbTitle:'Set pertanyaan preset',qbReplace:'Ganti item',qbAppend:'Tambahkan item',
 naLbl:'Tidak ditanya (tidak dinilai)',nextUnrec:'Item belum direkam berikutnya',nextUnscored:'Item belum dinilai berikutnya',allRec:'Semua sudah direkam',allScored:'Tidak ada yang belum dinilai',
 recBusy:'Sedang merekam — tekan "Stop" dulu',noRecGroup:'Item tanpa rekaman ({n})',
 spd:'Kecepatan',pauseAll:'Jeda pemutaran',sumTimes:' ujian',added:'Sudah ditambah',extraSec:'Item lama (tidak ada di pengaturan)',prevLbl:'Sebelumnya',
 resetCnt:'({n} rekaman akan dihapus. Tidak dapat dibatalkan)',
 pass:'Lulus',fail:'Tidak lulus',pfLbl:'Lulus/Tidak',passCnt:'Lulus',oldScore:'Nilai lama (5 tingkat)',
-qsSwConfirm:'Ganti item ujian ke set "{n}"? Perubahan yang belum disimpan akan hilang (data ujian sebelumnya tetap ada).',
+qsSwConfirm:'Ganti ke isi tersimpan set "{n}"? Perubahan yang belum di-"Simpan" akan hilang (data ujian sebelumnya tetap ada).',
 qsDelConfirm:'Hapus set "{n}"? (data ujian sebelumnya tetap ada)',
 qsSaved:'Set disimpan',qsApplied:'Set diganti',qsDeleted:'Set dihapus',
 qbRepConfirm:'Ganti item ujian saat ini dengan preset "{n}"? (data ujian sebelumnya tetap ada)',
@@ -131,13 +143,14 @@ function t2(k){const d=TX2[lang]||TX2.ja;return d[k]||TX2.en[k]||TX2.ja[k]||k}
 function pfLabel(v){return isPF(v)?t2(v):(isOld(v)?Number(v)+' — '+t('s'+Number(v)):(v!=null?String(v):''))}
 /* 各問の採点表示（旧5段階は「旧 4 — 良好」と明示＝合否と取り違えない） */
 function scoreTxt(v){return isOld(v)?t2('oldTag')+' '+pfLabel(v):pfLabel(v)}
-/* 一覧行の状態バッジ・結果（採点済／試問中の○×だけ付いた確定待ち／録音のみ） */
+/* 一覧行の状態バッジ・結果（採点済／録音した全問に○×が付いた確定待ち／○×が途中までの採点途中／録音のみ） */
 function rowRes(r){
-  const sc=r.status==='scored',pend=!sc&&hasPF(r);
+  const sc=r.status==='scored',pf=!sc&&hasPF(r),full=pf&&judgeState(r).full;
   const nU=typeof unsentCount==='function'?unsentCount(r):0; // ドライブ未送信の録音数（一覧でも分かるように）
-  const badge=(sc?`<span class="badge scored">${t('stScored')}</span>`:pend?`<span class="badge pend">${esc(t2('stPending'))}</span>`:`<span class="badge rec">${t('stRec')}</span>`)
+  const badge=(sc?`<span class="badge scored">${t('stScored')}</span>`:full?`<span class="badge pend">${esc(t2('stPending'))}</span>`:pf?`<span class="badge part">${esc(t2('stPartial'))}</span>`:`<span class="badge rec">${t('stRec')}</span>`)
     +(nU?`<span class="badge unsent" title="${esc(t2('drvUnsent'))}" style="background:transparent;color:var(--s1);border:1px solid var(--s1)">☁ ${nU}</span>`:'');
-  if(!sc&&!pend)return{badge,cls:'',lbl:'–'};
-  const lbl=resLbl(r)+(pend?t2('unconf'):'');
-  return{badge,cls:resCls(r)+(lbl.length>5?' lng':''),lbl};
+  if(!sc&&!pf)return{badge,cls:'',lbl:'–'};
+  const lbl=sc?resLbl(r):pendLbl(r);
+  // 採点途中は合否の色を付けない（判定した問だけ全問合格＝緑に見せない）
+  return{badge,cls:(sc||full?resCls(r):'old')+(lbl.length>5?' lng':''),lbl};
 }

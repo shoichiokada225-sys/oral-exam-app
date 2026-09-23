@@ -80,12 +80,29 @@ function moveItem(itemId,dir){
   const gi=cfg.items.indexOf(secItems[li]),gj=cfg.items.indexOf(secItems[sj]);
   [cfg.items[gi],cfg.items[gj]]=[cfg.items[gj],cfg.items[gi]];markCfgDirty();buildCfgUI();
 }
+/* 使用中の試問セット（activeId）があれば、そのセットの中身も現在の項目で更新する（保存形式 {id,name,cfg} は不変）。
+   セットに入っていない構成なら何もしない。戻り値=更新したセット名（無ければnull） */
+function syncActiveSet(){
+  const qs=getQuestionSets();
+  const p=qs.activeId&&qs.presets.find(x=>x.id===qs.activeId);
+  if(!p)return null;
+  p.cfg=JSON.parse(JSON.stringify(cfg));
+  saveQuestionSets(qs);
+  return p.name;
+}
 function saveCfg(){
   try{localStorage.setItem(CKEY,JSON.stringify(cfg))}catch(e){toast(t2('storeFail'),1);return}
+  const setName=syncActiveSet(); // 「項目を保存」1つで使用中のセットにも残す（切り替えて戻っても消えない）
   cfgDirty=false;updateDirtyBadge();
-  buildExamCards();toast(t('cfgSaved'));
+  buildExamCards();renderQsetUI();if(typeof renderExamSetSel==='function')renderExamSetSel();
+  toast(setName?t2('cfgSavedSet').replace('{n}',setName):t('cfgSaved'));
 }
-function resetCfg(){if(!confirm(t('cResetCfg')))return;cfg=defaultCfg();persistCfg();toast(t('cfgReset'))}
+/* 初期設定に戻す：使用中のセットは書き換えず、セットに入っていない構成として扱う（セットの中身を黙って失わない） */
+function resetCfg(){
+  if(!confirm(t('cResetCfg')))return;
+  const qs=getQuestionSets();if(qs.activeId){qs.activeId=null;saveQuestionSets(qs)}
+  cfg=defaultCfg();persistCfg();toast(t('cfgReset'));
+}
 
 /* ==============================================================
    作業カタログから質問を追加（大項目=作業 → 小項目=質問を選択）
@@ -130,7 +147,7 @@ function addFromCatalog(){
     cfg.items.push({id:'qa_'+w.id+'_'+q.key+'_'+Date.now(),secId:sec.id,name:q.name,desc:q.desc,ans:q.ans});
     added++;
   });
-  persistCfg();
+  syncActiveSet();persistCfg();
   closeMo();
   toast(added+t('catAdded'));
 }
@@ -164,7 +181,6 @@ function renderQsetUI(){
     h+=`<select id="qsSel" style="width:100%">${qs.presets.map(p=>`<option value="${esc(sanitizeId(p.id))}"${p.id===qs.activeId?' selected':''}>${esc(p.name)}</option>`).join('')}</select>`;
     h+=`<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
       <button type="button" class="b b1" style="flex:1;min-width:70px" onclick="qsApplySel()">${esc(t2('qsApply'))}</button>
-      <button type="button" class="b b4" style="flex:1;min-width:70px" onclick="qsOverwriteSel()">${esc(t2('qsOver'))}</button>
       <button type="button" class="b b3" style="flex:1;min-width:70px" onclick="qsRenameSel()">${esc(t2('qsRen'))}</button>
       <button type="button" class="b b2" style="flex:1;min-width:70px" onclick="qsDeleteSel()">${esc(t2('qsDel'))}</button>
     </div>`;
@@ -207,7 +223,7 @@ function applyQbank(append){
       if(cfg.items.some(x=>x.id===o.id))return; // 同一プリセット項目の重複追加を防ぐ
       cfg.items.push(o);added++;
     });
-    persistCfg();
+    syncActiveSet();persistCfg();
     toast(added+t('catAdded'));
   }
 }

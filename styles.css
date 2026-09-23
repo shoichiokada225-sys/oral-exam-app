@@ -825,6 +825,13 @@ details.ans .ansb{padding:0 13px 11px;font-size:.84rem;line-height:1.75;white-sp
 .old,.hia.old,.spavg.old,#scDetail .spavg.old{color:var(--sub)}
 .hi .hia.lng{font-size:var(--fs-sm);line-height:1.3;max-width:48%;min-width:0;overflow-wrap:anywhere}
 .badge.pend{background:var(--s2-l);color:var(--pri)}
+.badge.part{background:var(--s2-l);color:var(--s2)}
+.pjudge{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:7px;font-size:var(--fs-sm,.8rem);font-weight:800;color:var(--hero-tx,#fff)}
+.pjudge .pj-warn{color:#ffe08a}
+.pjudge button{min-height:36px;padding:6px 12px;border-radius:18px;border:1.5px solid rgba(255,255,255,.6);background:rgba(8,22,35,.3);color:#fff;font:inherit;font-size:.76rem;cursor:pointer}
+.prog.mini .pjudge{margin-top:4px}
+@media print{.pjudge button{display:none}}
 .dis.old{background:var(--sub);color:var(--sel-tx)} /* .old の文字色(--sub)と背景が同色になり読めなくなるのを防ぐ */
 .eenote{font-size:var(--fs-xs);color:var(--sub);font-weight:600;margin-top:4px;line-height:1.4}
 #chNote{margin:0 0 10px}
+.verd.attn{animation:attnBtn .55s ease 4;border-radius:10px;box-shadow:0 0 0 3px var(--pri)}

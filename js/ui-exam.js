@@ -68,21 +68,32 @@ function gotoCfgPart(anchorId){
   const a=document.getElementById(anchorId);if(a)setTimeout(()=>a.scrollIntoView({behavior:'smooth',block:'start'}),80);
 }
 
-/* 試問タブ：録音進捗バー＋セクションジャンプ */
+/* 試問タブ：録音進捗バー＋合否の進捗＋セクションジャンプ
+   完了（緑・✓）は「録音と○×の両方がそろった」とき。録音だけでは完了にしない（○×の付け忘れを見逃さない） */
+function examRecd(it){return !!(cur&&cur.items[it.id]&&cur.items[it.id].hasAudio)}
+function examJudged(it){return !!(cur&&cur.items[it.id]&&isPF(cur.items[it.id].score))}
 function updateExamProg(){
   const box=document.getElementById('examProg');if(!box)return;
   const items=getItems(),secs=getSections();
   const m=items.length;
   if(!m){box.style.display='none';box.classList.remove('complete');return}
   box.style.display='block';
-  const done=it=>cur&&cur.items[it.id]&&cur.items[it.id].hasAudio;
-  const n=items.filter(done).length;
+  const done=it=>examRecd(it)&&examJudged(it);
+  const n=items.filter(examRecd).length;
+  const j=items.filter(it=>examRecd(it)&&examJudged(it)).length;
   // 録音完了直後（media.jsのonstopから呼ばれる）に「次の未録音へ」ボタンを出す
-  items.forEach(it=>{const b=document.getElementById('nx-'+sanitizeId(it.id));if(b)b.style.display=done(it)?'inline-block':'none'});
+  items.forEach(it=>{const b=document.getElementById('nx-'+sanitizeId(it.id));if(b)b.style.display=examRecd(it)?'inline-block':'none'});
   document.getElementById('epLbl').textContent=t('progRec');
   document.getElementById('epCnt').textContent=n+' / '+m;
   document.getElementById('epBar').style.width=Math.round(n/m*100)+'%';
-  box.classList.toggle('complete',n===m); // 全問録音でバーが完了色に
+  box.classList.toggle('complete',items.every(done)); // 全問の録音と合否がそろったら完了色
+  // 合否の進捗「合否 j / 録音 n」＋○×が未入力の録音があれば「次の未判定へ」
+  const pf=document.getElementById('epPf');
+  if(pf){
+    const miss=n-j;
+    pf.innerHTML=`<span class="${miss?'pj-warn':''}" id="epPfTxt">${esc(t2('pfProg').replace('{j}',j).replace('{n}',n))}${miss?' · '+esc(t2('pfMiss').replace('{n}',miss)):''}</span>`
+      +(miss?`<button type="button" id="epNextUnj" onclick="gotoNextUnjudged()">${esc(t2('nextUnjudged'))} ▾</button>`:'');
+  }
   const chips=document.getElementById('epChips');chips.innerHTML='';
   secs.forEach((sec,si)=>{
     const secItems=items.filter(it=>it.secId===sec.id);
@@ -94,6 +105,16 @@ function updateExamProg(){
     b.onclick=()=>{const a=document.getElementById('sec-i'+si);if(a)a.scrollIntoView({behavior:'smooth',block:'start'})};
     chips.appendChild(b);
   });
+}
+/* 録音済みで○×が未入力の問へスクロール（gotoNextUnrecと同じ折り返し。fromId省略時は先頭から） */
+function gotoNextUnjudged(fromId){
+  const items=getItems();
+  const i=fromId?items.findIndex(it=>it.id===fromId):-1;
+  const order=items.slice(i+1).concat(items.slice(0,Math.max(i,0)+1));
+  const nxt=order.find(it=>examRecd(it)&&!examJudged(it));
+  if(!nxt){toast(t2('allJudged'));return}
+  const c=document.getElementById('q-'+sanitizeId(nxt.id));
+  if(c){c.scrollIntoView({behavior:'smooth',block:'center'});const v=c.querySelector('.verd');if(v){v.classList.add('attn');setTimeout(()=>v.classList.remove('attn'),2200)}}
 }
 
 /* 録音完了後の導線：次の未録音項目へスクロール（末尾までいったら先頭へ折り返し） */

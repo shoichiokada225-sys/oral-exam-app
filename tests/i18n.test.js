@@ -23,6 +23,26 @@ const LANGS = ['ja', 'en', 'vi', 'id'];
     const empty = await page.evaluate(n => { const o = eval(n); const r = []; for (const l in o) for (const k in o[l]) if (o[l][k] === '') r.push(l + '.' + k); return r; }, name);
     T.ok(`${name}: 空の訳なし${empty.length ? ' ' + empty.join(',') : ''}`, empty.length === 0);
   }
+  // 案内文に出てくるタブ名が実際のタブの表示名（TX.tab*）と一致すること（R4: vi「tab Chấm điểm」/id「tab Penilaian」の食い違い）
+  const tabRef = await page.evaluate(() => {
+    const out = [];
+    const pats = { ja: [/「([^」]+)」タブ/g], en: [/"([^"]+)" tab/g, /the ([A-Z][a-z]+) tab/g], vi: [/(?:thẻ|tab) "([^"]+)"/g], id: [/tab "([^"]+)"/g] };
+    const bad = { vi: [/(?:thẻ|tab) Chấm điểm/], id: [/tab Penilaian/] }; // 実在しないタブ名（以前の誤記）
+    for (const l of ['ja', 'en', 'vi', 'id']) {
+      const tabs = Object.keys(TX[l]).filter(k => /^tab[A-Z]/.test(k)).map(k => TX[l][k]);
+      const strs = [...Object.values(TX[l]), ...Object.values(TX2[l])].filter(v => typeof v === 'string');
+      let n = 0;
+      for (const v of strs) {
+        for (const re of pats[l]) for (const m of v.matchAll(re)) { n++; if (!tabs.includes(m[1])) out.push(l + ': ' + m[0]); }
+        for (const re of bad[l] || []) if (re.test(v)) out.push(l + ': ' + v.match(re)[0]);
+      }
+      out.push('#' + l + '=' + n);
+    }
+    return out;
+  });
+  const mism = tabRef.filter(x => !x.startsWith('#'));
+  T.ok(`案内文のタブ名が実際のタブ名と一致（${tabRef.filter(x => x.startsWith('#')).join(' ')}）${mism.length ? ' 不一致=' + mism.join(' / ') : ''}`, mism.length === 0);
+  T.ok('vi/id にタブ名の参照がある（検査が空振りしていない）', tabRef.includes('#vi=0') === false && tabRef.includes('#id=0') === false);
   // 実画面: vi でデータ消失系の文言・グラフの aria-label が英語フォールバックにならない
   const vi = await page.evaluate(() => { lang = 'vi'; return { storeFail: t2('storeFail'), dirtyLeave: t2('dirtyLeave'), chRate: t2('chRate') }; });
   const en = await page.evaluate(() => ({ storeFail: TX2.en.storeFail, dirtyLeave: TX2.en.dirtyLeave, chRate: TX2.en.chRate }));

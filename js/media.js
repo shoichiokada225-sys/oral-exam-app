@@ -455,6 +455,7 @@ function setVerdict(itemId,v){
   const vp=document.getElementById('vp-'+itemId),vf=document.getElementById('vf-'+itemId);
   if(vp){vp.classList.toggle('on',rec.score==='pass');vp.setAttribute('aria-pressed',rec.score==='pass'?'true':'false')}
   if(vf){vf.classList.toggle('on',rec.score==='fail');vf.setAttribute('aria-pressed',rec.score==='fail'?'true':'false')}
+  if(typeof updateExamProg==='function')updateExamProg(); // 合否の進捗・完了色を即時に反映
   if(!rec.hasAudio)return; // 録音前に判定した場合は、録音停止時のアップロードで名前に入る
   resyncDriveName(cur,itemId);
 }
