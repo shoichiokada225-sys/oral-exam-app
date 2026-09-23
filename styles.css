@@ -329,6 +329,13 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
 .sb[data-s="3"].sel{background:var(--s3)}
 .sb[data-s="2"].sel{background:var(--s2)}
 .sb[data-s="1"].sel{background:var(--s1)}
+/* 合格/不合格（2択） */
+.sb[data-s="pass"]{--hint:var(--s5)}.sb[data-s="fail"]{--hint:var(--s1)}
+.sb[data-s="pass"].sel{background:var(--s5)}
+.sb[data-s="fail"].sel{background:var(--s1)}
+.sb.pf{font-size:1.5rem;min-height:68px}
+.sb.pf .sl{font-size:.95rem}
+.dis.pf-pass{background:var(--s5)}.dis.pf-fail{background:var(--s1)}
 
 .tlbl{font-size:.8rem;font-weight:700;color:var(--pri-d);margin:12px 0 5px;display:flex;justify-content:space-between;align-items:center;letter-spacing:.02em}
 .qc textarea,.oata{

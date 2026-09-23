@@ -19,7 +19,8 @@ gcConfirm:'どのセッションにも属さない録音データが{n}件見つ
 naLbl:'質問しなかった（採点対象外）',nextUnrec:'次の未録音へ',nextUnscored:'次の未採点へ',allRec:'すべて録音済みです',allScored:'未採点の項目はありません',
 recBusy:'録音中です。先に「停止」を押してください',noRecGroup:'録音のない項目（{n}）',
 spd:'速度',pauseAll:'再生を停止',sumTimes:'回受験',added:'追加済み',prevLbl:'前回',extraSec:'過去の項目（現在の設定にない質問）',
-resetCnt:'（録音{n}件を削除します。元に戻せません）'},
+resetCnt:'（録音{n}件を削除します。元に戻せません）',
+pass:'合格',fail:'不合格',pfLbl:'合否',passCnt:'合格',oldScore:'旧5段階評価',csvPass:'合格数（合格/採点）',chRate:'合格率の推移（%）',chSecRate:'分野別の合格率（%）',chItem:'設問別の合否（直近）'},
 en:{qsTitle:'Question set',qsCur:'Active set',qsNone:'(unsaved layout)',qsSaveNew:'Save current items as a new set',qsOver:'Overwrite',qsApply:'Switch',qsRen:'Rename',qsDel:'Delete',
 qsNamePrompt:'Enter a set name',
 qsSwConfirm:'Switch items to set "{n}"? Unsaved edits will be lost (past exam data is kept).',
@@ -35,21 +36,26 @@ gcConfirm:'{n} recording(s) belong to no session. Delete them to free space?',gc
 naLbl:'Not asked (excluded from scoring)',nextUnrec:'Next unrecorded',nextUnscored:'Next unscored',allRec:'All items recorded',allScored:'Nothing left to score',
 recBusy:'Recording in progress — press "Stop" first',noRecGroup:'Items without recording ({n})',
 spd:'Speed',pauseAll:'Pause playback',sumTimes:' exams',sumTimes1:' exam',added:'Added',extraSec:'Past items (not in current settings)',prevLbl:'Prev',
-resetCnt:'({n} recording(s) will be deleted. This cannot be undone)'},
+resetCnt:'({n} recording(s) will be deleted. This cannot be undone)',
+pass:'Pass',fail:'Fail',pfLbl:'Pass/Fail',passCnt:'Passed',oldScore:'Old 5-level score',csvPass:'Passed (pass/scored)',chRate:'Pass rate trend (%)',chSecRate:'Pass rate by section (%)',chItem:'Pass/Fail by question (latest)'},
 vi:{qsTitle:'Bộ câu hỏi',qsCur:'Bộ hiện tại',qsNone:'(chưa lưu thành bộ)',qsSaveNew:'Lưu các mục hiện tại thành bộ mới',qsOver:'Ghi đè',qsApply:'Chuyển',qsRen:'Đổi tên',qsDel:'Xóa',
 qsNamePrompt:'Nhập tên bộ',qbTitle:'Bộ câu hỏi mẫu',qbReplace:'Thay thế mục',qbAppend:'Thêm vào mục',
 naLbl:'Không hỏi (không chấm)',nextUnrec:'Mục chưa ghi tiếp theo',nextUnscored:'Mục chưa chấm tiếp theo',allRec:'Đã ghi tất cả',allScored:'Không còn mục chưa chấm',
 recBusy:'Đang ghi âm — hãy nhấn "Dừng" trước',noRecGroup:'Mục không có ghi âm ({n})',
 spd:'Tốc độ',pauseAll:'Dừng phát',sumTimes:' lần thi',added:'Đã thêm',extraSec:'Mục cũ (không có trong cài đặt hiện tại)',prevLbl:'Lần trước',
-resetCnt:'({n} bản ghi âm sẽ bị xóa. Không thể hoàn tác)'},
+resetCnt:'({n} bản ghi âm sẽ bị xóa. Không thể hoàn tác)',
+pass:'Đạt',fail:'Không đạt',pfLbl:'Đạt/Không đạt',passCnt:'Đạt',oldScore:'Điểm cũ (5 mức)'},
 id:{qsTitle:'Set pertanyaan',qsCur:'Set aktif',qsNone:'(belum disimpan sebagai set)',qsSaveNew:'Simpan item saat ini sebagai set baru',qsOver:'Timpa',qsApply:'Ganti',qsRen:'Ubah nama',qsDel:'Hapus',
 qsNamePrompt:'Masukkan nama set',qbTitle:'Set pertanyaan preset',qbReplace:'Ganti item',qbAppend:'Tambahkan item',
 naLbl:'Tidak ditanya (tidak dinilai)',nextUnrec:'Item belum direkam berikutnya',nextUnscored:'Item belum dinilai berikutnya',allRec:'Semua sudah direkam',allScored:'Tidak ada yang belum dinilai',
 recBusy:'Sedang merekam — tekan "Stop" dulu',noRecGroup:'Item tanpa rekaman ({n})',
 spd:'Kecepatan',pauseAll:'Jeda pemutaran',sumTimes:' ujian',added:'Sudah ditambah',extraSec:'Item lama (tidak ada di pengaturan)',prevLbl:'Sebelumnya',
-resetCnt:'({n} rekaman akan dihapus. Tidak dapat dibatalkan)'}
+resetCnt:'({n} rekaman akan dihapus. Tidak dapat dibatalkan)',
+pass:'Lulus',fail:'Tidak lulus',pfLbl:'Lulus/Tidak',passCnt:'Lulus',oldScore:'Nilai lama (5 tingkat)'}
 };
 function t2(k){const d=TX2[lang]||TX2.ja;return d[k]||TX2.en[k]||TX2.ja[k]||k}
+/* 採点値→表示ラベル（合格/不合格。旧5段階の数値は「4 — 良好」形式） */
+function pfLabel(v){return isPF(v)?t2(v):(v!=null?v+' — '+t('s'+v):'')}
 
 /* ==============================================================
    試問タブ：カード生成
@@ -154,7 +160,7 @@ function drawScoreList(){
   if(!all.length){c.innerHTML=`<div class="nd">${fil==='all'?t('noData'):t('noUnscored')}</div>`;return}
   c.innerHTML=all.map(r=>{
     const sc=r.status==='scored';
-    return `<button type="button" class="hi" onclick="openScore('${sanitizeId(r.id)}')"><span class="hii"><span class="hid">${esc(r.date)} · ${t('erLbl')}: ${esc(r.examiner)}</span><span class="hin">${esc(r.examinee)}</span><span class="badge ${sc?'scored':'rec'}">${sc?t('stScored'):t('stRec')}</span></span><span class="hia ${sc?avgCls(avg(r)):''}">${sc?avg(r):'–'}</span></button>`;
+    return `<button type="button" class="hi" onclick="openScore('${sanitizeId(r.id)}')"><span class="hii"><span class="hid">${esc(r.date)} · ${t('erLbl')}: ${esc(r.examiner)}</span><span class="hin">${esc(r.examinee)}</span><span class="badge ${sc?'scored':'rec'}">${sc?t('stScored'):t('stRec')}</span></span><span class="hia ${sc?resCls(r):''}">${sc?resLbl(r):'–'}</span></button>`;
   }).join('');
 }
 
@@ -178,7 +184,7 @@ function captureScoreForm(){
       curScore.items[id]=curScore.items[id]||{};
       if(tr)curScore.items[id].transcript=tr.value;
       if(cm)curScore.items[id].comment=cm.value;
-      if(sel)curScore.items[id].score=+sel.dataset.s;
+      if(sel)curScore.items[id].score=sel.dataset.s;
       if(na)curScore.items[id].na=na.checked;
     }
   });
@@ -214,11 +220,11 @@ function updateScoreProg(){
   // 採点中のリアルタイム平均（1つ以上採点したら表示・評価色つき）
   const av=document.getElementById('spAvg');
   if(av){
-    const vals=[...document.querySelectorAll('#scDetail .sb.sel')].map(el=>+el.dataset.s);
+    const vals=[...document.querySelectorAll('#scDetail .sb.sel')].map(el=>el.dataset.s);
     if(vals.length){
-      const m=(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1);
-      av.textContent=t('avgLbl')+' '+m;
-      av.className='spavg '+avgCls(m);
+      const p=vals.filter(v=>v==='pass').length;
+      av.textContent=t2('passCnt')+' '+p+'/'+vals.length;
+      av.className='spavg '+(p===vals.length?'a5':p===0?'a1':'a3');
     }else{av.textContent='';av.className='spavg'}
   }
   // savebar常時表示の進捗+平均（表示のみの複製・保存形式に影響なし）
@@ -240,8 +246,8 @@ function scoreCardHtml(r,id,en,name,desc,ans,ansJa){
     <div class="tlbl"><span>${t('trLbl')}</span>${rec.hasAudio&&sttReady?`<button class="aibtn" id="ai-${id}" onclick="aiTranscribe('${id}')">${t('aiBtn')}</button>`:''}</div>
     <textarea class="trta" id="tr-${id}" placeholder="${t('phTr')}">${esc(rec.transcript!=null?rec.transcript:(rec.draft||''))}</textarea>
     <div class="tlbl">${t('scoreLbl')}</div>
-    <div class="sr" role="radiogroup" aria-label="${esc(name)} ${t('scoreLbl')}">${[1,2,3,4,5].map(s=>`<button class="sb${sc===s?' sel':''}" role="radio" aria-checked="${sc===s?'true':'false'}" data-id="${id}" data-s="${s}" onclick="pickScore('${id}',${s},this)">${s}<span class="sl">${t('s'+s)}</span></button>`).join('')}</div>
-    <div class="spick" id="sp-${id}">${sc?sc+' — '+t('s'+sc):''}</div>
+    <div class="sr" role="radiogroup" aria-label="${esc(name)} ${esc(t2('pfLbl'))}">${['pass','fail'].map(s=>`<button class="sb pf${sc===s?' sel':''}" role="radio" aria-checked="${sc===s?'true':'false'}" data-id="${id}" data-s="${s}" onclick="pickScore('${id}','${s}',this)">${s==='pass'?'○':'×'}<span class="sl">${esc(t2(s))}</span></button>`).join('')}</div>
+    <div class="spick" id="sp-${id}">${isPF(sc)?esc(t2(sc)):(sc!=null?esc(t2('oldScore'))+': '+esc(pfLabel(sc)):'')}</div>
     ${rec.hasAudio?`<label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:.8rem;color:var(--sub);cursor:pointer"><input type="checkbox" class="nachk" data-id="${id}" ${rec.na?'checked':''} onchange="pickNA('${id}',this.checked)" style="width:auto"> ${esc(t2('naLbl'))}</label>`:''}
     <div class="clbl">${t('cmtLbl')}</div>
     <textarea id="cm-${id}" placeholder="${t('phCmt')}">${esc(rec.comment||'')}</textarea>
@@ -359,7 +365,7 @@ function queueAutoNext(){
 function pickScore(id,s,btn){
   // 押した瞬間にcurScoreへ反映（進捗カウンタの分母・分子がDOM選択と一致する）
   if(curScore){curScore.items[id]=curScore.items[id]||{};curScore.items[id].score=s}
-  btn.parentElement.querySelectorAll('.sb').forEach(b=>{b.classList.remove('sel');b.setAttribute('aria-checked','false')});btn.classList.add('sel');btn.setAttribute('aria-checked','true');const sp=document.getElementById('sp-'+id);if(sp)sp.textContent=s+' — '+t('s'+s);const c=document.getElementById('sc-'+id);if(c)c.classList.add('scored');const na=document.querySelector('.nachk[data-id="'+id+'"]');if(na&&na.checked){na.checked=false;if(curScore&&curScore.items[id])curScore.items[id].na=false}updateScoreProg();queueScoreDraft();queueAutoNext()}
+  btn.parentElement.querySelectorAll('.sb').forEach(b=>{b.classList.remove('sel');b.setAttribute('aria-checked','false')});btn.classList.add('sel');btn.setAttribute('aria-checked','true');const sp=document.getElementById('sp-'+id);if(sp)sp.textContent=pfLabel(s);const c=document.getElementById('sc-'+id);if(c)c.classList.add('scored');const na=document.querySelector('.nachk[data-id="'+id+'"]');if(na&&na.checked){na.checked=false;if(curScore&&curScore.items[id])curScore.items[id].na=false}updateScoreProg();queueScoreDraft();queueAutoNext()}
 function backToScoreList(){clearTimeout(autoNextTimer);persistScoreDraft(false);curScore=null;releaseScoreUrls();document.getElementById('scDetail').style.display='none';drawScoreList()}
 function releaseScoreUrls(){curScoreUrls.forEach(u=>{try{URL.revokeObjectURL(u)}catch(e){}});curScoreUrls=[]}
 
@@ -390,7 +396,7 @@ function saveScore(){
     const cm=document.getElementById('cm-'+id);if(cm)r.items[id].comment=cm.value;
     const na=isNA(id);r.items[id].na=na;
     const sel=document.querySelector('.sb[data-id="'+id+'"].sel');
-    r.items[id].score=(!na&&sel)?+sel.dataset.s:null;
+    r.items[id].score=(!na&&sel)?sel.dataset.s:(na?null:r.items[id].score);
   });
   r.overall=document.getElementById('scOv').value;
   snapMeta(r); // 項目名スナップショットを追記（cfg変更後も履歴・CSVで名前が出る）
@@ -417,10 +423,12 @@ function eeSummary(){
   getAll().filter(s=>s.status==='scored').forEach(s=>{(map[s.examinee]=map[s.examinee]||[]).push(s)});
   return Object.keys(map).sort().map(n=>{
     const arr=map[n].sort((a,b)=>(a.date||'').localeCompare(b.date||'')||(a.createdAt||'').localeCompare(b.createdAt||''));
-    const last=parseFloat(avg(arr[arr.length-1]));
-    const prev=arr.length>1?parseFloat(avg(arr[arr.length-2])):null;
-    return{name:n,count:arr.length,last,prev};
-  }).filter(s=>!isNaN(s.last));
+    // 合否採点のある試問だけで比較（旧5段階のみの試問は合格率を出せない）
+    const pf=arr.filter(x=>!isNaN(passRate(x)));
+    if(!pf.length)return null;
+    const lr=pf[pf.length-1],pr=pf.length>1?pf[pf.length-2]:null;
+    return{name:n,count:arr.length,last:passRate(lr),lastLbl:resLbl(lr),lastCls:resCls(lr),prev:pr?passRate(pr):null,prevLbl:pr?resLbl(pr):''};
+  }).filter(Boolean);
 }
 function eeFilterIdx(i){const s=_eeSums[i];if(!s)return;const hf=document.getElementById('hFil');hf.value=s.name;drawHist()}
 function eeSummaryHtml(filterName){
@@ -429,12 +437,12 @@ function eeSummaryHtml(filterName){
   if(filterName)sums=sums.filter(s=>s.name===filterName);
   if(!sums.length)return'';
   return `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">`+sums.map(s=>{
-    const arrow=s.prev==null?'':s.last>s.prev+0.05?'▲':s.last<s.prev-0.05?'▼':'→';
+    const arrow=s.prev==null?'':s.last>s.prev?'▲':s.last<s.prev?'▼':'→';
     const col=arrow==='▲'?'var(--s4)':arrow==='▼'?'var(--s1)':'var(--sub)';
     return `<button type="button" class="cd" style="flex:1 1 150px;min-width:140px;text-align:left;cursor:pointer;padding:10px 12px;margin:0" onclick="eeFilterIdx(${s.idx})">
       <div style="font-weight:700;font-size:.9rem">${esc(s.name)}</div>
       <div style="font-size:.74rem;color:var(--sub)">${s.count}${esc((s.count===1&&(TX2[lang]||{}).sumTimes1)||t2('sumTimes'))}</div>
-      <div style="font-size:1.1rem;font-weight:800;margin-top:2px"><span class="${avgCls(s.last)}">${s.last.toFixed(1)}</span>${arrow?` <span style="font-size:.8rem;font-weight:700;color:${col}">${arrow} ${esc(t2('prevLbl'))} ${s.prev.toFixed(1)}</span>`:''}</div>
+      <div style="font-size:1.1rem;font-weight:800;margin-top:2px"><span class="${s.lastCls}">${esc(t2('passCnt'))} ${esc(s.lastLbl)}</span>${arrow?` <span style="font-size:.8rem;font-weight:700;color:${col}">${arrow} ${esc(t2('prevLbl'))} ${esc(s.prevLbl)}</span>`:''}</div>
     </button>`;
   }).join('')+'</div>';
 }
@@ -450,7 +458,7 @@ function drawHist(){
     const ym=(r.date||'').slice(0,7);
     if(ym&&ym!==pm){h+=`<div class="mgrp">${esc(fmtMonth(ym))}</div>`;pm=ym}
     const sc=r.status==='scored';
-    h+=`<button type="button" class="hi" onclick="showDet('${sanitizeId(r.id)}')"><span class="hii"><span class="hid">${esc(r.date)} · ${t('erLbl')}: ${esc(r.examiner)}</span><span class="hin">${esc(r.examinee)}</span><span class="badge ${sc?'scored':'rec'}">${sc?t('stScored'):t('stRec')}</span></span><span class="hia ${sc?avgCls(avg(r)):''}">${sc?avg(r):'–'}</span></button>`;
+    h+=`<button type="button" class="hi" onclick="showDet('${sanitizeId(r.id)}')"><span class="hii"><span class="hid">${esc(r.date)} · ${t('erLbl')}: ${esc(r.examiner)}</span><span class="hin">${esc(r.examinee)}</span><span class="badge ${sc?'scored':'rec'}">${sc?t('stScored'):t('stRec')}</span></span><span class="hia ${sc?resCls(r):''}">${sc?resLbl(r):'–'}</span></button>`;
   });
   c.innerHTML=h;
 }
@@ -461,13 +469,13 @@ async function showDet(id){
   // cfg変更後も過去項目が消えないよう「cfg ∪ セッション自身のキー」で走査、名前はスナップショット優先
   const ids=sessItemIds(r);
   let h=`<div class="mh"><h2 id="moTitle">${esc(r.examinee)} - ${esc(r.date)}</h2><button class="mx" aria-label="${t('btnClose')}" onclick="closeMo()">&times;</button></div>`;
-  h+=`<div style="font-size:.85rem;color:var(--sub);margin-bottom:12px">${t('erLbl')}: ${esc(r.examiner)} · ${t('avgLbl')}: ${r.status==='scored'?avg(r):'-'}</div>`;
+  h+=`<div style="font-size:.85rem;color:var(--sub);margin-bottom:12px">${t('erLbl')}: ${esc(r.examiner)} · ${esc(t2('passCnt'))}: ${r.status==='scored'?resLbl(r):'-'}</div>`;
   ids.forEach(iid=>{
     const rec=r.items[iid]||{};
     if(!rec.hasAudio&&rec.score==null&&!rec.transcript)return;
     const sc=rec.score;
     const m=itemMeta(r,iid);
-    h+=`<div class="di"><div class="dih"><span class="din">${esc(m.name)}</span>${sc?`<span class="dis sb${sc}">${sc}</span>`:''}</div>`;
+    h+=`<div class="di"><div class="dih"><span class="din">${esc(m.name)}</span>${sc!=null?`<span class="dis ${isPF(sc)?'pf-'+sc:'sb'+sc}">${esc(isPF(sc)?t2(sc):String(sc))}</span>`:''}</div>`;
     if(rec.hasAudio)h+=`<audio id="da-${iid}" controls></audio>`;
     if(rec.transcript)h+=`<div class="ditr">${esc(rec.transcript)}</div>`;
     if(rec.comment)h+=`<div class="dic">${esc(rec.comment)}</div>`;
@@ -529,16 +537,16 @@ function doCSV(){
     if(!seen.has(id)&&safeKey(id)){seen.add(id);cols.push({id,name:itemMeta(r,id).name})}
   }));
   // ヘッダーはUI言語に追従（CSVは書き出し専用＝再取り込みしないため後方互換の懸念なし）
-  const hd=[t('labelDate'),t('labelExaminer'),t('labelExaminee'),t('csvStatus'),...cols.map(c=>c.name+'('+t('scoreLbl')+')'),...cols.map(c=>c.name+'('+t('trLbl')+')'),...cols.map(c=>c.name+'('+t('csvCmt')+')'),t('avgLbl'),t('overall'),t('csvCreated')];
+  const hd=[t('labelDate'),t('labelExaminer'),t('labelExaminee'),t('csvStatus'),...cols.map(c=>c.name+'('+t2('pfLbl')+')'),...cols.map(c=>c.name+'('+t('trLbl')+')'),...cols.map(c=>c.name+'('+t('csvCmt')+')'),t2('csvPass'),t('overall'),t('csvCreated')];
   // 数式インジェクション対策：=,+,-,@ 等で始まる値は先頭に ' を付ける
   const cell=s=>{let v=String(s==null?'':s);if(/^[=+\-@\t\r]/.test(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"'};
   let csv='﻿'+hd.map(cell).join(',')+'\n';
   all.forEach(r=>{
     const row=[r.date,r.examiner,r.examinee,r.status==='scored'?t('stScored'):t('stRec'),
-      ...cols.map(c=>(r.items[c.id]&&r.items[c.id].score)||''),
+      ...cols.map(c=>{const v=r.items[c.id]&&r.items[c.id].score;return v==null?'':isPF(v)?t2(v):v}),
       ...cols.map(c=>(r.items[c.id]&&r.items[c.id].transcript)||''),
       ...cols.map(c=>(r.items[c.id]&&r.items[c.id].comment)||''),
-      r.status==='scored'?avg(r):'',r.overall||'',r.createdAt||''];
+      r.status==='scored'?resLbl(r):'',r.overall||'',r.createdAt||''];
     csv+=row.map(cell).join(',')+'\n';
   });
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
@@ -561,43 +569,43 @@ function chartTheme(){
   Chart.defaults.font.family=getComputedStyle(document.body).fontFamily;
   // 評価5段階の色（セクション別バーを点数で色分けするために使う）
   const sc=[1,2,3,4,5].map(i=>(cs.getPropertyValue('--s'+i)||'#888').trim());
-  const pick=v=>v>=4.5?sc[4]:v>=3.5?sc[3]:v>=2.5?sc[2]:v>=1.5?sc[1]:sc[0];
+  const pick=v=>v>=100?sc[4]:v>=50?sc[2]:sc[0]; // 合格率(%)→色：全問合格=緑/半分以上=黄/それ未満=赤
   return{acc,fill:acc+'26',grid,txt,pick}; // fill=アクセントの15%透過（8桁hex）
 }
 function drawCharts(){
   const who=document.getElementById('chSel').value,area=document.getElementById('chArea'),none=document.getElementById('chNone');
   if(!who){area.style.display='none';none.style.display='block';none.textContent=t('selEe');return}
-  const all=getAll().filter(e=>e.examinee===who&&e.status==='scored');
+  const all=getAll().filter(e=>e.examinee===who&&e.status==='scored'&&!isNaN(passRate(e))); // 合否採点のある試問のみ
   if(!all.length){area.style.display='none';none.style.display='block';none.textContent=t('chNone');return}
   area.style.display='block';none.style.display='none';
   all.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
   const items=getItems();
   const th=chartTheme();
   // スクリーンリーダー向けのテキスト代替（描画データの要約）
-  document.getElementById('cvL').setAttribute('aria-label',t('chLine')+': '+all.map(e=>e.date+' '+avg(e)).join(', '));
+  document.getElementById('cvL').setAttribute('aria-label',t2('chRate')+': '+all.map(e=>e.date+' '+passRate(e)+'%').join(', '));
   if(cL)cL.destroy();
   // 塗りは上→下へ消えるグラデーション（面の主張を抑えて線を立てる）
   const g=document.getElementById('cvL').getContext('2d').createLinearGradient(0,0,0,280);
   g.addColorStop(0,th.acc+'4d');g.addColorStop(1,th.acc+'05');
-  cL=new Chart(document.getElementById('cvL'),{type:'line',data:{labels:all.map(e=>e.date),datasets:[{label:t('chAvg'),data:all.map(e=>parseFloat(avg(e))),borderColor:th.acc,borderWidth:2.5,backgroundColor:g,fill:true,tension:.3,pointRadius:5,pointHoverRadius:7,pointBackgroundColor:th.acc,pointBorderColor:'#fff',pointBorderWidth:1.5}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{min:1,max:5,ticks:{stepSize:1}}},plugins:{legend:{display:false}}}});
+  cL=new Chart(document.getElementById('cvL'),{type:'line',data:{labels:all.map(e=>e.date),datasets:[{label:t2('chRate'),data:all.map(e=>passRate(e)),borderColor:th.acc,borderWidth:2.5,backgroundColor:g,fill:true,tension:.3,pointRadius:5,pointHoverRadius:7,pointBackgroundColor:th.acc,pointBorderColor:'#fff',pointBorderWidth:1.5}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{min:0,max:100,ticks:{stepSize:25}}},plugins:{legend:{display:false}}}});
   const lat=all[all.length-1];
   // セクション別平均（直近の採点済み試問）
   const secLabels=[],secData=[];
   getSections().forEach(sec=>{
     const si=items.filter(it=>it.secId===sec.id);if(!si.length)return;
-    const vs=si.map(it=>lat.items[it.id]&&lat.items[it.id].score).filter(x=>x!=null);
-    if(vs.length){secLabels.push(loc(sec,'name'));secData.push(+(vs.reduce((a,b)=>a+b,0)/vs.length).toFixed(2))}
+    const vs=si.map(it=>lat.items[it.id]&&lat.items[it.id].score).filter(isPF);
+    if(vs.length){secLabels.push(loc(sec,'name'));secData.push(Math.round(vs.filter(x=>x==='pass').length/vs.length*100))}
   });
   document.getElementById('cvS').setAttribute('aria-label',t('chSec')+': '+secLabels.map((l,i)=>l+' '+secData[i]).join(', '));
   if(cS)cS.destroy();
-  cS=new Chart(document.getElementById('cvS'),{type:'bar',data:{labels:secLabels,datasets:[{data:secData,backgroundColor:secData.map(v=>th.pick(v)+'cc'),borderRadius:6,barThickness:22}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,scales:{x:{min:0,max:5,ticks:{stepSize:1}}},plugins:{legend:{display:false}}}});
-  document.getElementById('cvR').setAttribute('aria-label',t('chRadar')+': '+items.map(it=>loc(it,'name')+' '+((lat.items[it.id]&&lat.items[it.id].score)||'-')).join(', '));
+  cS=new Chart(document.getElementById('cvS'),{type:'bar',data:{labels:secLabels,datasets:[{data:secData,backgroundColor:secData.map(v=>th.pick(v)+'cc'),borderRadius:6,barThickness:22}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,scales:{x:{min:0,max:100,ticks:{stepSize:25}}},plugins:{legend:{display:false}}}});
+  document.getElementById('cvR').setAttribute('aria-label',t('chRadar')+': '+items.map(it=>{const v=lat.items[it.id]&&lat.items[it.id].score;return loc(it,'name')+' '+(isPF(v)?t2(v):'-')}).join(', '));
   if(cR)cR.destroy();
   // 前回試問のオーバーレイ（破線）＝成長が一目で見える
   const prev=all.length>1?all[all.length-2]:null;
-  const rDatasets=[{label:lat.date,data:items.map(it=>(lat.items[it.id]&&lat.items[it.id].score)||0),borderColor:th.acc,backgroundColor:th.fill,pointBackgroundColor:th.acc}];
-  if(prev)rDatasets.push({label:(t2('prevLbl'))+' '+prev.date,data:items.map(it=>(prev.items[it.id]&&prev.items[it.id].score)||0),borderColor:th.acc+'80',backgroundColor:'transparent',borderDash:[6,4],borderWidth:1.5,pointBackgroundColor:th.acc+'80',pointRadius:2});
-  cR=new Chart(document.getElementById('cvR'),{type:'radar',data:{labels:items.map(it=>{const n=loc(it,'name');return n.length>(lang==='ja'?6:14)?n.slice(0,lang==='ja'?6:14)+'…':n}),datasets:rDatasets},options:{responsive:true,maintainAspectRatio:false,scales:{r:{min:0,max:5,ticks:{stepSize:1,font:{size:10}},pointLabels:{font:{size:11}},grid:{color:th.grid},angleLines:{color:th.grid}}},plugins:{legend:{display:true,position:'bottom'}}}});
+  const rDatasets=[{label:lat.date,data:items.map(it=>(lat.items[it.id]&&lat.items[it.id].score)==='pass'?100:0),borderColor:th.acc,backgroundColor:th.fill,pointBackgroundColor:th.acc}];
+  if(prev)rDatasets.push({label:(t2('prevLbl'))+' '+prev.date,data:items.map(it=>(prev.items[it.id]&&prev.items[it.id].score)==='pass'?100:0),borderColor:th.acc+'80',backgroundColor:'transparent',borderDash:[6,4],borderWidth:1.5,pointBackgroundColor:th.acc+'80',pointRadius:2});
+  cR=new Chart(document.getElementById('cvR'),{type:'radar',data:{labels:items.map(it=>{const n=loc(it,'name');return n.length>(lang==='ja'?6:14)?n.slice(0,lang==='ja'?6:14)+'…':n}),datasets:rDatasets},options:{responsive:true,maintainAspectRatio:false,scales:{r:{min:0,max:100,ticks:{stepSize:50,font:{size:10}},pointLabels:{font:{size:11}},grid:{color:th.grid},angleLines:{color:th.grid}}},plugins:{legend:{display:true,position:'bottom'}}}});
 }
 
 /* ==============================================================

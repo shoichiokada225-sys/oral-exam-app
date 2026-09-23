@@ -21,9 +21,9 @@ function ok(name, cond) {
   console.log('[1] 初期表示');
   await page.goto(URL);
   await page.waitForTimeout(300);
-  ok('試問カード9枚', await page.locator('#examCards .qc').count() === 9);
-  ok('進捗 0/9', (await page.locator('#epCnt').textContent()).trim() === '0 / 9');
-  ok('セクションチップ4個', await page.locator('#epChips .chip').count() === 4);
+  ok('試問カード3枚', await page.locator('#examCards .qc').count() === 3);
+  ok('進捗 0/3', (await page.locator('#epCnt').textContent()).trim() === '0 / 3');
+  ok('セクションチップ2個', await page.locator('#epChips .chip').count() === 2);
 
   console.log('[2] 録音（フェイクマイク）');
   await page.click('#rb-q1');
@@ -32,7 +32,7 @@ function ok(name, cond) {
   await page.click('#rb-q1');
   await page.waitForTimeout(800);
   ok('録音完了マーク', await page.locator('#q-q1.done').count() === 1);
-  ok('進捗 1/9', (await page.locator('#epCnt').textContent()).trim() === '1 / 9');
+  ok('進捗 1/3', (await page.locator('#epCnt').textContent()).trim() === '1 / 3');
   ok('音声プレーヤー表示', await page.locator('#au-q1').isVisible());
 
   console.log('[3] 試問の保存 → 採点');
@@ -47,7 +47,8 @@ function ok(name, cond) {
   await page.waitForTimeout(500);
   ok('採点詳細が開く', await page.locator('#scDetail').isVisible());
   ok('録音済み項目に音声', await page.locator('#sa-q1').count() === 1);
-  await page.click('.sb[data-id="q1"][data-s="4"]');
+  ok('合否ボタン2個', await page.locator('.sb[data-id="q1"]').count() === 2);
+  await page.click('.sb[data-id="q1"][data-s="pass"]');
   await page.waitForTimeout(200);
   await page.fill('#tr-q1', '模範的な回答内容');
   await page.fill('#scOv', '全体所感テスト');
@@ -58,7 +59,8 @@ function ok(name, cond) {
   await page.click('.tabs button[data-pg="pgHi"]');
   await page.waitForTimeout(300);
   ok('履歴1件（採点済み）', await page.locator('#hList .badge.scored').count() === 1);
-  ok('平均4.0', (await page.locator('#hList .hia').textContent()).trim() === '4.0');
+  ok('合格 1/1', (await page.locator('#hList .hia').textContent()).trim() === '1/1');
+  ok('保存値=pass', await page.evaluate(() => JSON.parse(localStorage.getItem('oral_exam_sessions_v1')).sessions[0].items.q1.score === 'pass'));
   await page.click('#hList .hi');
   await page.waitForTimeout(400);
   ok('詳細モーダル', await page.locator('#modal.show').count() === 1);
@@ -93,8 +95,8 @@ function ok(name, cond) {
   // 試問タブに反映（12カード）＋模範解答は折りたたみ
   await page.click('.tabs button[data-pg="pgExam"]');
   await page.waitForTimeout(300);
-  ok('試問カード12枚', await page.locator('#examCards .qc').count() === 12);
-  ok('模範解答details 6個（初期3+追加3）', await page.locator('#examCards details.ans').count() === 6);
+  ok('試問カード6枚', await page.locator('#examCards .qc').count() === 6);
+  ok('模範解答details 4個（初期1+追加3）', await page.locator('#examCards details.ans').count() === 4);
   ok('模範解答は閉じている', await page.evaluate(() => [...document.querySelectorAll('#examCards details.ans')].every(d => !d.open)));
 
   console.log('[6] 採点画面に模範解答が出る');
@@ -125,7 +127,7 @@ function ok(name, cond) {
   await dl.saveAs(path);
   const bk = JSON.parse(require('fs').readFileSync(path, 'utf8'));
   ok('バックアップ形式', bk.app === 'oral-exam-app' && bk.sessions.length === 1);
-  ok('cfgに模範解答が含まれる', bk.cfg.items.filter(i => i.ans).length === 6);
+  ok('cfgに模範解答が含まれる', bk.cfg.items.filter(i => i.ans).length === 4);
   ok('音声が同梱される', Object.keys(bk.audio).length >= 1);
   // 全消去→復元
   await page.evaluate(async () => {
@@ -143,7 +145,7 @@ function ok(name, cond) {
   await fc.setFiles(path);
   await page.waitForTimeout(600);
   ok('復元後セッション1件', await page.evaluate(() => JSON.parse(localStorage.getItem('oral_exam_sessions_v1')).sessions.length === 1));
-  ok('復元後cfgに模範解答', await page.evaluate(() => cfg.items.filter(i => i.ans).length === 6));
+  ok('復元後cfgに模範解答', await page.evaluate(() => cfg.items.filter(i => i.ans).length === 4));
 
   console.log('[8] 言語切替の回帰');
   await page.click('.tabs button[data-pg="pgExam"]');

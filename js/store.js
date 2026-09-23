@@ -12,6 +12,16 @@ const EKEY='oral_exam_last_examiner'; // 前回の試問者名（入力初期値
 const DBNAME='oralExamDB',STORE='audio';
 
 let cfg=loadCfg();
+/* 2026-09-23 既定を3問（健康観察・消毒・異常報告）へ変更：使用中の端末も起動時に一度だけ3問へ切り替える。
+   過去の試問データ（sessions）と録音には触らない＝履歴・CSVには旧項目がスナップショット名で残る */
+const MIG3KEY='oral_exam_cfg3_migrated';
+(function(){try{
+  if(localStorage.getItem(MIG3KEY))return;
+  cfg=defaultCfg();
+  localStorage.setItem(CKEY,JSON.stringify(cfg));
+  const qs=getQuestionSets();if(qs.activeId){qs.activeId=null;localStorage.setItem(PSKEY,JSON.stringify(qs))}
+  localStorage.setItem(MIG3KEY,'1');
+}catch(e){}})();
 
 /* 多層防御: cfgのid/secIdはonclick属性・DOM idへ埋め込まれるため、読み込み時にも無害化する
    （importBackup/applySet/applyQbankの上流無害化に一点依存しない。正常なIDは全て英数_-のみ＝実質不変） */
@@ -92,8 +102,19 @@ function snapMeta(s){
   });
   s.meta=m;
 }
+/* 採点は合格/不合格（score='pass'|'fail'）。2026-09-23以前の5段階（score=1〜5の数値）は旧データとして読めるよう残す */
+function isPF(v){return v==='pass'||v==='fail'}
 function scoredVals(r){return sessItemIds(r).map(id=>r.items[id]&&r.items[id].score).filter(x=>x!=null)}
-function avg(r){const v=scoredVals(r);return v.length?(v.reduce((a,b)=>a+b,0)/v.length).toFixed(1):'-'}
+/* 合否集計 {pass,total}。旧5段階の数値は数えない */
+function pfCount(r){const v=scoredVals(r).filter(isPF);return{pass:v.filter(x=>x==='pass').length,total:v.length}}
+/* 合格率(0〜100)。合否採点が無ければNaN */
+function passRate(r){const c=pfCount(r);return c.total?Math.round(c.pass/c.total*100):NaN}
+/* 旧5段階の平均（旧データ表示用） */
+function avg(r){const v=scoredVals(r).filter(x=>typeof x==='number');return v.length?(v.reduce((a,b)=>a+b,0)/v.length).toFixed(1):'-'}
+/* 一覧・詳細に出す結果ラベル：合否があれば「合格 2/3」、旧データのみなら平均点 */
+function resLbl(r){const c=pfCount(r);if(c.total)return c.pass+'/'+c.total;return avg(r)}
+/* 結果の色クラス：全問合格=a5・全問不合格=a1・混在=a3（旧データは平均点の色） */
+function resCls(r){const c=pfCount(r);if(c.total)return c.pass===c.total?'a5':c.pass===0?'a1':'a3';return avgCls(avg(r))}
 
 /* ==============================================================
    孤児音声GC（どのセッションにも属さないIndexedDBの録音を削除）

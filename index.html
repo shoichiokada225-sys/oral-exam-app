@@ -91,9 +91,9 @@ try{var _th=localStorage.getItem('oral_exam_theme');if(_th==='light'||_th==='dar
     <select id="chSel" onchange="drawCharts()"><option value="" data-t="selPh">-- 選択してください --</option></select>
   </div>
   <div id="chArea">
-    <div class="chb"><h2 data-t="chLine">平均点の推移</h2><canvas id="cvL" role="img"></canvas></div>
-    <div class="chb"><h2 data-t="chSec">セクション別平均（直近）</h2><canvas id="cvS" role="img"></canvas></div>
-    <div class="chb"><h2 data-t="chRadar">項目別レーダーチャート（直近）</h2><canvas id="cvR" role="img"></canvas></div>
+    <div class="chb"><h2 data-t="chLine">合格率の推移（%）</h2><canvas id="cvL" role="img"></canvas></div>
+    <div class="chb"><h2 data-t="chSec">分野別の合格率（直近・%）</h2><canvas id="cvS" role="img"></canvas></div>
+    <div class="chb"><h2 data-t="chRadar">設問別の合否（直近・合格=100）</h2><canvas id="cvR" role="img"></canvas></div>
   </div>
   <div id="chNone" class="nd" style="display:none"></div>
 </div>
