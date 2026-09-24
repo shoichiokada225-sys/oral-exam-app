@@ -31,7 +31,12 @@ function setCloud(itemId,state){
   const el=document.getElementById('cl-'+itemId);if(!el)return;
   if(state==='up'){el.textContent=t('clUp');el.style.color='var(--sub)';el.onclick=null;el.style.cursor='default'}
   else if(state==='done'){el.textContent=t('clDone');el.style.color='var(--pri)';el.onclick=null;el.style.cursor='default'}
-  else if(state==='fail'){el.textContent=t('clFail');el.style.color='var(--s1)';el.style.cursor='pointer';el.onclick=()=>{if(cur)resendDrive(cur.id,itemId)}}
+  else if(state==='fail'){
+    // 失敗の理由（圏外／合言葉／公開範囲…）を下に添える。録音の実体が無いときは再送させず案内だけ
+    const r=cur&&cur.items&&cur.items[itemId],na=typeof driveNoAudio==='function'&&driveNoAudio(r);
+    el.innerHTML=typeof unsentHtml==='function'?unsentHtml(r,t('clFail')):esc(t('clFail'));
+    el.title=typeof driveErrText==='function'?driveErrText(r):'';
+    el.style.color=na?'var(--sub)':'var(--s1)';el.style.cursor=na?'default':'pointer';el.onclick=na?null:()=>{if(cur)resendDrive(cur.id,itemId)}}
   else{el.textContent='';el.onclick=null}
   el.style.display=state?'block':'none';
 }

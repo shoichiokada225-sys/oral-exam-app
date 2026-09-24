@@ -18,9 +18,19 @@ function chartTheme(){
   const pick=v=>v>=100?sc[4]:v>=50?sc[2]:sc[0]; // 合格率(%)→色：全問合格=緑/半分以上=黄/それ未満=赤
   return{acc,fill:acc+'26',grid,txt,pick}; // fill=アクセントの15%透過（8桁hex）
 }
+/* Chart.js の読み込みが終わった（成功・失敗とも）：グラフタブを開いていれば描き直す */
+function chartReady(){const pg=document.getElementById('pgCh');if(pg&&pg.classList.contains('on')&&typeof drawCharts==='function')drawCharts()}
 function drawCharts(){
   const who=document.getElementById('chSel').value,area=document.getElementById('chArea'),none=document.getElementById('chNone');
+  // データが1件も無い（新しい端末など）：次の手（試問タブ／バックアップから復元）を示す
+  if(!getAll().length){area.style.display='none';none.style.display='block';none.style.whiteSpace='normal';none.innerHTML=emptyGuideHtml(true);return}
   if(!who){area.style.display='none';none.style.display='block';none.textContent=t('selEe');return}
+  // グラフ部品（Chart.js・CDN）がまだ／読めない：白紙のカードを並べず理由を出す（録音・採点は使える）
+  if(typeof Chart==='undefined'){
+    area.style.display='none';none.style.display='block';none.style.whiteSpace='normal';
+    none.innerHTML=`<div id="chLibErr" role="status">${esc(t2(window.__chartSt==='err'?'chLibErr':'chLibWait'))}</div>`+(window.__chartSt==='err'?`<button type="button" class="b b3 mt12" onclick="location.reload()">${esc(t2('reloadBtn'))}</button>`:'');
+    return;
+  }
   const mine=getAll().filter(e=>e.examinee===who);
   const all=mine.filter(e=>e.status==='scored'&&!isNaN(passRate(e))); // 合否採点のある試問のみ
   // 注記：旧5段階が混ざる試問／確定待ち（試問中の○×のみ）の試問があれば明示（黙って除外しない）

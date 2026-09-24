@@ -8,6 +8,7 @@ function setLang(l){
   document.title=t('appTitle'); // ブラウザタブ名も言語に追従
   document.querySelectorAll('.lsw button').forEach(b=>{const on=b.textContent.trim()==={ja:'JP',en:'EN',vi:'VI',id:'ID'}[l];b.classList.toggle('on',on);b.setAttribute('aria-pressed',on?'true':'false')});
   applyT();buildExamCards();buildCfgUI();
+  if(typeof renderStoWarn==='function'){renderStoWarn();renderPersistNote()} // 空き容量・永続化の案内も言語に追従
   if(document.getElementById('saveErr'))showSaveErr(true,true); // 保存失敗の常設案内も言語に追従（スクロールはしない）
   if(typeof renderExamSetSel==='function')renderExamSetSel(); // セット切替UIも言語に追従
   if(typeof draftNoteOn!=='undefined'&&draftNoteOn)showDraftNote(true); // 下書きの案内も言語に追従
@@ -133,6 +134,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('sttKey').value=s.key||'';
   const gImported=applyUrlConfig();
   setLang(lang);
+  if(typeof stoInit==='function')stoInit(); // 端末ストレージの永続化状態・残り容量
   renderExamSetSel();
   if(gImported)setTimeout(()=>toast(t('gCfgSaved')),400);
   if(draftRestored)showDraftNote(true); // 前回の途中の試問を黙って開かない（共用端末）

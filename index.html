@@ -20,7 +20,8 @@ try{var _th=localStorage.getItem('oral_exam_theme');if(_th==='light'||_th==='dar
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" integrity="sha384-vsrfeLOOY6KuIYKDlmVH5UiBmgIdB1oEf7p01YgWHuqmOHfZr374+odEv96n9tNC" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<!-- グラフ部品は async（CDNが遅い／取れないときに画面全体の表示を止めない）。読めたらグラフタブを描き直す -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" integrity="sha384-vsrfeLOOY6KuIYKDlmVH5UiBmgIdB1oEf7p01YgWHuqmOHfZr374+odEv96n9tNC" crossorigin="anonymous" referrerpolicy="no-referrer" async onload="window.__chartSt='ok';if(typeof chartReady==='function')chartReady()" onerror="window.__chartSt='err';if(typeof chartReady==='function')chartReady()"></script>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -42,6 +43,7 @@ try{var _th=localStorage.getItem('oral_exam_theme');if(_th==='light'||_th==='dar
 <main>
 <!-- 試問（録音） -->
 <div id="pgExam" class="pg on">
+  <div id="stoWarn" class="cd" role="alert" style="display:none;border:2px solid var(--s1)"></div>
   <div class="cd meta">
     <label for="fDate" data-t="labelDate">試問日</label>
     <input type="date" id="fDate">
@@ -80,7 +82,7 @@ try{var _th=localStorage.getItem('oral_exam_theme');if(_th==='light'||_th==='dar
   <div class="hctrl hwrap">
     <input type="search" id="hQ" class="hsearch" oninput="drawHist()" data-ph="searchPh" placeholder="受験者名で検索">
     <select id="hFil" onchange="drawHist()"><option value="" data-t="filterAllEe">全員</option></select>
-    <button class="b b3 b-sm" onclick="doCSV()" data-t="btnCSV">CSV出力</button>
+    <button class="b b3 b-sm" id="hCsv" onclick="doCSV()" data-t="btnCSV">CSV出力</button>
   </div>
   <div id="hList" class="hlist"></div>
 </div>
@@ -126,7 +128,8 @@ try{var _th=localStorage.getItem('oral_exam_theme');if(_th==='light'||_th==='dar
     <div class="accb">
     <p data-t="bkNote">この端末の全データ（試問項目・録音音声・文字起こし・採点）を1つのファイルに書き出し、別のPCやスマホで読み込んで引き継げます。読み込みは既存データと統合（同じ試問は新しい方を採用）します。</p>
     <button class="b b1 wfull" id="bkExportBtn" onclick="exportBackup()" data-t="bkExport">バックアップを書き出す</button>
-    <button class="b b3 wfull mt10" onclick="document.getElementById('bkFile').click()" data-t="bkImport">バックアップを読み込む</button>
+    <button class="b b3 wfull mt10" id="bkImportBtn" onclick="document.getElementById('bkFile').click()" data-t="bkImport">バックアップを読み込む</button>
+    <div id="bkPersist" class="gstat" role="status" style="display:none;margin-top:10px;color:var(--s1)"></div>
     <input type="file" id="bkFile" accept="application/json,.json" class="file-hidden" onchange="importBackup(this)">
     </div>
   </details>

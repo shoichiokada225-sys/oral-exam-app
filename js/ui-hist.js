@@ -42,6 +42,9 @@ function drawHist(){
   if(q)all=all.filter(e=>((e.examinee||'')+' '+(e.examiner||'')).toLowerCase().includes(q));
   all.sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.createdAt||'').localeCompare(a.createdAt||''));
   const c=document.getElementById('hList');
+  const none=!getAll().length; // データ0件（新しい端末など）→CSVは押せなくし、次の手を示す
+  const cb=document.getElementById('hCsv');if(cb){cb.disabled=none;cb.setAttribute('aria-disabled',none?'true':'false')}
+  if(none){c.innerHTML=`<div class="nd">${emptyGuideHtml(true)}</div>`;return}
   if(!all.length){c.innerHTML=`<div class="nd">${t('noData')}</div>`;return}
   let h=q?'':eeSummaryHtml(f),pm='';
   all.forEach(r=>{
@@ -68,7 +71,7 @@ async function showDet(id){
     h+=`<div class="di"><div class="dih"><span class="din">${esc(m.name)}</span>${sc!=null?`<span class="dis ${isPF(sc)?'pf-'+sc:'old'}">${esc(scoreTxt(sc))}</span>`:''}</div>`;
     if(rec.hasAudio)h+=`<audio id="da-${iid}" controls></audio>`;
     // ドライブへ届いていない録音：履歴からも分かり・再送できるように
-    if(rec.hasAudio&&typeof isUnsent==='function'&&isUnsent(r,iid))h+=`<button type="button" class="cloud" id="dcl-${sanitizeId(iid)}" data-sid="${esc(r.id)}" onclick="resendDrive('${sanitizeId(r.id)}','${sanitizeId(iid)}')" style="display:block;background:none;border:0;padding:0;margin-top:6px;font:inherit;font-size:.78rem;font-weight:700;color:var(--s1);cursor:pointer;text-align:left">${esc(t2('drvUnsent'))}</button>`;
+    if(rec.hasAudio&&typeof isUnsent==='function'&&isUnsent(r,iid))h+=`<button type="button" class="cloud" id="dcl-${sanitizeId(iid)}" data-sid="${esc(r.id)}" onclick="resendDrive('${sanitizeId(r.id)}','${sanitizeId(iid)}')" style="display:block;background:none;border:0;padding:0;margin-top:6px;font:inherit;font-size:.78rem;font-weight:700;color:${driveNoAudio(rec)?'var(--sub)':'var(--s1)'};cursor:${driveNoAudio(rec)?'default':'pointer'};text-align:left"${driveNoAudio(rec)?' disabled':''} title="${esc(driveErrText(rec))}">${unsentHtml(rec,t2('drvUnsent'))}</button>`;
     // ドライブに残った旧名のファイル（名前の訂正で送り直した録音）。送り直しが後で終わったら showCloud が差し替える
     if(rec.hasAudio)h+=`<div id="dor-${sanitizeId(iid)}" data-sid="${esc(r.id)}">${typeof orphanHtml==='function'?orphanHtml(rec):''}</div>`;
     if(rec.transcript)h+=`<div class="ditr">${esc(rec.transcript)}</div>`;
@@ -83,8 +86,7 @@ async function showDet(id){
   moShow();
   for(const iid of ids){
     if(r.items[iid]&&r.items[iid].hasAudio){
-      const b=await getAudio(r.id+'_'+iid);
-      if(b){const au=document.getElementById('da-'+iid);if(au){const u=URL.createObjectURL(b);curScoreUrls.push(u);au.src=u}}
+      await attachAudio(r.id+'_'+iid,document.getElementById('da-'+iid),curScoreUrls);
     }
   }
 }

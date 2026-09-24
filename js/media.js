@@ -74,6 +74,7 @@ async function toggleRec(itemId,opt){
    if(g.url&&g.auto&&fe&&!fe.value.trim()){needExamineeUi();return}}
   // ドライブ未設定・OFFでも、受験者名が空なら1試問に1回だけ名前の入力を促す（録音は止めない）
   if(!(active&&active.itemId===itemId)&&typeof nagEmptyExaminee==='function')nagEmptyExaminee();
+  if(typeof storageOnRec==='function')storageOnRec(); // 端末ストレージの永続化・残り容量（待たずに裏で）
   const had=!!(cur&&cur.items[itemId]&&cur.items[itemId].hasAudio);
   const append=!!(opt&&opt.append&&had); // 続きを録音：前の録音の後ろに足す（上書きしない）
   // 録り直しは開始前に必ず確認（停止した瞬間に前のテイクが上書きされるため。誤タップの唯一の出口が破壊にならないように）
@@ -428,7 +429,7 @@ function commitTake(sess,itemId,blob,old,undoLbl){
   saveDraft();
   clearRecFail(itemId);
   const au=document.getElementById('au-'+itemId);
-  if(au){const u=URL.createObjectURL(blob);examUrls.push(u);au.src=u;au.style.display='block'}
+  if(au){const u=URL.createObjectURL(blob);examUrls.push(u);au.src=u;au.style.display='block';const ms=document.getElementById(au.id+'-miss');if(ms)ms.remove()} // 「録音が見つかりません」は録り直しで消す
   // カードの✓(done)は updateExamProg が録音と○×の両方で付け外しする
   const rs=document.getElementById('rs-'+itemId);if(rs){rs.textContent='● '+t('recDone');rs.classList.add('ok')}
   const rb=document.getElementById('rb-'+itemId);if(rb){const l=rb.querySelector('.rlab');if(l)l.textContent=t('recRedo')}

@@ -13,6 +13,8 @@ function drawScoreList(){
   syncScoringClass();
   c.style.display='flex';
   document.querySelector('#pgScore .hctrl').style.display='flex';
+  // 試問が1件も無い：採点待ち／すべてのどちらでも試問タブへの導線を出す
+  if(!getAll().length){c.innerHTML=`<div class="nd">${esc(fil==='all'?t('noData'):t('noUnscored'))}<div style="font-size:.85rem;margin-top:6px">${esc(t2('emptyHint'))}</div><button type="button" class="b b1 egExam mt12" onclick="gotoExamTab()">${esc(t2('goExam'))}</button></div>`;return}
   if(!all.length){c.innerHTML=`<div class="nd">${fil==='all'?t('noData'):t('noUnscored')}</div>`;return}
   c.innerHTML=all.map(r=>{
     const x=rowRes(r);
@@ -185,10 +187,10 @@ async function renderScoreDetail(r,opt){
   // 音声URL（セッション自身のキーで走査＝過去項目の録音も再生できる）
   for(const id of sessItemIds(r)){
     if(r.items[id]&&r.items[id].hasAudio){
-      const b=await getAudio(r.id+'_'+id);
-      if(b){const au=document.getElementById('sa-'+id);if(au){const u=URL.createObjectURL(b);curScoreUrls.push(u);au.src=u;au.playbackRate=playRate;
+      const au=document.getElementById('sa-'+id);
+      if(await attachAudio(r.id+'_'+id,au,curScoreUrls)){au.playbackRate=playRate;
         // 排他制御: 1つ再生を始めたら他の音声を全て止める（二重再生で聞き取り不能になるのを防ぐ）
-        au.addEventListener('play',()=>{document.querySelectorAll('#scDetail audio').forEach(o=>{if(o!==au)o.pause()})});}}
+        au.addEventListener('play',()=>{document.querySelectorAll('#scDetail audio').forEach(o=>{if(o!==au)o.pause()})});}
     }
   }
 }

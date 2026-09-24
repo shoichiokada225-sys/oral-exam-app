@@ -41,13 +41,34 @@ function updateGoogleStatus(){
 }
 
 // GASにPOST（プリフライト回避のためtext/plainで送る。bodyはJSON文字列）
+// 応答が無いまま止まる（農場の弱い電波で途中で切れる）と upBusy が残って再送できなくなるので、
+// 録音の大きさに合わせた時間で打ち切る（既定: 30秒＋1MBあたり60秒）。失敗は種類(kind)を付けて投げる
+var GAS_TO_BASE=30000,GAS_TO_PER_MB=60000;
+function gasErr(kind,detail){const e=new Error(detail||kind);e.kind=kind;return e}
 async function gasPost(payload){
   const g=getGoogleCfg();
-  const res=await fetch(g.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});
-  if(!res.ok)throw new Error('HTTP '+res.status);
-  const j=await res.json();
-  if(!j.ok)throw new Error(j.error||'gas-error');
-  return j;
+  const body=JSON.stringify(payload);
+  const ms=GAS_TO_BASE+Math.ceil(body.length/1048576*GAS_TO_PER_MB);
+  const ac=typeof AbortController==='function'?new AbortController():null;
+  let timedOut=false;
+  const tm=ac?setTimeout(()=>{timedOut=true;ac.abort()},ms):null;
+  try{
+    let res;
+    try{res=await fetch(g.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body,signal:ac?ac.signal:undefined})}
+    catch(e){throw gasErr(timedOut||(e&&e.name==='AbortError')?'timeout':'offline',e&&e.message)}
+    if(!res.ok)throw gasErr('http','HTTP '+res.status);
+    const ct=(res.headers&&res.headers.get&&res.headers.get('content-type'))||'';
+    let j;
+    try{j=await res.json()}
+    catch(e){throw gasErr(timedOut?'timeout':/html/i.test(ct)||/Unexpected token|JSON/i.test(String(e&&e.message))?'html':'gas',e&&e.message)}
+    if(!j||!j.ok){const er=(j&&j.error)||'gas-error';throw gasErr(er==='bad-token'?'token':'gas',er)}
+    return j;
+  }finally{if(tm)clearTimeout(tm)}
+}
+/* 失敗の種類→画面に出す理由（4言語）。技術情報は呼び出し側で括弧内に小さく添える */
+function gasErrMsg(kind,detail){
+  const k={timeout:'drvErrTimeout',offline:'drvErrOffline',html:'drvErrHtml',token:'drvErrToken',http:'drvErrHttp',noaudio:'drvErrNoAudio'}[kind]||'drvErrGas';
+  return t2(k).replace('{s}',detail||'');
 }
 async function gasTest(fromSave){
   const g=getGoogleCfg();
@@ -64,7 +85,9 @@ async function gasTest(fromSave){
     gConnected=false;updateGoogleStatus();
     // 自動保存の既定ONを待っている（未設定）：つながるまでONにしないことを添える
     const pend=getGoogleCfg().auto===undefined&&!getGoogleCfg().autoSet;
-    toast(t('gTestFail')+'（'+e.message+'）'+(pend?' · '+t2('gAutoPend'):''),1);
+    // 理由を利用者の言葉で（公開範囲／合言葉／圏外／URL）。技術情報は末尾の括弧に短く残す
+    const kind=e&&e.kind||'offline',code=String(e&&e.message||'').slice(0,60);
+    toast(t('gTestFail')+'：'+gasErrMsg(kind,code)+(kind!=='http'&&code?' ('+code+')':'')+(pend?' · '+t2('gAutoPend'):''),1);
   }
   finally{btn.disabled=false;btn.textContent=old}
 }
@@ -86,7 +109,8 @@ function driveNameStale(session,itemId){
 }
 async function gasUpload(session,itemId,replaceId){
   const g=getGoogleCfg();
-  const blob=await getAudio(session.id+'_'+itemId);if(!blob)return null;
+  let blob=null;try{blob=await getAudio(session.id+'_'+itemId)}catch(e){throw gasErr('noaudio',e&&e.message)} // 端末の保存領域が開けない
+  if(!blob)return null;
   const b64=await blobToB64(blob);
   const ext=audioExt(blob.type);
   const name=driveBaseName(session,itemId)+'.'+ext;
@@ -125,7 +149,7 @@ async function maybeAutoUpload(itemId,opt,sessArg){
     const prev=sess.items[itemId];
     const oldEe=prev.driveEe,oldName=prev.driveName; // 送り直す前の受験者名・ファイル名（フォルダが変わると旧ファイルは消えない）
     const res=await gasUpload(sess,itemId,isRep?prev.driveFileId:null);
-    if(!res)throw new Error('no-audio');
+    if(!res)throw gasErr('noaudio','no-audio'); // 端末に録音の実体が無い（再送しても直らない→案内を分ける）
     // GAS は replaceId の旧ファイルを「新しいフォルダの中にある時だけ」ゴミ箱へ入れる（gas/Code.gs）。
     // 受験者名が変わった＝別フォルダ（受験者名_日付）なので旧ファイルが残る→案内用に記録（項目を足すだけ）
     if(isRep&&oldEe!==undefined&&oldEe!==res.ee){
@@ -135,15 +159,16 @@ async function maybeAutoUpload(itemId,opt,sessArg){
       sess.items[itemId].driveOrphan=o;
     }
     sess.items[itemId].driveFileId=res.id;sess.items[itemId].driveLink=res.link;sess.items[itemId].driveName=res.name;sess.items[itemId].driveEe=res.ee; // 送った受験者名（保存時に名前が変わっていたら付け直す）
-    delete sess.items[itemId].driveSt;
+    delete sess.items[itemId].driveSt;delete sess.items[itemId].driveErr;
     persistDriveState(sess,itemId);
     showCloud(sess,itemId,'done');
   }catch(e){
     sess.items[itemId].driveSt=isRep?'failR':'fail';
+    sess.items[itemId].driveErr=(e&&e.kind)||'gas'; // 失敗の理由（未送信表示に出す。成功で消す）
     persistDriveState(sess,itemId);
     showCloud(sess,itemId,'fail');
     // 試問カード以外（採点画面・保存後）での失敗はカードが見えないのでトーストでも知らせる
-    if(cur!==sess&&!(opt&&opt.quiet))toast(t2('drvFailToast'),1);
+    if(cur!==sess&&!(opt&&opt.quiet))toast(e&&e.kind==='noaudio'?t2('drvErrNoAudio'):t2('drvFailToast')+' — '+gasErrMsg(e&&e.kind),1);
   }
   finally{
     upBusy[key]=false;
@@ -160,6 +185,7 @@ function persistDriveInfo(sess,itemId){
   if(src.driveEe!==undefined)dst.driveEe=src.driveEe;
   if(src.driveOrphan!==undefined)dst.driveOrphan=src.driveOrphan;
   if(src.driveSt)dst.driveSt=src.driveSt;else delete dst.driveSt;
+  if(src.driveSt&&src.driveErr)dst.driveErr=src.driveErr;else delete dst.driveErr;
   saveAll(all);
 }
 // 送信状態の保存先：試問中(cur)は下書き、それ以外は保存済みセッション
@@ -171,6 +197,7 @@ function persistDriveState(sess,itemId){
     const src=sess.items[itemId]||{},dst=o.items[itemId]=o.items[itemId]||{};
     ['driveFileId','driveLink','driveName','driveEe','driveOrphan'].forEach(f=>{if(src[f]!==undefined||(f!=='driveEe'&&f!=='driveOrphan'))dst[f]=src[f]});
     if(src.driveSt)dst.driveSt=src.driveSt;else delete dst.driveSt;
+    if(src.driveSt&&src.driveErr)dst.driveErr=src.driveErr;else delete dst.driveErr;
   });
   if(cur===sess)saveDraft();else persistDriveInfo(sess,itemId);
 }
@@ -188,16 +215,30 @@ function showCloud(sess,itemId,state){
   if(dor&&dor.dataset.sid===sess.id&&state==='done'&&typeof orphanHtml==='function')dor.innerHTML=orphanHtml(sess.items[itemId]); // 旧名ファイルの案内
   if(state==='done'&&typeof renderDrvOrphans==='function')renderDrvOrphans();
   const d=document.getElementById('dcl-'+sanitizeId(itemId));
-  if(d&&d.dataset.sid===sess.id){d.textContent=state==='up'?t('clUp'):state==='done'?t('clDone'):t2('drvUnsent');d.style.color=state==='fail'?'var(--s1)':state==='done'?'var(--pri)':'var(--sub)';d.disabled=state!=='fail';d.style.cursor=state==='fail'?'pointer':'default'}
+  if(d&&d.dataset.sid===sess.id){
+    const na=state==='fail'&&driveNoAudio(sess.items[itemId]);
+    d.innerHTML=state==='up'?esc(t('clUp')):state==='done'?esc(t('clDone')):unsentHtml(sess.items[itemId],t2('drvUnsent'));
+    d.style.color=state==='fail'&&!na?'var(--s1)':state==='done'?'var(--pri)':'var(--sub)';d.disabled=state!=='fail'||na;d.style.cursor=state==='fail'&&!na?'pointer':'default'}
 }
 /* 採点画面の各問の送信表示（未送信なら「タップで再送」） */
 function setScoreCloud(sess,itemId,state){
   const el=document.getElementById('scl-'+sanitizeId(itemId));if(!el)return;
   if(state==='up'){el.textContent=t('clUp');el.style.color='var(--sub)';el.onclick=null;el.style.cursor='default'}
   else if(state==='done'){el.textContent=t('clDone');el.style.color='var(--pri)';el.onclick=null;el.style.cursor='default'}
-  else if(state==='fail'){el.textContent=t2('drvUnsent');el.style.color='var(--s1)';el.style.cursor='pointer';el.onclick=()=>resendDrive(sess.id,itemId)}
+  else if(state==='fail'){
+    const na=driveNoAudio(sess.items[itemId]);
+    el.innerHTML=unsentHtml(sess.items[itemId],t2('drvUnsent'));el.title=driveErrText(sess.items[itemId]);
+    el.style.color=na?'var(--sub)':'var(--s1)';el.style.cursor=na?'default':'pointer';el.onclick=na?null:()=>resendDrive(sess.id,itemId)}
   else{el.textContent='';el.onclick=null}
   el.style.display=state?'block':'none';
+}
+/* 未送信の理由表示（試問カード・採点・履歴で共通）。録音の実体が無いものは再送ボタンにせず案内だけ出す */
+function driveNoAudio(r){return !!(r&&r.driveErr==='noaudio')}
+function driveErrText(r){return r&&r.driveErr?gasErrMsg(r.driveErr):''}
+function unsentHtml(r,label){
+  if(driveNoAudio(r))return esc('⚠ '+t2('drvErrNoAudio'));
+  const why=driveErrText(r);
+  return esc(label)+(why?`<span class="drverr" style="display:block;font-weight:500;font-size:.74rem;color:var(--sub);margin-top:2px">${esc(why)}</span>`:'');
 }
 /* セッションidから「いま画面が持っている実体」を引く（採点中の curScore と保存値を二重に持って上書きし合わないため） */
 function sessById(sid){

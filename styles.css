@@ -518,6 +518,7 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
 .chb{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);padding:16px;margin-bottom:16px;box-shadow:var(--sh)}
 .chb h2{font-size:.88rem;margin-bottom:12px;color:var(--sub);font-weight:700;letter-spacing:.02em}
 .chb canvas{width:100%!important;max-height:300px}
+.b:disabled{opacity:.5;cursor:not-allowed}
 .nd{
   text-align:center;color:var(--sub);padding:56px 20px;font-size:var(--fs-md);font-weight:500;line-height:1.8;
   border:2px dashed var(--bdr-s);border-radius:var(--r);background:var(--card-2);

@@ -49,8 +49,7 @@ function buildExamCards(){
   examUrls.forEach(u=>{try{URL.revokeObjectURL(u)}catch(e){}});examUrls=[];
   if(cur)getItems().forEach(async it=>{
     if(cur.items[it.id]&&cur.items[it.id].hasAudio){
-      const b=await getAudio(cur.id+'_'+it.id);
-      if(b){const au=document.getElementById('au-'+sanitizeId(it.id));if(au){const u=URL.createObjectURL(b);examUrls.push(u);au.src=u;au.style.display='block'}}
+      await attachAudio(cur.id+'_'+it.id,document.getElementById('au-'+sanitizeId(it.id)),examUrls);
     }
   });
   updateExamProg();
@@ -172,3 +171,47 @@ function gotoNextUnrec(fromId){
 
 /* 平均点→評価色クラス（4.5+:優 3.5+:良 2.5+:可 1.5+:要改善 それ未満:不可） */
 function avgCls(v){const n=parseFloat(v);if(isNaN(n))return'';return n>=4.5?'a5':n>=3.5?'a4':n>=2.5?'a3':n>=1.5?'a2':'a1'}
+/* ==============================================================
+   端末ストレージの守り（R3）
+   ・永続化：ドライブ未設定の端末では録音の写しは IndexedDB だけ。best-effort のままだと
+     端末の空きが減ったときにブラウザがこのサイトのデータをまとめて消すことがある→persist() を1回頼む。
+     断られたら設定の「データの引き継ぎ」にバックアップを勧める一文を出す（データは消さない）
+   ・残り容量：試問を始める（録音する）ときに estimate() を見て、少なければ試問画面の上に常設の警告
+   ============================================================== */
+let stoPersist=null,stoAsked=false,stoLow=false;
+const STO_MIN_FREE=50*1048576,STO_MAX_RATIO=0.9;
+async function stoInit(){
+  try{if(navigator.storage&&navigator.storage.persisted)stoPersist=!!(await navigator.storage.persisted())}catch(e){stoPersist=null}
+  renderPersistNote();
+  checkStorage();
+}
+/* 最初の録音で1回だけ永続化を頼む（Firefox は確認を出すので、利用者の操作のときに頼む） */
+async function askPersist(){
+  if(stoAsked||stoPersist===true)return;stoAsked=true;
+  try{if(navigator.storage&&navigator.storage.persist)stoPersist=!!(await navigator.storage.persist())}catch(e){}
+  renderPersistNote();
+}
+function renderPersistNote(){
+  const el=document.getElementById('bkPersist');if(!el)return;
+  el.textContent=t2('stoNotPersist');
+  el.style.display=stoPersist===false?'block':'none';
+}
+async function checkStorage(){
+  try{
+    if(!navigator.storage||!navigator.storage.estimate)return;
+    const e=await navigator.storage.estimate();
+    const q=+e.quota||0,u=+e.usage||0;
+    stoLow=q>0&&(q-u<STO_MIN_FREE||u/q>STO_MAX_RATIO);
+  }catch(e){return}
+  renderStoWarn();
+}
+function renderStoWarn(){
+  const el=document.getElementById('stoWarn');if(!el)return;
+  if(!stoLow){el.style.display='none';el.innerHTML='';return}
+  el.innerHTML=`<div style="font-weight:800;color:var(--s1);margin-bottom:4px">⚠ ${esc(t2('stoLowT'))}</div>
+    <div style="font-size:.85rem;line-height:1.6;margin-bottom:10px">${esc(t2('stoLow'))}</div>
+    <button type="button" class="b b3" id="stoBk" onclick="gotoCfgPart('bkExportBtn')">${esc(t2('stoBackup'))}</button>`;
+  el.style.display='block';
+}
+/* 録音を始めるとき（toggleRec）：永続化を頼み、残り容量を見直す（録音自体は待たせない） */
+function storageOnRec(){askPersist();checkStorage()}
