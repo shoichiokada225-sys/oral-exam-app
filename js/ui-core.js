@@ -38,7 +38,7 @@ storeFail:'保存に失敗しました（端末の空き容量不足の可能性
 gcConfirm:'どのセッションにも属さない録音データが{n}件見つかりました。削除して端末の容量を空けますか？',gcDone:'件の不要な録音を削除しました',
 naLbl:'質問しなかった（採点対象外）',nextUnrec:'次の未録音へ',nextUnscored:'次の未採点へ',nextUnscoredS:'次の未採点',backS:'一覧へ',allRec:'すべて録音済みです',allScored:'未採点の項目はありません',
 recBusy:'録音中です。先に「停止」を押してください',noRecGroup:'録音のない項目（{n}）',
-spd:'速度',pauseAll:'再生を停止',sumTimes:'回受験',added:'追加済み',prevLbl:'前回',extraSec:'過去の項目（現在の設定にない質問）',
+spd:'速度',playPause:'再生／一時停止',back5:'5秒戻す',fwd5:'5秒進める',back5S:'↺5秒',fwd5S:'5秒↻',judgedProg:'判定 {n}/{m}',pfTally:'合格{p}・不合格{f}',pauseAll:'再生を停止',sumTimes:'回受験',added:'追加済み',prevLbl:'前回',extraSec:'過去の項目（現在の設定にない質問）',
 resetCnt:'（録音{n}件を削除します。元に戻せません）',
 pass:'合格',fail:'不合格',pfLbl:'合否',passCnt:'合格',oldScore:'旧5段階評価',csvPass:'合格数（合格/採点）',chRate:'合格率の推移（%）',chSecRate:'分野別の合格率（%）',chItem:'設問別の合否（直近）'},
 en:{rnVars:"Names spelled differently (may be a different person; select only if it is the same person)",rnCancel:"Cancel",nameSame:"{f} \"{b}\" — is this the same person as \"{a}\" in the history?\n\nOK = same person (save with the spelling \"{a}\")\nCancel = a different person (save as \"{b}\")",dupAsk:"{n} exam(s) of {e} on {d} are already saved.\n\nOK = add to the previous exam (make it one exam)\nCancel = save separately as a retake (attempt {k})",savedRetake:"Saved as a retake (attempt {k})",savedMerged:"Saved into {e}'s previous exam",mergeSaveFail:"Could not add to the previous exam (a recording could not be read). Please save again",nextEe:"Enter the next examinee name",eeEmptyRec:"No examinee name yet. Recording continues; enter the name later",noName:"(not entered)",draftNote:"An unfinished exam from last time is open: examinee {e}, {n} recorded, {m} marked (examiner {r})",draftNoteResume:"Continuing a saved exam: examinee {e}, {n} recorded, {m} marked (examiner {r})",dnCont:"Continue",dnSave:"Save and start new",dnDrop:"Discard and start new",resumeBtn:"Continue this exam ({n} not recorded)",resumeSaveFirst:"{n} recording(s) and {m} pass/fail mark(s) for {o} are not saved yet.\n\nOK = save them first, then open the selected exam\nCancel = do nothing",resumeDrop:"{m} pass/fail mark(s) for {o} (no recordings) will not be saved. Open the selected exam?",resumed:"Continuing {e}'s exam. Go on from the questions without a recording",rnBtn:"Fix name",rnTitle:"Fix name",rnScope:"What to fix (examinee name)",rnOne:"This exam only",rnAll:"All {n} exams of the same person ({v})",rnNote:"The examiner name is fixed for this exam only. Recordings already sent to Drive are sent again under the new name (the files in the old-name folder stay; delete them by hand)",rnSave:"Save name",rnDone:"Fixed the name in {n} exam(s)",orphMsg:"An old recording \"{n}\" is left in \"{f}\" on Drive (delete it by hand)",orphHead:"{n} old recording(s) are left on Drive (in the folder of the name before it was fixed). Delete them by hand",orphClr:"Deleted (hide this notice)",orphClrQ:"Did you delete the old recordings on Drive?\nOK = hide this notice (recordings and marks are not deleted)",
@@ -74,7 +74,7 @@ storeFail:'Save failed (device storage may be full). Export a backup from Settin
 gcConfirm:'{n} recording(s) belong to no session. Delete them to free space?',gcDone:' orphan recording(s) deleted',
 naLbl:'Not asked (excluded from scoring)',nextUnrec:'Next unrecorded',nextUnscored:'Next unscored',nextUnscoredS:'Next',backS:'List',allRec:'All items recorded',allScored:'Nothing left to score',
 recBusy:'Recording in progress — press "Stop" first',noRecGroup:'Items without recording ({n})',
-spd:'Speed',pauseAll:'Pause playback',sumTimes:' exams',sumTimes1:' exam',added:'Added',extraSec:'Past items (not in current settings)',prevLbl:'Prev',
+spd:'Speed',playPause:'Play / pause',back5:'Back 5 seconds',fwd5:'Forward 5 seconds',back5S:'↺5s',fwd5S:'5s↻',judgedProg:'Judged {n}/{m}',pfTally:'Pass {p} · Fail {f}',pauseAll:'Pause playback',sumTimes:' exams',sumTimes1:' exam',added:'Added',extraSec:'Past items (not in current settings)',prevLbl:'Prev',
 resetCnt:'({n} recording(s) will be deleted. This cannot be undone)',
 pass:'Pass',fail:'Fail',pfLbl:'Pass/Fail',passCnt:'Passed',oldScore:'Old 5-level score',csvPass:'Passed (pass/scored)',chRate:'Pass rate trend (%)',chSecRate:'Pass rate by section (%)',chItem:'Pass/Fail by question (latest)'},
 vi:{rnVars:"Tên viết khác (có thể là người khác; chỉ chọn nếu là cùng một người)",rnCancel:"Hủy",nameSame:"{f} \"{b}\" có phải là cùng một người với \"{a}\" trong lịch sử không?\n\nOK = cùng một người (lưu theo cách viết \"{a}\")\nHủy = người khác (lưu là \"{b}\")",dupAsk:"Đã lưu {n} bài của {e} ngày {d}.\n\nOK = gộp vào bài lần trước (thành một bài)\nHủy = lưu riêng như thi lại (lần {k})",savedRetake:"Đã lưu như thi lại (lần {k})",savedMerged:"Đã gộp và lưu vào bài lần trước của {e}",mergeSaveFail:"Không gộp được vào bài lần trước (không đọc được bản ghi). Hãy lưu lại",nextEe:"Hãy nhập tên thí sinh tiếp theo",eeEmptyRec:"Chưa nhập tên thí sinh. Vẫn tiếp tục ghi âm; hãy nhập tên sau",noName:"(chưa nhập)",draftNote:"Đang mở bài dang dở lần trước: thí sinh {e}, ghi âm {n} câu, đạt/không đạt {m} câu (người hỏi {r})",draftNoteResume:"Đang tiếp tục bài đã lưu: thí sinh {e}, ghi âm {n} câu, đạt/không đạt {m} câu (người hỏi {r})",dnCont:"Tiếp tục",dnSave:"Lưu và bắt đầu mới",dnDrop:"Bỏ và bắt đầu mới",resumeBtn:"Tiếp tục bài này ({n} câu chưa ghi âm)",resumeSaveFirst:"{n} bản ghi âm và {m} kết quả đạt/không đạt của {o} chưa được lưu.\n\nOK = lưu trước, rồi mở bài đã chọn\nHủy = không làm gì",resumeDrop:"{m} kết quả đạt/không đạt của {o} (không có ghi âm) sẽ không được lưu. Mở bài đã chọn?",resumed:"Đang tiếp tục bài của {e}. Hãy làm tiếp từ các câu chưa ghi âm",rnBtn:"Sửa tên",rnTitle:"Sửa tên",rnScope:"Phạm vi sửa (tên thí sinh)",rnOne:"Chỉ bài này",rnAll:"Tất cả {n} bài của cùng người ({v})",rnNote:"Tên người hỏi chỉ sửa cho bài này. Bản ghi đã gửi lên Drive sẽ được gửi lại với tên mới (tệp trong thư mục tên cũ vẫn còn; hãy tự xóa)",rnSave:"Lưu tên",rnDone:"Đã sửa tên ở {n} bài",orphMsg:"Bản ghi cũ \"{n}\" vẫn còn trong \"{f}\" trên Drive (hãy tự xóa)",orphHead:"Còn {n} bản ghi cũ trên Drive (trong thư mục tên trước khi sửa). Hãy tự xóa",orphClr:"Đã xóa (ẩn thông báo)",orphClrQ:"Bạn đã xóa các bản ghi cũ trên Drive chưa?\nOK = ẩn thông báo này (bản ghi và kết quả không bị xóa)",
@@ -100,7 +100,7 @@ qsTitle:'Bộ câu hỏi',qsCur:'Bộ hiện tại',qsNone:'(chưa lưu thành b
 qsNamePrompt:'Nhập tên bộ',qbTitle:'Bộ câu hỏi mẫu',qbReplace:'Thay thế mục',qbAppend:'Thêm vào mục',
 naLbl:'Không hỏi (không chấm)',nextUnrec:'Mục chưa ghi tiếp theo',nextUnscored:'Mục chưa chấm tiếp theo',nextUnscoredS:'Mục tiếp',backS:'Danh sách',allRec:'Đã ghi tất cả',allScored:'Không còn mục chưa chấm',
 recBusy:'Đang ghi âm — hãy nhấn "Dừng" trước',noRecGroup:'Mục không có ghi âm ({n})',
-spd:'Tốc độ',pauseAll:'Dừng phát',sumTimes:' lần thi',added:'Đã thêm',extraSec:'Mục cũ (không có trong cài đặt hiện tại)',prevLbl:'Lần trước',
+spd:'Tốc độ',playPause:'Phát / tạm dừng',back5:'Lùi 5 giây',fwd5:'Tiến 5 giây',back5S:'↺5g',fwd5S:'5g↻',judgedProg:'Đã chấm {n}/{m}',pfTally:'Đạt {p} · Không đạt {f}',pauseAll:'Dừng phát',sumTimes:' lần thi',added:'Đã thêm',extraSec:'Mục cũ (không có trong cài đặt hiện tại)',prevLbl:'Lần trước',
 resetCnt:'({n} bản ghi âm sẽ bị xóa. Không thể hoàn tác)',
 pass:'Đạt',fail:'Không đạt',pfLbl:'Đạt/Không đạt',passCnt:'Đạt',oldScore:'Điểm cũ (5 mức)',
 qsSwConfirm:'Chuyển sang nội dung đã lưu của bộ "{n}"? Các chỉnh sửa chưa nhấn "Lưu" sẽ bị mất (dữ liệu các bài thi trước vẫn giữ nguyên).',
@@ -136,7 +136,7 @@ qsTitle:'Set pertanyaan',qsCur:'Set aktif',qsNone:'(belum disimpan sebagai set)'
 qsNamePrompt:'Masukkan nama set',qbTitle:'Set pertanyaan preset',qbReplace:'Ganti item',qbAppend:'Tambahkan item',
 naLbl:'Tidak ditanya (tidak dinilai)',nextUnrec:'Item belum direkam berikutnya',nextUnscored:'Item belum dinilai berikutnya',nextUnscoredS:'Berikutnya',backS:'Daftar',allRec:'Semua sudah direkam',allScored:'Tidak ada yang belum dinilai',
 recBusy:'Sedang merekam — tekan "Stop" dulu',noRecGroup:'Item tanpa rekaman ({n})',
-spd:'Kecepatan',pauseAll:'Jeda pemutaran',sumTimes:' ujian',added:'Sudah ditambah',extraSec:'Item lama (tidak ada di pengaturan)',prevLbl:'Sebelumnya',
+spd:'Kecepatan',playPause:'Putar / jeda',back5:'Mundur 5 detik',fwd5:'Maju 5 detik',back5S:'↺5d',fwd5S:'5d↻',judgedProg:'Dinilai {n}/{m}',pfTally:'Lulus {p} · Tidak lulus {f}',pauseAll:'Jeda pemutaran',sumTimes:' ujian',added:'Sudah ditambah',extraSec:'Item lama (tidak ada di pengaturan)',prevLbl:'Sebelumnya',
 resetCnt:'({n} rekaman akan dihapus. Tidak dapat dibatalkan)',
 pass:'Lulus',fail:'Tidak lulus',pfLbl:'Lulus/Tidak',passCnt:'Lulus',oldScore:'Nilai lama (5 tingkat)',
 qsSwConfirm:'Ganti ke isi tersimpan set "{n}"? Perubahan yang belum di-"Simpan" akan hilang (data ujian sebelumnya tetap ada).',
@@ -165,4 +165,75 @@ function rowRes(r){
   const lbl=sc?resLbl(r):pendLbl(r);
   // 採点途中は合否の色を付けない（判定した問だけ全問合格＝緑に見せない）
   return{badge,cls:(sc?resCls(r):full?resCls(r,true):'old')+(lbl.length>5?' lng':''),lbl};
+}
+
+/* ==============================================================
+   音声プレーヤーの共通部（採点・試問・履歴の3か所で共用）
+   ============================================================== */
+/* 再生速度（0.75x〜2x）。端末ごとに RATEKEY へ記憶（既存キーとは別の新キー・読めなければ1x） */
+const RATEKEY='oral_exam_rate';
+const RATES=[0.75,1,1.25,1.5,2];
+let playRate=(()=>{try{const v=parseFloat(localStorage.getItem(RATEKEY));return RATES.includes(v)?v:1}catch(e){return 1}})();
+let lastAu=null; // 最後に再生を始めた音声（保存バーの ▶/⏸・↺5秒 の対象）
+/* MediaRecorder の webm は長さ（duration）を書かないため Infinity になり、シークバーが使えない。
+   既知の回避策：末尾の先へ currentTime を飛ばすとブラウザが実長を計算する → durationchange で頭（または元の位置）へ戻す。
+   再生中に長さが判明しない場合は止まったときに行う（聞いている途中で位置を飛ばさない）。src を差し替えても再適用される */
+function fixDur(au){
+  if(!au||au._fixDur)return;
+  au._fixDur=1;
+  const run=()=>{
+    if(au.duration!==Infinity||au._fixing)return;
+    if(!au.paused){au.addEventListener('pause',run,{once:true});return}
+    const back=au.currentTime||0;
+    au._fixing=true;
+    const done=()=>{
+      if(!(isFinite(au.duration)&&au.duration>0))return;
+      au.removeEventListener('durationchange',done);au.removeEventListener('seeked',done);
+      au._fixing=false;
+      try{au.currentTime=back}catch(e){}
+    };
+    au.addEventListener('durationchange',done);au.addEventListener('seeked',done);
+    try{au.currentTime=1e101}catch(e){au._fixing=false}
+  };
+  au.addEventListener('loadedmetadata',run);
+  if(au.readyState>=1)run();
+}
+/* 1本の音声に共通の振る舞いを付ける：長さの補正・速度・排他再生（1つ再生したら他は止める）・再生ボタン表示の同期 */
+function bindPlayer(au){
+  if(!au)return;
+  au.defaultPlaybackRate=playRate;au.playbackRate=playRate; // src の読み込みで playbackRate は default に戻るため両方
+  fixDur(au);
+  if(au._bound)return;
+  au._bound=1;
+  au.addEventListener('play',()=>{
+    lastAu=au;
+    document.querySelectorAll('audio').forEach(o=>{if(o!==au&&!o.paused)o.pause()});
+    syncPlayBtns();
+  });
+  ['pause','ended','emptied'].forEach(ev=>au.addEventListener(ev,syncPlayBtns));
+}
+function isPlaying(au){return !!(au&&!au.paused&&!au.ended)}
+/* ▶/⏸ の表示を実際の再生状態に合わせる（カード内の .ppb と保存バーの #sbPause） */
+function syncPlayBtns(){
+  document.querySelectorAll('.ppb[data-au]').forEach(b=>{const p=isPlaying(document.getElementById(b.dataset.au));b.textContent=p?'⏸':'▶';b.setAttribute('aria-pressed',p?'true':'false')});
+  const sb=document.getElementById('sbPause');
+  if(sb){const p=isPlaying(lastAu&&lastAu.isConnected?lastAu:null);sb.textContent=p?'⏸':'▶';sb.setAttribute('aria-pressed',p?'true':'false')}
+}
+/* 再生／一時停止のトグル */
+function togglePlay(au){
+  if(!au||!au.src)return;
+  if(isPlaying(au))au.pause();else{if(au.ended)au.currentTime=0;au.play().catch(()=>{})}
+}
+/* 相対シーク（秒）。長さが分かれば0〜末尾に収める */
+function seekBy(au,sec){
+  if(!au||!au.src)return;
+  const d=isFinite(au.duration)?au.duration:Infinity;
+  au.currentTime=Math.max(0,Math.min(d,(au.currentTime||0)+sec));
+}
+function cardPlay(id){togglePlay(document.getElementById(id))}
+function cardSeek(id,sec){const au=document.getElementById(id);if(au){lastAu=au;seekBy(au,sec);syncPlayBtns()}}
+/* 再生操作ボタン一式（↺5秒・▶/⏸・5秒↻）。auId=対象 audio の id */
+function playCtlHtml(auId){
+  auId=sanitizeId(auId);
+  return `<span class="pctl"><button type="button" class="b b3 pcb" onclick="cardSeek('${auId}',-5)" aria-label="${esc(t2('back5'))}" title="${esc(t2('back5'))}">${esc(t2('back5S'))}</button><button type="button" class="b b3 pcb ppb" data-au="${auId}" aria-pressed="false" onclick="cardPlay('${auId}')" aria-label="${esc(t2('playPause'))}" title="${esc(t2('playPause'))}">▶</button><button type="button" class="b b3 pcb" onclick="cardSeek('${auId}',5)" aria-label="${esc(t2('fwd5'))}" title="${esc(t2('fwd5'))}">${esc(t2('fwd5S'))}</button></span>`;
 }

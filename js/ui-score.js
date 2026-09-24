@@ -94,7 +94,8 @@ function updateScoreProg(){
     const vals=[...document.querySelectorAll('#scDetail .sb.sel')].map(el=>el.dataset.s);
     if(vals.length){
       const p=vals.filter(v=>v==='pass').length;
-      av.textContent=t2('passCnt')+' '+p+'/'+vals.length+(nOld?'＋'+t2('oldN').replace('{n}',nOld):'');
+      // 合否は件数で出す（分数は進捗の「判定 n/m」だけ＝『合格 1/1』を『全問合格』と読み違えない）
+      av.textContent=t2('pfTally').replace('{p}',p).replace('{f}',vals.length-p)+(nOld?'＋'+t2('oldN').replace('{n}',nOld):'');
       av.className='spavg '+(nOld?'old':p===vals.length?'a5':p===0?'a1':'a3');
     }else if(nOld){av.textContent=t2('oldN').replace('{n}',nOld);av.className='spavg old'}
     else{av.textContent='';av.className='spavg'}
@@ -105,7 +106,7 @@ function updateScoreProg(){
   // savebar常時表示の進捗+合否（表示のみの複製・保存形式に影響なし）。合否の数は評価色（spavgと同じ a5/a1/a3）
   const sb2=document.getElementById('sbCnt');
   if(sb2){
-    sb2.textContent=n+' / '+scorable;
+    sb2.textContent=t2('judgedProg').replace('{n}',n).replace('{m}',scorable);
     if(av&&av.textContent){const r=document.createElement('span');r.className='sbres '+av.className.replace(/\bspavg\b/,'').trim();r.textContent=av.textContent;sb2.appendChild(r)}
   }
 }
@@ -123,7 +124,7 @@ function scoreCardHtml(r,id,en,name,desc,ans,ansJa){
     ${rec.hasAudio?`<audio id="sa-${id}" controls></audio>`:`<div class="recstat">${t('recReady')}</div>`}
     <div class="tlbl"><span>${t('trLbl')}</span>${rec.hasAudio&&sttReady?`<button class="aibtn" id="ai-${id}" onclick="aiTranscribe('${id}')">${t('aiBtn')}</button>`:''}</div>
     <textarea class="trta" id="tr-${id}" aria-label="${esc(name)} ${esc(t('trLbl'))}" placeholder="${t('phTr')}">${esc(rec.transcript!=null?rec.transcript:(rec.draft||''))}</textarea>
-    <div class="tlbl">${t('scoreLbl')}</div>
+    <div class="tlbl"><span>${t('scoreLbl')}</span>${rec.hasAudio?playCtlHtml('sa-'+id):''}</div>
     <div class="sr" role="radiogroup" aria-label="${esc(name)} ${esc(t2('pfLbl'))}">${['pass','fail'].map(s=>`<button class="sb pf${sc===s?' sel':''}" role="radio" aria-checked="${sc===s?'true':'false'}" data-id="${id}" data-s="${s}" onclick="pickScore('${id}','${s}',this)">${s==='pass'?'○':'×'}<span class="sl">${esc(t2(s))}</span></button>`).join('')}</div>
     <div class="spick" id="sp-${id}">${isPF(sc)?esc(t2(sc)):(sc!=null?esc(t2('oldScore'))+': '+esc(pfLabel(sc)):'')}</div>
     ${rec.hasAudio?`<div class="cloud" id="scl-${id}" role="status" style="font-size:.78rem;font-weight:700;margin-top:6px;display:none"></div>`:''}
@@ -172,7 +173,7 @@ async function renderScoreDetail(r,opt){
   }
   h+=`<div class="cd oasec"><h2>${t('overall')}</h2><textarea id="scOv" class="oata" rows="4" placeholder="${t('phOv')}">${esc(r.overall||'')}</textarea></div>`;
   // savebar: 進捗+平均の常時表示（sbCnt）と再生停止/速度（sbPause/sbSpd）— 長い採点画面のどこにいても操作・確認できる
-  h+=`<div class="savebar"><div class="sbhead"><span id="sbCnt"></span><span class="autost" id="scAutoSt" role="status" style="flex:1"></span></div><div class="bg" style="margin:0"><button type="button" class="b b3 sbico" id="sbPause" onclick="pauseAllAudio()" aria-label="${esc(t2('pauseAll'))}" title="${esc(t2('pauseAll'))}">⏸</button><button type="button" class="b b3 sbico" id="sbSpd" onclick="cycleSpeed()" aria-label="${esc(t2('spd'))}" title="${esc(t2('spd'))}">${playRate}x</button><button class="b b4 sbsub" onclick="nextUnscored()" title="${esc(t2('nextUnscored'))}"><span class="lbl-l">${esc(t2('nextUnscored'))}</span><span class="lbl-s" aria-hidden="true">${esc(t2('nextUnscoredS'))}</span></button><button class="b b1 sbsave" onclick="saveScore()">${t('btnSaveScore')}</button><button class="b b3 sbsub" onclick="backToScoreList()" title="${esc(t('btnBack'))}"><span class="lbl-l">${t('btnBack')}</span><span class="lbl-s" aria-hidden="true">${esc(t2('backS'))}</span></button></div></div>`;
+  h+=`<div class="savebar"><div class="sbhead"><span id="sbCnt"></span><span class="autost" id="scAutoSt" role="status" style="flex:1"></span></div><div class="bg" style="margin:0"><button type="button" class="b b3 sbico" id="sbPause" aria-pressed="false" onclick="toggleLastAudio()" aria-label="${esc(t2('playPause'))}" title="${esc(t2('playPause'))}">▶</button><button type="button" class="b b3 sbico" id="sbBack" onclick="lastSeek(-5)" aria-label="${esc(t2('back5'))}" title="${esc(t2('back5'))}">${esc(t2('back5S'))}</button><button type="button" class="b b3 sbico" id="sbSpd" onclick="cycleSpeed()" aria-label="${esc(t2('spd'))}" title="${esc(t2('spd'))}">${playRate}x</button><button class="b b4 sbsub" onclick="nextUnscored()" title="${esc(t2('nextUnscored'))}"><span class="lbl-l">${esc(t2('nextUnscored'))}</span><span class="lbl-s" aria-hidden="true">${esc(t2('nextUnscoredS'))}</span></button><button class="b b1 sbsave" onclick="saveScore()">${t('btnSaveScore')}</button><button class="b b3 sbsub" onclick="backToScoreList()" title="${esc(t('btnBack'))}"><span class="lbl-l">${t('btnBack')}</span><span class="lbl-s" aria-hidden="true">${esc(t2('backS'))}</span></button></div></div>`;
   det.innerHTML=h;
   det.querySelectorAll('textarea').forEach(el=>el.addEventListener('input',queueScoreDraft));
   // ドライブへ届いていない録音に「☁未送信（タップで再送）」を出す
@@ -186,22 +187,30 @@ async function renderScoreDetail(r,opt){
   for(const id of sessItemIds(r)){
     if(r.items[id]&&r.items[id].hasAudio){
       const b=await getAudio(r.id+'_'+id);
-      if(b){const au=document.getElementById('sa-'+id);if(au){const u=URL.createObjectURL(b);curScoreUrls.push(u);au.src=u;au.playbackRate=playRate;
-        // 排他制御: 1つ再生を始めたら他の音声を全て止める（二重再生で聞き取り不能になるのを防ぐ）
-        au.addEventListener('play',()=>{document.querySelectorAll('#scDetail audio').forEach(o=>{if(o!==au)o.pause()})});}}
+      // bindPlayer: 長さの補正（webmのシーク不能対策）・速度・排他再生（二重再生で聞き取り不能になるのを防ぐ）
+      if(b){const au=document.getElementById('sa-'+id);if(au){const u=URL.createObjectURL(b);curScoreUrls.push(u);au.src=u;bindPlayer(au)}}
     }
   }
 }
-/* 音声の再生速度トグル（1x→1.25x→1.5x→2x）。トップのspdBtnとsavebarのsbSpdを同時更新 */
-let playRate=1;
+/* 音声の再生速度トグル（0.75x→1x→1.25x→1.5x→2x→0.75x）。端末に記憶し、画面上の全音声に反映。トップのspdBtnとsavebarのsbSpdを同時更新 */
 function cycleSpeed(){
-  playRate={'1':1.25,'1.25':1.5,'1.5':2,'2':1}[String(playRate)]||1;
-  document.querySelectorAll('#scDetail audio').forEach(a=>{a.playbackRate=playRate});
+  playRate=RATES[(RATES.indexOf(playRate)+1)%RATES.length]||1;
+  try{localStorage.setItem(RATEKEY,String(playRate))}catch(e){}
+  document.querySelectorAll('audio').forEach(a=>{a.defaultPlaybackRate=playRate;a.playbackRate=playRate});
   const b=document.getElementById('spdBtn');if(b)b.textContent=t2('spd')+' '+playRate+'x';
   const sb=document.getElementById('sbSpd');if(sb)sb.textContent=playRate+'x';
 }
-/* savebarの⏸: 再生中の音声を全て止める（再生中のカードが画面外でも止められる） */
+/* 再生中の音声を全て止める（互換のため残す） */
 function pauseAllAudio(){document.querySelectorAll('#scDetail audio').forEach(a=>a.pause())}
+/* savebarの ▶/⏸・↺5秒 の対象＝最後に再生した音声（無ければ次の未採点→先頭の録音）。再生中のカードが画面外でも操作できる */
+function savebarAudio(){
+  if(lastAu&&lastAu.isConnected&&lastAu.closest('#scDetail')&&lastAu.src)return lastAu;
+  const id=findUnscoredId();const a=id&&document.getElementById('sa-'+id);
+  if(a&&a.src)return a;
+  return [...document.querySelectorAll('#scDetail audio')].find(x=>x.src)||null;
+}
+function toggleLastAudio(){const au=savebarAudio();if(!au)return;lastAu=au;togglePlay(au);syncPlayBtns()}
+function lastSeek(sec){const au=savebarAudio();if(!au)return;lastAu=au;seekBy(au,sec);syncPlayBtns()}
 /* 「質問しなかった」＝採点対象外（score=null維持なので集計・CSVは従来通り互換） */
 function pickNA(id,checked){
   if(!curScore)return;
@@ -243,13 +252,30 @@ function nextUnscored(){
   const au=document.getElementById('sa-'+id);
   if(au&&au.src){au.currentTime=0;au.play().catch(()=>{})}
 }
-/* 採点タップ後、未採点が残っていれば600ms後に自動で次へ（全採点済みトーストは出さない） */
-let autoNextTimer=null;
-function queueAutoNext(){
-  clearTimeout(autoNextTimer);
+/* 採点タップ後、未採点が残っていれば600ms後に自動で次へ（全採点済みトーストは出さない）。
+   ただし次の場合は送らない（聞いている・書いている最中に画面と音声を奪わない）:
+   ・判定の訂正（すでに合否が付いていた問）　・音声が再生中（その問を聞きながら判定した等）
+   ・600msの間にカード内をタップ/フォーカスした　・フォーカスがカード内の入力欄にある */
+let autoNextTimer=null,autoNextOff=null;
+function cancelAutoNext(){clearTimeout(autoNextTimer);autoNextTimer=null;if(autoNextOff){autoNextOff();autoNextOff=null}}
+function queueAutoNext(id){
+  cancelAutoNext();
+  const card=id&&document.getElementById('sc-'+sanitizeId(id));
+  let touched=false;
+  const onTouch=()=>{touched=true};
+  if(card){card.addEventListener('pointerdown',onTouch,true);card.addEventListener('focusin',onTouch,true);
+    autoNextOff=()=>{card.removeEventListener('pointerdown',onTouch,true);card.removeEventListener('focusin',onTouch,true)}}
   autoNextTimer=setTimeout(()=>{
+    if(autoNextOff){autoNextOff();autoNextOff=null}
     const det=document.getElementById('scDetail');
     if(!curScore||!det||det.style.display==='none')return;
+    if(touched)return;
+    if(card){
+      const ae=document.activeElement;
+      if(ae&&card.contains(ae)&&/^(TEXTAREA|INPUT)$/.test(ae.tagName))return;
+    }
+    // 聞いている最中（その問・別の問を問わず再生中）は音声も画面も奪わない
+    if([...det.querySelectorAll('audio')].some(isPlaying))return;
     if(findUnscoredId())nextUnscored();
   },600);
 }
@@ -260,8 +286,8 @@ function pickScore(id,s,btn){
   // 押した瞬間にcurScoreへ反映（進捗カウンタの分母・分子がDOM選択と一致する）
   if(curScore){curScore.items[id]=curScore.items[id]||{};curScore.items[id].score=s}
   if(curScore&&typeof resyncDriveName==='function')resyncDriveName(curScore,id); // ドライブのファイル名の合否も付け直す
-  btn.parentElement.querySelectorAll('.sb').forEach(b=>{b.classList.remove('sel');b.setAttribute('aria-checked','false')});btn.classList.add('sel');btn.setAttribute('aria-checked','true');const sp=document.getElementById('sp-'+id);if(sp)sp.textContent=pfLabel(s);const c=document.getElementById('sc-'+id);if(c){c.classList.add('scored');c.classList.toggle('v-pass',s==='pass');c.classList.toggle('v-fail',s==='fail')}const na=document.querySelector('.nachk[data-id="'+id+'"]');if(na&&na.checked){na.checked=false;if(curScore&&curScore.items[id])curScore.items[id].na=false}updateScoreProg();queueScoreDraft();queueAutoNext()}
-function backToScoreList(){clearTimeout(autoNextTimer);persistScoreDraft(false);const sid=curScore&&curScore.id;curScore=null;releaseScoreUrls();document.getElementById('scDetail').style.display='none';drawScoreList();focusScoreRow(sid)}
+  btn.parentElement.querySelectorAll('.sb').forEach(b=>{b.classList.remove('sel');b.setAttribute('aria-checked','false')});btn.classList.add('sel');btn.setAttribute('aria-checked','true');const sp=document.getElementById('sp-'+id);if(sp)sp.textContent=pfLabel(s);const c=document.getElementById('sc-'+id);if(c){c.classList.add('scored');c.classList.toggle('v-pass',s==='pass');c.classList.toggle('v-fail',s==='fail')}const na=document.querySelector('.nachk[data-id="'+id+'"]');if(na&&na.checked){na.checked=false;if(curScore&&curScore.items[id])curScore.items[id].na=false}updateScoreProg();queueScoreDraft();if(isPF(prevSc))cancelAutoNext();else queueAutoNext(id)}
+function backToScoreList(){cancelAutoNext();persistScoreDraft(false);const sid=curScore&&curScore.id;curScore=null;releaseScoreUrls();document.getElementById('scDetail').style.display='none';drawScoreList();focusScoreRow(sid)}
 function releaseScoreUrls(){curScoreUrls.forEach(u=>{try{URL.revokeObjectURL(u)}catch(e){}});curScoreUrls=[]}
 
 

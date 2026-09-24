@@ -361,6 +361,10 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
 .dis.pf-pass{background:var(--s5)}.dis.pf-fail{background:var(--s1)}
 
 .tlbl{font-size:.8rem;font-weight:700;color:var(--pri-d);margin:12px 0 5px;display:flex;justify-content:space-between;align-items:center;letter-spacing:.02em}
+/* 採点カードの再生操作（↺5秒・▶/⏸・5秒↻）：○×のすぐ上に置き、音声コントロールまで戻らなくても聞き直せる */
+.pctl{display:inline-flex;gap:6px;flex:0 0 auto}
+.pctl .pcb{flex:0 0 auto;min-width:48px;min-height:40px;padding:6px 8px;font-size:.82rem;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pctl .ppb{min-width:52px;font-size:1rem}
 .qc textarea,.oata{
   width:100%;padding:10px 13px;border:1.5px solid var(--bdr-s);border-radius:var(--r-s);
   font-size:.92rem;font-family:inherit;resize:vertical;min-height:60px;outline:0;

@@ -50,7 +50,7 @@ function buildExamCards(){
   if(cur)getItems().forEach(async it=>{
     if(cur.items[it.id]&&cur.items[it.id].hasAudio){
       const b=await getAudio(cur.id+'_'+it.id);
-      if(b){const au=document.getElementById('au-'+sanitizeId(it.id));if(au){const u=URL.createObjectURL(b);examUrls.push(u);au.src=u;au.style.display='block'}}
+      if(b){const au=document.getElementById('au-'+sanitizeId(it.id));if(au){const u=URL.createObjectURL(b);examUrls.push(u);au.src=u;au.style.display='block';bindPlayer(au)}}
     }
   });
   updateExamProg();

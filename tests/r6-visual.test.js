@@ -96,7 +96,7 @@ const S = (id, ee, status, items) => ({ id, date: '2026-09-20', examiner: '岡�
     return { bg: getComputedStyle(bar).backgroundColor, bodyBg: getComputedStyle(document.body).backgroundColor, txt: cnt.textContent, rCls: r ? r.className : '', rCol: r ? getComputedStyle(r).color : '', s1: getComputedStyle(document.querySelector('.sb[data-s="fail"].sel')).backgroundColor };
   });
   T.ok('保存バーの背景は不透明: ' + sbc.bg, !/rgba\(.*,\s*0\)$/.test(sbc.bg) && sbc.bg !== 'transparent' && !/rgba\([^)]*,\s*0?\.\d+\)/.test(sbc.bg));
-  T.ok('sbCnt は「3 / 3」＋合格 0/3: ' + sbc.txt, /3 \/ 3/.test(sbc.txt) && sbc.txt.includes('合格 0/3'));
+  T.ok('sbCnt は「判定 3/3」＋合格0・不合格3（合否は件数・分数は進捗だけ）: ' + sbc.txt, sbc.txt.includes('判定 3/3') && sbc.txt.includes('合格0・不合格3'));
   T.ok('合否の数は評価色（全問不合格=a1=赤）: ' + sbc.rCls, /\ba1\b/.test(sbc.rCls) && sbc.rCol === sbc.s1);
   // 本文と重ならない：sbCnt の真下の要素が savebar 自身（透けて見える本文ではない）
   await p.evaluate(() => window.scrollTo(0, 200)); await p.waitForTimeout(150);

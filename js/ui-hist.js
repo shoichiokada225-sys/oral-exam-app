@@ -84,7 +84,7 @@ async function showDet(id){
   for(const iid of ids){
     if(r.items[iid]&&r.items[iid].hasAudio){
       const b=await getAudio(r.id+'_'+iid);
-      if(b){const au=document.getElementById('da-'+iid);if(au){const u=URL.createObjectURL(b);curScoreUrls.push(u);au.src=u}}
+      if(b){const au=document.getElementById('da-'+iid);if(au){const u=URL.createObjectURL(b);curScoreUrls.push(u);au.src=u;bindPlayer(au)}}
     }
   }
 }
