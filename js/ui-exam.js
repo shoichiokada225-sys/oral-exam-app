@@ -75,6 +75,7 @@ function gotoCfgPart(anchorId){
    ・未設定のとき：初回カード（使い方）が出ている間はその中の1行＋設定へのリンク（閉じるは初回カードの1つだけ）。
      初回カードを閉じた後も未設定なら、使い方の下に小さな案内（閉じたら DRVHINTKEY に記録して以後出さない） */
 const DRVHINTKEY='oral_exam_drvhint_off';
+let drvHintAsked=false; // この画面で「？」から使い方を開き直した（toggleHowto(true)）
 function driveState(){const g=getGoogleCfg();return !g.url?'none':g.auto?'on':'off'}
 function howtoOff(){try{return localStorage.getItem(HOWTOKEY)==='1'}catch(e){return false}}
 function dismissDrvHint(){try{localStorage.setItem(DRVHINTKEY,'1')}catch(e){}const h=document.getElementById('drvHint');if(h)h.style.display='none'}
@@ -96,7 +97,9 @@ function updateDriveUi(){
     if(inCard){if(h.parentElement!==hw){hw.insertBefore(h,document.getElementById('howtoX'))}h.className='hw-drv'}
     else{if(meta&&h.parentElement!==meta.parentElement)meta.parentElement.insertBefore(h,meta);h.className='cd'}
     let off=false;try{off=localStorage.getItem(DRVHINTKEY)==='1'}catch(e){}
-    if(st!=='none'||(!inCard&&off)){h.style.display='none';return}
+    // 以前この案内だけを閉じた端末（DRVHINTKEY）は、初回カードの中の1行としても出し直さない。
+    // ただし「？」で使い方を自分で開き直したとき（drvHintAsked）はカードの中に戻す（キーは消さない）
+    if(st!=='none'||(off&&!(inCard&&drvHintAsked))){h.style.display='none';return}
     h.style.display='';
     if(inCard){
       h.innerHTML=`☁ ${esc(t2('drvHintS'))} <button type="button" class="hw-link" id="drvHintGo" onclick="gotoCfgPart('gUrl')">${esc(t2('drvHintGo'))} ›</button>`;

@@ -165,7 +165,14 @@ document.addEventListener('DOMContentLoaded',()=>{
   setLang(lang);
   if(typeof stoInit==='function')stoInit(); // 端末ストレージの永続化状態・残り容量
   renderExamSetSel();
-  if(gImported)setTimeout(()=>toast(t('gCfgSaved')),400);
+  // リンクで受け取った設定（R5b「この設定を他の端末へ」）：自動保存を一度も選んでいない（未設定）なら、
+  // 手で「設定を保存」したとき（saveGoogleCfg）と同じく接続テストを走らせ、つながったら自動保存を既定ONにする。
+  // 合言葉なしのリンクでは gauto が付かないため、これが無いと OFF のまま＝録音が端末にしか残らない（R5 検証NG）
+  if(gImported){
+    const gi=getGoogleCfg();
+    const pend=!!(gi.url&&gi.auto===undefined&&!gi.autoSet);
+    setTimeout(()=>{toast(t('gCfgSaved')+(pend?' · '+t2('gAutoWait'):''));if(pend)gasTest(true)},400);
+  }
   if(draftRestored)showDraftNote(true); // 前回の途中の試問を黙って開かない（共用端末）
   // 孤児音声GC（どのセッションにも属さない録音を検出→件数確認のうえ削除）
   setTimeout(()=>gcOrphanAudio(),2500);

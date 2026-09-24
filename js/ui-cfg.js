@@ -352,6 +352,7 @@ function renderHowto(){
 }
 function toggleHowto(show){
   try{if(show)localStorage.removeItem(HOWTOKEY);else localStorage.setItem(HOWTOKEY,'1')}catch(e){}
+  if(typeof drvHintAsked!=='undefined')drvHintAsked=!!show; // ？で開き直した時だけ、閉じていたドライブの1行もカードに戻す
   // 初回カードの閉じるは1つ：中のドライブ未設定の1行もいっしょに閉じる（閉じた直後に別の案内カードを出さない）
   if(!show&&typeof DRVHINTKEY!=='undefined'){try{localStorage.setItem(DRVHINTKEY,'1')}catch(e){}}
   renderExamSetSel();
