@@ -97,6 +97,8 @@ async function rec(p, id) { await p.click('#rb-' + id); await p.waitForTimeout(9
     await p.goto(env.URL);
     await p.evaluate(u => localStorage.setItem('oral_exam_google_v1', JSON.stringify({ url: u, auto: true })), GURL);
     await p.reload(); await p.waitForTimeout(300);
+    // R5: ドライブ自動保存ONでは受験者名を先に入れないと録音を始めない
+    await p.fill('#fEr', '岡田'); await p.fill('#fEe', 'ブディ');
     await rec(p, 'q1'); await p.waitForTimeout(400);
     c.ok('C 1本目は未判定で送信 ' + posts[0]?.name, posts.length === 1 && posts[0].name.includes('_未判定_'));
     down = true;

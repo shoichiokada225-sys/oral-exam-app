@@ -835,3 +835,10 @@ details.ans .ansb{padding:0 13px 11px;font-size:.84rem;line-height:1.75;white-sp
 .eenote{font-size:var(--fs-xs);color:var(--sub);font-weight:600;margin-top:4px;line-height:1.4}
 #chNote{margin:0 0 10px}
 .verd.attn{animation:attnBtn .55s ease 4;border-radius:10px;box-shadow:0 0 0 3px var(--pri)}
+
+/* ---- R5 初回利用の導線：ドライブ保存の状態（試問ヒーロー）・入力漏れの赤枠 ---- */
+.prog .epdrv{display:block;margin-top:6px;padding:0;border:0;background:none;color:var(--hero-dim,rgba(255,255,255,.8));font:inherit;font-size:.74rem;font-weight:700;text-align:left;cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
+.prog .epdrv[data-st="on"]{text-decoration:none}
+.prog.mini .epdrv{display:none}
+@media print{.prog .epdrv{display:none}}
+input[aria-invalid="true"]{border-color:var(--s1)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--s1) 25%,transparent)}

@@ -5,6 +5,9 @@
 async function toggleRec(itemId){
   if(active&&active.itemId===itemId){await stopRec();return}
   if(active){toast(t('recOther'),1);jumpToActiveRec(true);return} // 誤タップでも録音中カードへ自動で連れて行く
+  // ドライブ自動保存がONなら、録音は停止直後に「受験者名」のフォルダへ送られる→名前が空のうちは録音を始めない
+  {const g=getGoogleCfg();const fe=document.getElementById('fEe');
+   if(g.url&&g.auto&&fe&&!fe.value.trim()){needExamineeUi();return}}
   // 録り直しは開始前に必ず確認（停止した瞬間に前のテイクが上書きされるため。誤タップの唯一の出口が破壊にならないように）
   if(cur&&cur.items[itemId]&&cur.items[itemId].hasAudio&&!confirm(t('reRecConfirm')))return;
   hideUndoBar(); // 新しい録音が始まったら旧テイクの「元に戻す」窓は閉じる（別項目の復元でカード再描画がUIを壊すのを防ぐ）
@@ -266,19 +269,32 @@ function stopRec(){
 let gConnected=false;
 
 function saveGoogleCfg(){
-  const g={url:document.getElementById('gUrl').value.trim(),token:document.getElementById('gToken').value.trim(),folder:document.getElementById('gFolder').value.trim()||'口頭試問音声',auto:document.getElementById('gAuto').checked};
+  const prev=getGoogleCfg();
+  const g=Object.assign({},prev,{url:document.getElementById('gUrl').value.trim(),token:document.getElementById('gToken').value.trim(),folder:document.getElementById('gFolder').value.trim()||'口頭試問音声',auto:document.getElementById('gAuto').checked});
+  // 初めてURLを保存するとき（チェックを自分で触っていない）は自動保存を既定ONにする
+  //（URLを入れて接続OKなのに1件も送られない事故を防ぐ。自分でOFFにした人＝autoSet は変えない）
+  let turnedOn=false;
+  if(g.url&&!prev.url&&!prev.autoSet&&!g.auto){g.auto=true;turnedOn=true;document.getElementById('gAuto').checked=true}
   localStorage.setItem(GKEY,JSON.stringify(g));
-  toast(t('gCfgSaved'));
+  toast(t('gCfgSaved')+(turnedOn?' · '+t2('gAutoOn'):''));
+  updateGoogleStatus();
 }
 function toggleAuto(){
   const g=getGoogleCfg();
   if(document.getElementById('gAuto').checked&&!g.url){toast(t('gAutoNoCfg'),1);document.getElementById('gAuto').checked=false;return}
-  g.auto=document.getElementById('gAuto').checked;localStorage.setItem(GKEY,JSON.stringify(g));
+  g.auto=document.getElementById('gAuto').checked;g.autoSet=true; // 利用者が自分で選んだ（以後、既定ONで上書きしない）
+  localStorage.setItem(GKEY,JSON.stringify(g));
+  updateGoogleStatus();
 }
 function updateGoogleStatus(){
-  const el=document.getElementById('gStatus');if(!el)return;
-  el.textContent=gConnected?t('gConnected'):t('gDisconnected');
-  el.style.color=gConnected?'var(--pri)':'var(--sub)';
+  const el=document.getElementById('gStatus');
+  if(el){
+    const auto=!!getGoogleCfg().auto;
+    // 接続OKでも自動保存OFFなら「送られない」ことを中立色で明示（「自動保存できます」と言わない）
+    el.textContent=gConnected?(auto?t('gConnected'):t2('drvConnNoAuto')):t('gDisconnected');
+    el.style.color=gConnected&&auto?'var(--pri)':'var(--sub)';
+  }
+  if(typeof updateDriveUi==='function')updateDriveUi();
 }
 
 // GASにPOST（プリフライト回避のためtext/plainで送る。bodyはJSON文字列）
@@ -296,7 +312,11 @@ async function gasTest(){
   const btn=document.getElementById('gTestBtn');const old=btn.textContent;btn.disabled=true;
   try{
     await gasPost({token:g.token,ping:true});
-    gConnected=true;updateGoogleStatus();toast(t('gTestOk'));
+    gConnected=true;
+    // 接続テストに成功し、自動保存を一度も選んでいない（未設定）なら既定ONにする
+    let turnedOn=false;
+    if(g.auto===undefined&&!g.autoSet){const g2=getGoogleCfg();g2.auto=true;localStorage.setItem(GKEY,JSON.stringify(g2));const cb=document.getElementById('gAuto');if(cb)cb.checked=true;turnedOn=true}
+    updateGoogleStatus();toast(t('gTestOk')+(turnedOn?' · '+t2('gAutoOn'):''));
   }catch(e){gConnected=false;updateGoogleStatus();toast(t('gTestFail')+'（'+e.message+'）',1)}
   finally{btn.disabled=false;btn.textContent=old}
 }
@@ -314,10 +334,11 @@ async function gasUpload(session,itemId,replaceId){
   const ext=(blob.type.indexOf('mp4')>=0)?'mp4':'webm';
   const rec=session.items[itemId]||{};
   const name=safeName(tag+'_'+verdictTag(rec.score)+'_'+(it?it.name:itemId))+'.'+ext;
-  const body={token:g.token,folder:g.folder||'口頭試問音声',examinee:session.examinee||'受験者',date:session.date||'',name,mime:blob.type||'audio/webm',dataB64:b64};
+  const ee=String(session.examinee||'').trim()||'受験者';
+  const body={token:g.token,folder:g.folder||'口頭試問音声',examinee:ee,date:session.date||'',name,mime:blob.type||'audio/webm',dataB64:b64};
   if(replaceId)body.replaceId=replaceId; // 合否変更時：旧名のファイルをGAS側でゴミ箱へ（旧GASは無視＝新旧2本残るだけ）
   const j=await gasPost(body);
-  return{id:j.id,link:j.url,name};
+  return{id:j.id,link:j.url,name,ee};
 }
 
 // 録音停止後に呼ばれる：自動アップロード
@@ -329,6 +350,9 @@ async function maybeAutoUpload(itemId,opt,sessArg){
   if(!g.url||(!g.auto&&!(opt&&opt.manual)))return; // 手動の再送は自動保存OFFでも送る
   const sess=sessArg||cur; // 対象セッションを固定（アップロード中にcurが切り替わっても取り違えない）
   if(!sess)return;
+  // 試問中で受験者名が空のまま送ると、ドライブの「受験者」フォルダに誰のものか分からない録音が並ぶ→送らない
+  //（名前を入れて「試問を保存」したときに syncExamineeOnSave が送る）
+  if(sess===cur&&!String(cur.examinee||'').trim()){if(opt&&opt.manual&&!opt.quiet)needExamineeUi();return}
   const key=sess.id+'_'+itemId;
   // 送信中に合否が変わった等：終わってから最新の状態でもう一度送る（多重送信・順序逆転を防ぐ）
   if(upBusy[key]){upPend[key]=upPend[key]||opt||{};return}
@@ -343,7 +367,7 @@ async function maybeAutoUpload(itemId,opt,sessArg){
     const prev=sess.items[itemId];
     const res=await gasUpload(sess,itemId,isRep?prev.driveFileId:null);
     if(!res)throw new Error('no-audio');
-    sess.items[itemId].driveFileId=res.id;sess.items[itemId].driveLink=res.link;sess.items[itemId].driveName=res.name;
+    sess.items[itemId].driveFileId=res.id;sess.items[itemId].driveLink=res.link;sess.items[itemId].driveName=res.name;sess.items[itemId].driveEe=res.ee; // 送った受験者名（保存時に名前が変わっていたら付け直す）
     delete sess.items[itemId].driveSt;
     persistDriveState(sess,itemId);
     showCloud(sess,itemId,'done');
@@ -366,6 +390,7 @@ function persistDriveInfo(sess,itemId){
   const all=getAll();const x=all.find(s=>s.id===sess.id);if(!x)return;
   const src=sess.items[itemId]||{};
   const dst=x.items[itemId]=Object.assign(x.items[itemId]||{},{driveFileId:src.driveFileId,driveLink:src.driveLink,driveName:src.driveName});
+  if(src.driveEe!==undefined)dst.driveEe=src.driveEe;
   if(src.driveSt)dst.driveSt=src.driveSt;else delete dst.driveSt;
   saveAll(all);
 }
@@ -376,7 +401,7 @@ function persistDriveState(sess,itemId){
   [typeof cur!=='undefined'?cur:null,typeof curScore!=='undefined'?curScore:null].forEach(o=>{
     if(!o||o===sess||o.id!==sess.id)return;
     const src=sess.items[itemId]||{},dst=o.items[itemId]=o.items[itemId]||{};
-    ['driveFileId','driveLink','driveName'].forEach(f=>{dst[f]=src[f]});
+    ['driveFileId','driveLink','driveName','driveEe'].forEach(f=>{if(src[f]!==undefined||f!=='driveEe')dst[f]=src[f]});
     if(src.driveSt)dst.driveSt=src.driveSt;else delete dst.driveSt;
   });
   if(cur===sess)saveDraft();else persistDriveInfo(sess,itemId);
@@ -445,6 +470,26 @@ function resyncDriveName(sess,itemId){
   },1500);
 }
 
+/* 「試問を保存」の直後：確定した受験者名とドライブへ送った名前が違う録音を付け直す（replaceId で旧ファイルを置き換え）。
+   名前が空で送れずに待っていた録音もここで送る。saved は保存したセッション（保存後は cur ではない） */
+function syncExamineeOnSave(saved){
+  const g=getGoogleCfg();if(!g.url||!saved||!saved.items)return 0;
+  const ee=String(saved.examinee||'').trim();if(!ee)return 0;
+  let n=0;
+  Object.keys(saved.items).forEach(k=>{
+    const r=saved.items[k];if(!r||!r.hasAudio||!safeKey(k))return;
+    const key=saved.id+'_'+k;
+    if(r.driveFileId&&r.driveEe!==undefined&&r.driveEe!==ee){n++;maybeAutoUpload(k,{replace:true},saved);return}
+    if(upBusy[key])return;
+    if(!r.driveFileId&&g.auto&&!r.driveSt){n++;maybeAutoUpload(k,undefined,saved)} // 名前待ちで送っていなかった録音
+  });
+  return n;
+}
+/* 受験者名が必要な場面：受験者名欄へスクロールしてフォーカス・赤枠 */
+function needExamineeUi(){
+  toast(t2('needEe'),1);
+  if(typeof markInvalid==='function')markInvalid('fEe');
+}
 // 合否ボタン（試問カード）：採点と同じ score に保存。同じボタンをもう一度押すと解除
 function setVerdict(itemId,v){
   if(!cur)return;

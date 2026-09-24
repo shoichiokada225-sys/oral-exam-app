@@ -74,6 +74,12 @@ function injectDynamicContainers(){
     d.style.cssText='font-size:.8rem;color:var(--sub);line-height:1.7';
     meta.parentElement.insertBefore(d,meta);
   }
+  // 試問タブ：ドライブ未設定の案内（使い方の下・閉じたら出さない。中身は updateDriveUi）
+  if(meta&&!document.getElementById('drvHint')){
+    const d=document.createElement('div');
+    d.id='drvHint';d.className='cd';d.setAttribute('role','note');d.style.display='none';
+    meta.parentElement.insertBefore(d,meta);
+  }
   // 設定タブ：プリセット/質問セットUI（作業カタログボタンの上）
   const catBtn=document.getElementById('btnCatAdd');
   if(catBtn&&!document.getElementById('qsetArea')){
@@ -99,7 +105,11 @@ document.addEventListener('DOMContentLoaded',()=>{
   let lastEr='';try{lastEr=localStorage.getItem(EKEY)||''}catch(e){}
   document.getElementById('fEr').value=cur.examiner||lastEr;
   document.getElementById('fEe').value=cur.examinee||'';
-  ['fDate','fEr','fEe'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{if(cur){cur.date=document.getElementById('fDate').value;cur.examiner=document.getElementById('fEr').value;cur.examinee=document.getElementById('fEe').value;saveDraft()}}));
+  ['fDate','fEr','fEe'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{clearInvalid(id);if(cur){cur.date=document.getElementById('fDate').value;cur.examiner=document.getElementById('fEr').value;cur.examinee=document.getElementById('fEe').value;saveDraft()}}));
+  // 受験者名を書き換えたとき：前の人の未保存の録音・合否を黙って次の人に付け替えない
+  const fEe=document.getElementById('fEe');
+  fEe.addEventListener('focus',()=>{eeBefore=cur?String(cur.examinee||'').trim():''});
+  fEe.addEventListener('change',()=>{onExamineeChange()});
   const s=getStt();
   document.getElementById('sttEndpoint').value=s.endpoint||'';
   document.getElementById('sttModel').value=s.model||'';
@@ -181,8 +191,9 @@ async function saveSession(){
   cur.date=document.getElementById('fDate').value;
   cur.examiner=document.getElementById('fEr').value.trim();
   cur.examinee=document.getElementById('fEe').value.trim();
-  if(!cur.examiner||!cur.examinee){toast(t('eNm'),1);return}
-  if(!cur.date){toast(t('eDt'),1);return}
+  // 名前・日付が空：トーストだけでなく、空の欄へスクロールしてフォーカスし赤枠を付ける（欄は画面外のことが多い）
+  if(!cur.examiner||!cur.examinee){toast(t('eNm'),1);markInvalid(!cur.examiner?'fEr':'fEe');if(!cur.examiner&&!cur.examinee)setInvalid('fEe',true);return}
+  if(!cur.date){toast(t('eDt'),1);markInvalid('fDate');return}
   if(!getItems().length){toast(t2('noItems'),1);return} // 質問が0件＝録音以前に設定が必要（「録音がありません」では次の手が分からない）
   const recd=getItems().some(it=>cur.items[it.id]&&cur.items[it.id].hasAudio);
   if(!recd){toast(t('eNoRec'),1);return}
@@ -217,11 +228,55 @@ async function saveSession(){
   toast(scored?t2('savedScored'):t('tSaved'));
   const sb=document.querySelector('.tabs button[data-pg="'+(scored?'pgHi':'pgScore')+'"]');
   if(sb){sb.classList.add('attn');setTimeout(()=>sb.classList.remove('attn'),5000)}
+  const saved=cur;
   newSession();
   document.getElementById('fEr').value=cur.examiner=(localStorage.getItem(EKEY)||'');
-  document.getElementById('fEe').value='';
+  document.getElementById('fEe').value='';eeBefore='';
   document.getElementById('fDate').value=todayStr();
   buildExamCards();refreshSel();
+  // ドライブへ送った受験者名が確定した名前と違う録音（名前の訂正など）を付け直す
+  if(typeof syncExamineeOnSave==='function')syncExamineeOnSave(saved);
+  return true;
+}
+/* 入力欄の赤枠（aria-invalid）。markInvalid はスクロール＋フォーカスも行う */
+function setInvalid(id,on){const el=document.getElementById(id);if(!el)return;if(on)el.setAttribute('aria-invalid','true');else el.removeAttribute('aria-invalid')}
+function clearInvalid(id){setInvalid(id,false)}
+function markInvalid(id){
+  const el=document.getElementById(id);if(!el)return;
+  setInvalid(id,true);
+  // 試問タブ以外にいるときは試問タブへ戻す（録音は試問タブからしか始まらないが念のため）
+  const pg=document.getElementById('pgExam');
+  if(pg&&!pg.classList.contains('on')){const tb=document.querySelector('.tabs [data-pg="pgExam"]');if(tb)swTab(tb)}
+  try{el.scrollIntoView({behavior:'smooth',block:'center'})}catch(e){el.scrollIntoView()}
+  try{el.focus({preventScroll:true})}catch(e){el.focus()}
+}
+/* 受験者名の書き換え：元の名前が空でなく、名前が変わり、未保存の録音か○×があるときは確認する。
+   OK＝元の名前で保存してから新しい名前で試問を始める／キャンセル＝名前の訂正だけ（従来どおり） */
+let eeBefore='';
+function curWork(){
+  const it=cur&&cur.items?Object.values(cur.items):[];
+  return{n:it.filter(x=>x&&x.hasAudio).length,m:it.filter(x=>x&&isPF(x.score)).length};
+}
+async function onExamineeChange(){
+  const el=document.getElementById('fEe');
+  const prev=eeBefore,next=el.value.trim();
+  eeBefore=next;
+  if(!cur||!prev||prev===next)return;
+  const w=curWork();
+  if(!w.n&&!w.m)return;
+  const fill=s=>s.replace(/\{o\}/g,prev).replace(/\{e\}/g,next||'—').replace('{n}',w.n).replace('{m}',w.m);
+  if(!confirm(fill(t2('eeSwitch'))))return; // 名前の訂正だけ（保存時にドライブの名前も付け直す）
+  // 元の名前に戻して保存 → 成功したら新しい名前で次の試問を始める
+  el.value=prev;cur.examinee=prev;saveDraft();
+  const ok=await saveSession();
+  if(ok===true){
+    el.value=next;eeBefore=next;
+    if(cur){cur.examinee=next}
+    toast(fill(t2('eeSwitched')));
+  }else{
+    eeBefore=prev; // 保存できなかった：前の人の録音を新しい名前に付け替えないよう、名前は元のまま
+    if(!document.getElementById('saveErr'))setTimeout(()=>toast(fill(t2('eeSwitchFail')),1),5200);
+  }
 }
 /* 試問の保存に失敗した時の常設案内（トーストは5秒で消えるため）。バックアップ書き出しは未保存の試問も同梱する */
 function showSaveErr(on,noScroll){

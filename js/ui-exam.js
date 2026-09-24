@@ -65,7 +65,36 @@ function buildExamCards(){
 function gotoCfgPart(anchorId){
   const tb=document.querySelector('.tabs [data-pg="pgCfg"]');if(!tb)return;
   swTab(tb);
-  const a=document.getElementById(anchorId);if(a)setTimeout(()=>a.scrollIntoView({behavior:'smooth',block:'start'}),80);
+  const a=document.getElementById(anchorId);if(!a)return;
+  // 閉じた折りたたみ（Googleドライブ欄など）の中なら開いてから連れて行く
+  let d=a.closest('details');while(d){d.open=true;d=d.parentElement&&d.parentElement.closest('details')}
+  setTimeout(()=>a.scrollIntoView({behavior:'smooth',block:'start'}),80);
+}
+/* ドライブ保存の状態表示（試問タブ）
+   ・進捗ヒーローに1行：自動保存ON／OFF／未設定（録音が端末だけに残るのかを試問中に分かるように）
+   ・未設定のときだけ、使い方の下に中立の案内＋設定へのボタン（閉じたら DRVHINTKEY に記録して以後出さない） */
+const DRVHINTKEY='oral_exam_drvhint_off';
+function driveState(){const g=getGoogleCfg();return !g.url?'none':g.auto?'on':'off'}
+function dismissDrvHint(){try{localStorage.setItem(DRVHINTKEY,'1')}catch(e){}const h=document.getElementById('drvHint');if(h)h.style.display='none'}
+function updateDriveUi(){
+  const st=driveState();
+  const box=document.getElementById('examProg');
+  if(box){
+    let el=document.getElementById('epDrv');
+    if(!el){el=document.createElement('button');el.type='button';el.id='epDrv';el.className='epdrv';el.onclick=()=>gotoCfgPart('gUrl');box.appendChild(el)}
+    el.textContent=t2(st==='on'?'drvOn':st==='off'?'drvOff':'drvNone');
+    el.dataset.st=st;
+  }
+  const h=document.getElementById('drvHint');
+  if(h){
+    let off=false;try{off=localStorage.getItem(DRVHINTKEY)==='1'}catch(e){}
+    if(st!=='none'||off){h.style.display='none';return}
+    h.style.display='';
+    h.innerHTML=`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.8rem;color:var(--sub);line-height:1.6">
+      <span style="flex:1 1 200px">${esc(t2('drvHint'))}</span>
+      <button type="button" class="b b3" id="drvHintGo" style="flex:0 0 auto;padding:6px 10px;font-size:.74rem" onclick="gotoCfgPart('gUrl')">${esc(t2('drvHintGo'))}</button>
+      <button type="button" class="b b4" id="drvHintX" style="flex:0 0 auto;padding:6px 10px;font-size:.74rem" onclick="dismissDrvHint()" aria-label="${esc(t('btnClose'))}">${esc(t('btnClose'))}</button></div>`;
+  }
 }
 
 /* 試問タブ：録音進捗バー＋合否の進捗＋セクションジャンプ
@@ -74,6 +103,7 @@ function examRecd(it){return !!(cur&&cur.items[it.id]&&cur.items[it.id].hasAudio
 function examJudged(it){return !!(cur&&cur.items[it.id]&&isPF(cur.items[it.id].score))}
 function updateExamProg(){
   const box=document.getElementById('examProg');if(!box)return;
+  updateDriveUi();
   const items=getItems(),secs=getSections();
   const m=items.length;
   if(!m){box.style.display='none';box.classList.remove('complete');return}

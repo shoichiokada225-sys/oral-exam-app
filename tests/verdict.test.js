@@ -10,6 +10,8 @@ let pass=0,fail=0;const ok=(n,c)=>{c?pass++:fail++;console.log((c?'  OK ':'  NG 
   await p.goto(env.URL);
   await p.evaluate(()=>localStorage.setItem('oral_exam_google_v1',JSON.stringify({url:'https://script.google.com/macros/s/x/exec',auto:true})));
   await p.reload();await p.waitForTimeout(300);
+  // R5: ドライブ自動保存ONでは受験者名が空だと録音を始めない（「受験者」フォルダに誰のものか分からない録音が並ぶため）→先に名前を入れる
+  await p.fill('#fEr','岡田');await p.fill('#fEe','テスト太郎');
   ok('合否ボタンが各カードにある',await p.locator('#examCards .verd').count()===await p.locator('#examCards .qc').count());
   const box=await p.locator('#vp-q1').boundingBox(),rb=await p.locator('#rb-q1').boundingBox();
   ok('録音ボタンと同じ行',Math.abs((box.y+box.height/2)-(rb.y+rb.height/2))<30);
