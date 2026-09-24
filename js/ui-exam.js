@@ -30,6 +30,7 @@ function buildExamCards(){
           <button type="button" class="b b3" id="nx-${iid}" style="display:${has?'inline-block':'none'};flex:0 0 auto;padding:6px 10px;font-size:.74rem;margin-left:auto" onclick="gotoNextUnrec('${iid}')">${esc(t2('nextUnrec'))} ▾</button>
         </div>
         <audio id="au-${iid}" controls style="display:${has?'block':'none'}"></audio>
+        <button type="button" class="b b3 rcont" id="rc-${iid}" style="display:${has?'inline-flex':'none'}" onclick="contRec('${iid}')">＋ ${esc(t2('recCont'))}</button>
         <div class="live" id="lv-${iid}" style="display:${(rec&&rec.draft)?'block':'none'}"><span class="lbl">${t('liveLbl')}</span><span class="lvtxt">${esc(rec?rec.draft:'')}</span></div>
         <div class="cloud" id="cl-${iid}" style="font-size:.78rem;font-weight:700;margin-top:6px;display:${(rec&&rec.driveLink)?'block':'none'};color:var(--pri)">${(rec&&rec.driveLink)?t('clDone'):''}</div>
       </div>`;
@@ -113,6 +114,8 @@ function updateExamProg(){
   const j=items.filter(it=>examRecd(it)&&examJudged(it)).length;
   // 録音完了直後（media.jsのonstopから呼ばれる）に「次の未録音へ」ボタンを出す
   items.forEach(it=>{const b=document.getElementById('nx-'+sanitizeId(it.id));if(b)b.style.display=examRecd(it)?'inline-block':'none'});
+  // 停止した録音の後ろに足す「続きを録音」（誤って停止しても後半を録れる）。その問を録音している間は隠す
+  items.forEach(it=>{const b=document.getElementById('rc-'+sanitizeId(it.id));if(b)b.style.display=examRecd(it)&&!(typeof active!=='undefined'&&active&&active.itemId===it.id)?'inline-flex':'none'});
   // カード右上の✓も進捗バー・チップと同じ基準（録音と○×の両方）で付け外しする
   items.forEach(it=>{const c=document.getElementById('q-'+sanitizeId(it.id));if(c){c.classList.toggle('done',done(it));const sc=cur&&cur.items[it.id]?cur.items[it.id].score:null;c.classList.toggle('v-pass',done(it)&&sc==='pass');c.classList.toggle('v-fail',done(it)&&sc==='fail')}});
   document.getElementById('epLbl').textContent=t('progRec');

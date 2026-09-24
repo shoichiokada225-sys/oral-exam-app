@@ -18,6 +18,7 @@ function applyT(){
   document.querySelectorAll('[data-ph]').forEach(el=>{el.placeholder=t(el.dataset.ph)});
   // 言語に追従するアクセシブルネーム
   const nav=document.getElementById('mainNav');if(nav)nav.setAttribute('aria-label',t('navMain'));
+  const bl=document.getElementById('beepLbl');if(bl)bl.textContent=t2('beepOpt');
   const hq=document.getElementById('hQ');if(hq)hq.setAttribute('aria-label',t('searchPh'));
   const sf=document.getElementById('scFil');if(sf)sf.setAttribute('aria-label',t('alFilter'));
   const hf=document.getElementById('hFil');if(hf)hf.setAttribute('aria-label',t('alFilter'));
@@ -80,6 +81,15 @@ function injectDynamicContainers(){
     d.id='drvHint';d.className='cd';d.setAttribute('role','note');d.style.display='none';
     meta.parentElement.insertBefore(d,meta);
   }
+  // 設定タブ最上部：録音の合図（開始・停止で短い音。振動は対応端末で常に）
+  const cfgPg=document.getElementById('pgCfg');
+  if(cfgPg&&!document.getElementById('recOptBox')){
+    const d=document.createElement('div');d.id='recOptBox';d.className='cd';
+    d.innerHTML='<label class="ckrow" style="margin-top:0"><input type="checkbox" id="beepChk"> <span id="beepLbl"></span></label>';
+    cfgPg.insertBefore(d,cfgPg.firstChild);
+    const c=d.querySelector('#beepChk');c.checked=typeof beepOn==='function'&&beepOn();
+    c.addEventListener('change',()=>{setBeep(c.checked);if(c.checked)recCue('start')});
+  }
   // 設定タブ：プリセット/質問セットUI（作業カタログボタンの上）
   const catBtn=document.getElementById('btnCatAdd');
   if(catBtn&&!document.getElementById('qsetArea')){
@@ -121,6 +131,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(gImported)setTimeout(()=>toast(t('gCfgSaved')),400);
   // 孤児音声GC（どのセッションにも属さない録音を検出→件数確認のうえ削除）
   setTimeout(()=>gcOrphanAudio(),2500);
+  // 前回、録音の途中で端末が落ちた・タブが閉じられた：一時保存から「中断された録音を復元」を出す
+  setTimeout(()=>{if(typeof checkLiveTakes==='function')checkLiveTakes()},600);
   // 前回ドライブへ届かなかった録音（送信失敗・送信中に終了）を、電波があれば起動時にまとめて再送
   setTimeout(()=>{if(navigator.onLine!==false&&typeof resendAllUnsent==='function')resendAllUnsent()},4000);
   // 録音中、または端末に保存できていない録音（メモリ上だけの唯一の写し）がある間は、閉じる・再読み込みを止める
@@ -176,6 +188,7 @@ function revealFocused(el){
   if(dy)window.scrollBy({top:dy,behavior:'instant'});
 }
 function newSession(){
+  if(typeof hideUndoBar==='function')hideUndoBar(); // 別の試問になったら前の試問の「元に戻す」は閉じる
   cur={id:crypto.randomUUID(),date:todayStr(),examiner:'',examinee:'',items:{},overall:'',status:'rec',createdAt:new Date().toISOString()};
 }
 function restoreDraftOrNew(){
@@ -201,12 +214,35 @@ function jumpToActiveRec(scrollOnly){
   const btn=document.getElementById('rb-'+iid);
   const tgt=btn||card;
   if(!tgt){if(!scrollOnly)stopRec();return}
-  const r=tgt.getBoundingClientRect();
-  const inView=r.top>=0&&r.bottom<=(window.innerHeight||document.documentElement.clientHeight);
+  // 見えている＝ヘッダー・ヒーローの下端からタブの上端まで（横向きでタブの裏に隠れたボタンを「見えている」と判定しない）
+  const inView=inBand(tgt);
   if(inView&&!scrollOnly){stopRec();return}
-  (card||tgt).scrollIntoView({behavior:'smooth',block:'center'});
+  const row=card&&card.querySelector('.recrow');
+  scrollToBand(row||tgt,'smooth');
   // スクロール到着後に停止ボタンを強調（「ここで停止」を明示。ピルの1タップ目で止まらない驚きを補う）
   if(btn){btn.classList.add('attn');setTimeout(()=>btn.classList.remove('attn'),2200)}
+}
+/* 固定表示（stickyのヘッダー・試問ヒーロー／固定のタブ）を除いた「実際に見えている縦の範囲」 */
+function recBand(){
+  const vh=window.innerHeight||document.documentElement.clientHeight;
+  let top=0,bot=vh;
+  const fx=x=>x&&x.offsetParent!==null&&/sticky|fixed/.test(getComputedStyle(x).position);
+  const hd=document.querySelector('.hdr');if(fx(hd)){const r=hd.getBoundingClientRect();if(r.bottom>0)top=Math.max(top,r.bottom)}
+  const pg=document.querySelector('.pg.on .prog');if(fx(pg)){const r=pg.getBoundingClientRect();if(r.top<vh/2)top=Math.max(top,r.bottom)}
+  const tb=document.querySelector('.tabs');if(tb&&tb.offsetParent!==null){const r=tb.getBoundingClientRect();if(r.top>0)bot=Math.min(bot,r.top)}
+  return{top,bot};
+}
+function inBand(el){
+  if(!el||!el.getBoundingClientRect)return false;
+  const r=el.getBoundingClientRect();if(!r.width&&!r.height)return false;
+  const b=recBand();return r.top>=b.top-1&&r.bottom<=b.bot+1;
+}
+/* 要素を見えている範囲の中央へ（範囲より高い要素は上端をそろえる） */
+function scrollToBand(el,behavior){
+  if(!el||!el.getBoundingClientRect)return;
+  const r=el.getBoundingClientRect(),b=recBand();
+  const dy=(r.height>b.bot-b.top-16)?r.top-(b.top+8):(r.top+r.height/2)-(b.top+b.bot)/2;
+  if(Math.abs(dy)>1)window.scrollBy({top:dy,behavior:behavior||'instant'});
 }
 async function saveSession(){
   // 録音の真っ最中の保存は回答を途中で切断してコミットするため、必ず確認を挟む（タブ/言語切替の保護と一貫させる）
@@ -349,6 +385,7 @@ async function resetExam(){
    ============================================================== */
 function swTab(btn){
   if(active){toast(t2('recBusy'),1);return}
+  if(typeof hideUndoBar==='function')hideUndoBar(); // 画面を移ったら「元に戻す」は閉じる（次の操作まで出し続ける）
   // 設定タブで未保存の項目編集がある場合は確認し、離脱時は保存済み状態に戻す
   //（試問カードが未保存cfgで描画されて見た目と保存状態が乖離する事故を防ぐ）
   const curPg=document.querySelector('.pg.on');

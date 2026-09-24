@@ -132,6 +132,7 @@ const S = (id, ee, date, status, items) => ({ id, date, examiner: '岡田', exam
   T.ok('全問の録音と○×がそろって完了色', await p.locator('#examProg.complete').count() === 1);
   T.ok('全チップ完了', await p.locator('#epChips .chip.done').count() === await p.locator('#epChips .chip').count());
   T.ok('未判定がなければボタンは消える', await p.locator('#epNextUnj').count() === 0);
+  await p.waitForTimeout(550); // R8: 同じボタンの500ms以内の再押下は二度押し（チャタリング）として無視するため、間を空けて押す
   await p.click('#vp-' + ids[2]); // 解除
   T.ok('○を外すと完了色が戻る', !(await p.locator('#examProg.complete').count()));
   await p.setViewportSize({ width: 375, height: 800 }); await p.waitForTimeout(150);

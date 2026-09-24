@@ -65,10 +65,12 @@ const T = env.counter();
   T.ok('録音1件で合否の進捗が出る', (await p.textContent('#epPf')).includes('合否 0 / 録音 1'));
   await p.click('#vp-' + a1); await p.waitForTimeout(150);
   T.ok('○を付けると✓', (await p.getAttribute('#q-' + a1, 'class')).split(/\s+/).includes('done'));
+  await p.waitForTimeout(450); // R8: 同じボタンの500ms以内の再押下は二度押しとして無視するため、間を空けて押す
   await p.click('#vp-' + a1); await p.waitForTimeout(150);
   T.ok('○を外すと✓も外れる', !(await p.getAttribute('#q-' + a1, 'class')).split(/\s+/).includes('done'));
   await p.click('#vp-' + a3); await p.waitForTimeout(150);
   T.ok('未録音で○だけでは✓なし', !(await p.getAttribute('#q-' + a3, 'class')).split(/\s+/).includes('done'));
+  await p.waitForTimeout(250); // R8: 同じボタンの500ms以内の再押下は無視（上の解除から間を空ける）
   await p.click('#vp-' + a1); await p.waitForTimeout(150);
 
   console.log('[2b] 未録音に○があるときは保存時に採点確定を勧めない');

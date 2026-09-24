@@ -886,3 +886,43 @@ html.scoring{
 /* 「質問しなかった」チェック：行の高さ44px・チェック本体22px */
 #scDetail .nalbl{display:flex;align-items:center;gap:8px;min-height:44px;padding:8px 0;margin-top:0;font-size:.8rem;color:var(--sub);cursor:pointer}
 #scDetail .nalbl .nachk{width:22px;height:22px;flex:0 0 22px;margin:0;accent-color:var(--btn-pri)}
+
+/* ---- R8 スマホ現場：録音の安全装置 ---- */
+/* 一時停止／再開（録音中だけ・停止＝確定の赤いボタンの隣） */
+.recbtn.pausebtn{border-color:var(--sub);color:var(--txt);padding:10px 14px}
+.recbtn.pausebtn .dot{display:none}
+.recbtn.pausebtn.on{background:var(--pri-l);border-color:var(--pri);color:var(--pri-d)}
+#recPill.paused{animation:none;background:var(--sub)}
+/* 停止した録音の後ろに足す（誤って停止しても後半を録れる） */
+.rcont{display:inline-flex;align-items:center;min-height:44px;margin-top:8px;padding:6px 14px;font-size:.8rem;flex:0 0 auto}
+/* 画面の自動ロックを止められない端末：録音中は常に表示 */
+#wakeNote{
+  position:fixed;left:12px;right:12px;top:calc(var(--hdr-h) + 6px + env(safe-area-inset-top,0px));z-index:205;
+  padding:8px 12px;border-radius:12px;background:var(--toast-bg);color:var(--toast-tx);
+  font-size:.8rem;font-weight:700;line-height:1.45;text-align:center;box-shadow:var(--sh-lg);pointer-events:none;
+}
+/* 中断された録音の復元（試問タブ・カードの上） */
+#liveRec{border-left:4px solid var(--s1)}
+#liveRec .lrmsg{font-size:.86rem;font-weight:700;line-height:1.6;margin-bottom:10px;overflow-wrap:anywhere}
+#liveRec .lrbtns{display:flex;gap:8px;flex-wrap:wrap}
+#liveRec .lrbtns .b{flex:1 1 140px;text-decoration:none;text-align:center;min-height:44px}
+/* 「元に戻す」は次の操作まで残す→自分で閉じる✕ */
+#undoBar .ubx{background:transparent;color:var(--toast-tx);min-width:38px;padding:7px 10px;border:1px solid rgba(255,255,255,.3)}
+
+/* スマホ横向き（高さ500px以下）：固定表示を薄くして内容の見える高さを確保する */
+@media (orientation:landscape) and (max-height:500px){
+  :root{--tabs-h:44px}
+  .hdr{position:relative;min-height:40px;padding-top:max(4px,env(safe-area-inset-top,0px));padding-bottom:4px}
+  .prog,.prog.mini{top:4px;padding:4px 12px;display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .prog .pmeta span{line-height:1.1}
+  .prog .pmeta,.prog.mini .pmeta{margin:0;flex:0 0 auto;gap:8px}
+  .prog .pmeta>span:last-child,.prog.mini .pmeta>span:last-child{font-size:1rem}
+  .prog .pbar,.prog.mini .pbar{flex:1 1 auto;height:6px}
+  .prog .chips,.prog .pjudge,.prog .epdrv{display:none}
+  .stit{scroll-margin-top:48px}
+  .tabs button{min-height:44px;padding:4px 2px;gap:0}
+  .tabs button span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+  .tabs button::after{top:7px}
+  #wakeNote{top:auto;bottom:calc(var(--tabs-h) + 70px + env(safe-area-inset-bottom,0px));left:auto;max-width:60vw}
+  html.scoring{scroll-padding-top:12px}
+}

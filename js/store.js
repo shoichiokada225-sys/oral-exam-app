@@ -10,6 +10,9 @@ const DRAFTKEY='oral_exam_draft_v1';
 const PSKEY='oral_exam_presets_v1';   // 質問セット（名前付きcfgスナップショット）。CKEYは常に「アクティブな実体」
 const EKEY='oral_exam_last_examiner'; // 前回の試問者名（入力初期値）
 const DBNAME='oralExamDB',STORE='audio';
+/* 録音中の一時保存（1秒ごとに追記。停止して正式キー session.id+'_'+itemId に書けたら消す）。
+   正式キーとは接頭辞で区別する＝既存の録音キー・保存形式は不変。孤児音声GCの対象外 */
+const LIVEPFX='live__';
 
 let cfg=loadCfg();
 /* 2026-09-23 既定を3問（健康観察・消毒・異常報告）へ変更：使用中の端末も起動時に一度だけ3問へ切り替える。
@@ -165,7 +168,7 @@ async function gcOrphanAudio(){
     const keep=new Set();
     if(typeof cur!=='undefined'&&cur&&cur.id)keep.add(cur.id);
     try{const d=JSON.parse(localStorage.getItem(DRAFTKEY));if(d&&d.id)keep.add(String(d.id))}catch(e){}
-    const orphans=keys.filter(k=>!valid.has(k)&&![...keep].some(id=>String(k).startsWith(id+'_')));
+    const orphans=keys.filter(k=>!String(k).startsWith(LIVEPFX)&&!valid.has(k)&&![...keep].some(id=>String(k).startsWith(id+'_')));
     if(!orphans.length)return;
     if(!confirm(t2('gcConfirm').replace('{n}',orphans.length)))return;
     for(const k of orphans)await delAudio(k);
