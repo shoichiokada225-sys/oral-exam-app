@@ -2,9 +2,10 @@
    file:// では SW が動かないため、ブラウザを使わず fs と git だけで確認する。
    (1) ASSETS のローカルパスが実在する
    (2) index.html が読み込む js/・styles.css・manifest・アイコンがすべて ASSETS にある（外部CDNのscriptも）
-   (3) 作業ツリーでアセットが変わっているのに VER 行が変わっていなければ警告（WARN 行→run.js が集計に表示） */
+   (3) origin/main（無ければ最後に VER が変わったコミット）以降、コミット済み・作業ツリーを問わずアセットが変わっているのに
+       VER の値が基準と同じなら NG（旧版は作業ツリー vs HEAD だけ見ていて、コミットした瞬間に見逃していた） */
 'use strict';
-const path = require('path'), fs = require('fs'), { execFileSync } = require('child_process');
+const path = require('path'), fs = require('fs');
 const ROOT = path.resolve(__dirname, '..');
 let pass = 0, fail = 0;
 const ok = (n, c) => { c ? pass++ : fail++; console.log((c ? '  OK ' : '  NG ') + n); };
@@ -38,22 +39,15 @@ try {
   for (const ic of mf.icons || []) ok(`ASSETS に含む（manifestアイコン）: ${ic.src}`, set.has(norm(ic.src)));
 } catch (e) { ok('manifest.webmanifest を読める', false); }
 
-console.log('[3] アセット変更時の VER 更新（git 作業ツリー vs HEAD）');
-let changed = null;
-try {
-  changed = execFileSync('git', ['diff', 'HEAD', '--name-only'], { cwd: ROOT, encoding: 'utf8' }).split('\n').filter(Boolean);
-  changed = changed.concat(execFileSync('git', ['ls-files', '--others', '--exclude-standard'], { cwd: ROOT, encoding: 'utf8' }).split('\n').filter(Boolean));
-} catch (e) { console.log('  （git が使えないため VER 検査は省略）'); }
-if (changed) {
-  const isAsset = f => f === 'index.html' || f === 'styles.css' || f === 'manifest.webmanifest' || /^js\/.+\.js$/.test(f) || /^icon-.+\.png$/.test(f);
-  const touched = changed.filter(isAsset);
-  let verChanged = false;
-  try {
-    const d = execFileSync('git', ['diff', 'HEAD', '-U0', '--', 'sw.js'], { cwd: ROOT, encoding: 'utf8' });
-    verChanged = /^\+\s*const VER\s*=/m.test(d);
-  } catch (e) { /* 無視 */ }
-  if (touched.length && !verChanged) console.log(`  WARN アセット変更（${touched.join(', ')}）があるのに sw.js の VER が上がっていない`);
-  else console.log(`  （アセット変更 ${touched.length} 件・VER 変更 ${verChanged ? 'あり' : 'なし'}）`);
+console.log('[3] アセット変更時の VER 更新（origin/main〔無ければ最後に VER が変わったコミット〕→作業ツリー。コミット済みも含む）');
+{
+  const r = require('./_verguard').checkVer(ROOT);
+  if (r.skipped) console.log(`  （${r.skipped}ため VER 検査は省略）`);
+  else {
+    console.log(`  基準: ${r.label}（VER ${r.verBase} → 今 ${r.verNow}）・アセット変更 ${r.touched.length} 件・アセットを変えたコミット ${r.commits.length} 本`);
+    ok(r.ok ? 'VER が基準から上がっている（またはアセット変更なし）'
+      : `アセット変更（${r.touched.join(', ')}${r.commits.length ? ' ／ コミット: ' + r.commits.join(' ; ') : ''}）があるのに sw.js の VER が基準（${r.verBase}）のまま`, r.ok);
+  }
 }
 
 console.log(`\n結果: ${pass} passed / ${fail} failed`);

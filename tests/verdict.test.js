@@ -56,7 +56,7 @@ let pass=0,fail=0;const ok=(n,c)=>{c?pass++:fail++;console.log((c?'  OK ':'  NG 
   // スマホ幅ではみ出さない
   await p.setViewportSize({width:375,height:800});await p.waitForTimeout(200);
   ok('375px幅で横スクロールなし',await p.evaluate(()=>document.documentElement.scrollWidth<=375));
-  await p.screenshot({path:require('os').tmpdir()+'/oral-verdict.png',clip:{x:0,y:0,width:375,height:800}});
+  await p.screenshot({path:require('os').tmpdir()+'/oral-verdict_'+process.pid+'.png',clip:{x:0,y:0,width:375,height:800}});
   ok('JSエラーなし '+errs.join('|'),errs.length===0);
   console.log(`結果: ${pass} passed / ${fail} failed`);await b.close();
   process.exit(fail?1:0);

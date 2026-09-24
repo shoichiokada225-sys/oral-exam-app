@@ -22,7 +22,9 @@ async function mkPage(ctx, lang) {
   await env.routeChart(p);
   await p.addInitScript(HELP);
   if (lang) await p.addInitScript(l => { try { localStorage.setItem('oral_exam_lang', l); } catch (e) {} }, lang);
-  await p.goto(env.URL); await p.waitForTimeout(400);
+  await p.goto(env.URL);
+  // R2: 固定待ち(400ms)→試問カードの録音ボタンが描かれるまで待つ
+  await p.waitForSelector('[id^="rb-"]', { state: 'attached' });
   return { p, errors };
 }
 const rect = (p, sel) => p.evaluate(s => { const e = document.querySelector(s); if (!e) return null; const r = e.getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height }; }, sel);
@@ -39,9 +41,12 @@ const hit = (a, b) => a && b && a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b
     const A = ids[ids.length - 1]; // 最後の問＝バーと重なりやすい最下部
     await p.fill('#fEr', '岡田'); await p.fill('#fEe', 'グエン');
     for (const [mode, sel] of [['redo', '#rb-'], ['cont', '#rc-']]) {
-      if (mode === 'redo') { await p.click('#rb-' + A); await p.waitForTimeout(1300); await p.click('#rb-' + A); await p.waitForTimeout(900); }
+      if (mode === 'redo') { await p.click('#rb-' + A); await p.waitForTimeout(1300); await p.click('#rb-' + A); await p.waitForFunction(id => !active && cur && cur.items[id] && cur.items[id].hasAudio, A); }
       await p.locator(sel + A).scrollIntoViewIfNeeded();
-      await p.click(sel + A); await p.waitForTimeout(1500); await p.click('#rb-' + A); await p.waitForTimeout(2000);
+      await p.click(sel + A); await p.waitForTimeout(1500); await p.click('#rb-' + A);
+      // R2: 固定待ち(2000ms)→停止処理が終わって「元に戻す」バーが出るまで待つ（出なければ下の検査が NG を出す）
+      await p.waitForFunction(() => !active && !!document.querySelector('#undoBar') && getComputedStyle(document.querySelector('#undoBar')).display !== 'none', null, { timeout: 8000 }).catch(() => {});
+      await p.waitForTimeout(150);
       const bar = await rect(p, '#undoBar');
       const tag = `${w}x${h} ${lang} ${mode}`;
       T.ok(`${tag}: バーが出る`, !!bar);
@@ -69,7 +74,7 @@ const hit = (a, b) => a && b && a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b
     await p.click('#undoBar .ubx'); await p.waitForTimeout(150);
     T.ok(`${w}x${h} ${lang}: ✕で閉じると余白の指定も外れる`, await p.evaluate(() => !document.getElementById('undoBar') && !document.documentElement.classList.contains('undo-on')));
     T.ok(`${w}x${h} ${lang}: 横スクロールなし`, await p.evaluate(ww => document.documentElement.scrollWidth <= ww, w));
-    if (w === 375 && lang === 'ja') await p.screenshot({ path: require('path').join(require('os').tmpdir(), 'r9_undo_375.png') }).catch(() => {});
+    if (w === 375 && lang === 'ja') await p.screenshot({ path: require('path').join(require('os').tmpdir(), 'r9_undo_375_' + process.pid + '.png') }).catch(() => {});
     T.ok(`${w}x${h} ${lang}: JSエラーなし ` + errors.join('|'), !errors.length);
     await ctx.close();
   }

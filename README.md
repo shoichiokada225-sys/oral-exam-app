@@ -76,7 +76,9 @@ js/works-qa.js  作業カタログ（睦沢pptx由来44作業。修正時は pig
 js/qbank.js     質問バンク（プリセット試問集。実在ソース採録のみ・模範解答つき）
 js/data.js      静的データ層：デフォルト試問項目・カタログのアクセサ/質問生成
 js/store.js     永続化層：localStorage/IndexedDB・セッション・バックアップ
-js/media.js     録音（MediaRecorder/WebSpeech）・GASドライブ保存・AI文字起こし
+js/media.js     録音（MediaRecorder/WebSpeech）・一時保存と復元・AI文字起こし
+js/drive.js     Googleドライブ送信（GAS）・合否変更時の付け直し・未送信の再送・URLからの設定取り込み
+js/verdict.js   試問カードの合否トグル（setVerdict）・送信状態表示・ドライブ名の合否ラベル
 js/ui-core.js   描画層・共通：ui内文言TX2（4言語）・t2・合否ラベル・一覧行の状態
 js/ui-exam.js   描画層・試問タブ：カード生成・録音進捗
 js/ui-score.js  描画層・採点タブ：一覧/詳細（再生・文字起こし・合否）
@@ -86,14 +88,16 @@ js/ui-cfg.js    描画層・設定：試問項目/カタログモーダル/プ�
 js/app.js       アプリ層：初期化・タブ・セッションフロー
 ```
 
-読み込みは util → i18n → works-qa → qbank → data → store → media → ui-core → ui-exam → ui-score → ui-hist → ui-chart → ui-cfg → app の順（後のレイヤほど前に依存する）。
+読み込みは util → i18n → works-qa → qbank → data → store → media → drive → verdict → ui-core → ui-exam → ui-score → ui-hist → ui-chart → ui-cfg → app の順（後のレイヤほど前に依存する）。
 ui-*.js はプレーンスクリプトで、関数はグローバルのまま（テストと onclick が直接呼ぶ）。ファイルを増やしたら index.html・`sw.js` の ASSETS・VER を揃えて更新する（`tests/sw-assets.test.js` が検査）。
 
 ## テスト実行
 
 ```bash
-node tests/run.js            # 全テスト（tests/*.test.js を順に実行して集計。1本でもNGなら exit 1）
+node tests/run.js            # 全テスト（tests/*.test.js を並列 min(4,CPU数) で実行し名前順に表示・集計。1本でもNGなら exit 1）
+node tests/run.js -j 1       # 直列（-j N で並列数を指定）
 node tests/run.js verdict    # ファイル名で絞り込み
+node tests/run.js --all      # 書きかけ（tests/wip/*.test.js・*.wip.js）も含める。既定では含めない
 node smoke.js                # 旧来の入口（tests/smoke.test.js の互換ラッパー）
 ```
 
@@ -103,8 +107,13 @@ node smoke.js                # 旧来の入口（tests/smoke.test.js の互換�
 | `tests/verdict.test.js` | 合否トグルとドライブ送信名・付け直し（GAS送信はモック） |
 | `tests/pf-ripple.test.js` | 旧5段階データ・合否混在・未確定・未実施 |
 | `tests/i18n.test.js` | TX/TX2 の ja/en/vi/id キー集合の一致 |
-| `tests/sw-assets.test.js` | sw.js の ASSETS 実在・index.html 参照の網羅・VER 上げ忘れ警告 |
-| `tests/globals.test.js` | 分割前のグローバル関数/変数名がすべて残っているか |
+| `tests/sw-assets.test.js` | sw.js の ASSETS 実在・index.html 参照の網羅・VER 上げ忘れ（origin/main 以降のコミット済み変更も含めて NG） |
+| `tests/verguard.test.js` | VER 上げ忘れ検査そのものの回帰（使い捨て git リポジトリで検証） |
+| `tests/runner.test.js` | run.js の並列・名前順表示・wip 除外・タイムアウト |
+| `tests/globals.test.js` | 分割前（ui.js 分割・media.js 分割）のグローバル関数/変数名がすべて残っているか |
+
+完了判定は `node tests/run.js` が exit 0 であること。リポジトリの外に置いたテストの写しは正本にしない。
+未完成機能のテストは `tests/wip/` に置く（例: R10 聞き返しの書きかけ＝ブランチ `r10-listen`）。
 
 環境（`tests/_env.js`）:
 - Playwright は `PLAYWRIGHT_PATH` → `~/anpi-kakunin` → `~/farm-shift-app` → `C:/Users/so/farm-shift-app` の順に探す（npm install 不要）

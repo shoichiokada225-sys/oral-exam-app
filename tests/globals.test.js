@@ -23,6 +23,18 @@ const FX = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'globals-
     for (const m of s.matchAll(/^(?:async\s+)?function\s+([A-Za-z_$][\w$]*)/gm)) { if (seen[m[1]]) dup.push(`${m[1]}(${seen[m[1]]},${f})`); else seen[m[1]] = f; }
   }
   T.ok(`関数の二重定義なし${dup.length ? ' ' + dup.join(' ') : ''}`, dup.length === 0);
+  // R2: media.js の分割先（録音=media.js／ドライブ送信=drive.js／合否=verdict.js）
+  const want = {
+    'media.js': ['toggleRec', 'stopRec', 'liveSave', 'checkLiveTakes', 'restoreLive', 'commitTake', 'aiTranscribe'],
+    'drive.js': ['saveGoogleCfg', 'gasUpload', 'maybeAutoUpload', 'resendAllUnsent', 'resyncDriveName', 'syncExamineeOnSave', 'applyUrlConfig'],
+    'verdict.js': ['setVerdict', 'setCloud', 'verdictTag'],
+  };
+  const misplaced = [];
+  for (const [f, ns] of Object.entries(want)) for (const n of ns) if (seen[n] !== f) misplaced.push(`${n}(${seen[n] || '無し'}≠${f})`);
+  T.ok(`録音/ドライブ/合否の置き場所${misplaced.length ? ' ' + misplaced.join(' ') : ''}`, misplaced.length === 0);
+  const order = await page.evaluate(() => [...document.querySelectorAll('script[src^="js/"]')].map(s => s.getAttribute('src')));
+  const oi = n => order.indexOf('js/' + n);
+  T.ok(`読み込み順 media → drive → verdict → ui-core（${order.join(',')}）`, oi('media.js') >= 0 && oi('media.js') < oi('drive.js') && oi('drive.js') < oi('verdict.js') && oi('verdict.js') < oi('ui-core.js'));
   // HTML内ハンドラ（onclick等）から呼ぶ関数が実在
   const handlers = await page.evaluate(() => {
     const names = new Set();

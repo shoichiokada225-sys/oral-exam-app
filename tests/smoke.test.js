@@ -119,7 +119,7 @@ function ok(name, cond) {
     page.waitForEvent('download'),
     page.click('#bkExportBtn'),
   ]);
-  const path = require('path').join(require('os').tmpdir(), 'oral_backup_test.json');
+  const path = require('path').join(require('os').tmpdir(), 'oral_backup_test_' + process.pid + '.json');
   await dl.saveAs(path);
   const bk = JSON.parse(require('fs').readFileSync(path, 'utf8'));
   ok('バックアップ形式', bk.app === 'oral-exam-app' && bk.sessions.length === 1);
