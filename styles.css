@@ -975,3 +975,20 @@ html.scoring{
 .sp-none{font-size:.8rem;color:var(--sub);line-height:1.6}
 .cfghint{font-size:.76rem;color:var(--sub);line-height:1.6;margin-top:6px}
 .hset{font-weight:700}
+
+/* ---- R5b 初回利用の導線：初回カード（手順1行＋ドライブ未設定1行・閉じる1つ）／他の端末へ設定を渡す ---- */
+#examHowto.howto{position:relative;padding:8px 44px 8px 12px;margin-bottom:10px;font-size:.8rem;color:var(--sub);line-height:1.6}
+.howto .hw-t{color:var(--txt);font-weight:500}
+.howto .hw-long{margin-top:6px;padding-top:6px;border-top:1px dashed var(--bdr)}
+.howto .hw-drv{margin-top:3px;margin-right:-34px;font-size:.76rem;line-height:1.5}
+.hw-link{background:none;border:0;padding:0 2px;margin:0;font:inherit;font-weight:700;color:var(--pri);text-decoration:underline;text-underline-offset:2px;cursor:pointer;min-height:0;white-space:nowrap}
+.howto .hw-x{position:absolute;top:4px;right:4px;width:40px;height:40px;border:0;border-radius:var(--r-s);background:transparent;color:var(--sub);font-size:1.25rem;line-height:1;cursor:pointer;font-family:inherit}
+.howto .hw-x:hover{background:var(--pri-l);color:var(--txt)}
+.howto .hw-x:focus-visible,.hw-link:focus-visible{outline:2px solid var(--pri);outline-offset:2px}
+.gsetup{display:inline-block;margin:0 0 12px;font-size:.82rem;font-weight:700;color:var(--pri)}
+.gshare{margin-top:12px;padding:10px 12px;border:1px solid var(--bdr);border-radius:var(--r-s);background:var(--card-2)}
+.gshare .gsh-t{font-weight:800;font-size:.86rem;color:var(--txt)}
+.gshare .gsh-n{font-size:.76rem;color:var(--sub);line-height:1.55;margin-top:4px}
+.gshare .gsh-ck{font-size:.8rem;margin-top:8px}
+.gshare #gShareUrl{margin-top:8px;margin-bottom:0;font-size:.74rem;width:100%}
+.gshare .btnrow{margin-top:8px}

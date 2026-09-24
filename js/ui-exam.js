@@ -72,9 +72,11 @@ function gotoCfgPart(anchorId){
 }
 /* ドライブ保存の状態表示（試問タブ）
    ・進捗ヒーローに1行：自動保存ON／OFF／未設定（録音が端末だけに残るのかを試問中に分かるように）
-   ・未設定のときだけ、使い方の下に中立の案内＋設定へのボタン（閉じたら DRVHINTKEY に記録して以後出さない） */
+   ・未設定のとき：初回カード（使い方）が出ている間はその中の1行＋設定へのリンク（閉じるは初回カードの1つだけ）。
+     初回カードを閉じた後も未設定なら、使い方の下に小さな案内（閉じたら DRVHINTKEY に記録して以後出さない） */
 const DRVHINTKEY='oral_exam_drvhint_off';
 function driveState(){const g=getGoogleCfg();return !g.url?'none':g.auto?'on':'off'}
+function howtoOff(){try{return localStorage.getItem(HOWTOKEY)==='1'}catch(e){return false}}
 function dismissDrvHint(){try{localStorage.setItem(DRVHINTKEY,'1')}catch(e){}const h=document.getElementById('drvHint');if(h)h.style.display='none'}
 function updateDriveUi(){
   const st=driveState();
@@ -85,17 +87,36 @@ function updateDriveUi(){
     el.textContent=t2(st==='on'?'drvOn':st==='off'?'drvOff':'drvNone');
     el.dataset.st=st;
   }
+  if(typeof renderGShare==='function')renderGShare();
   const h=document.getElementById('drvHint');
   if(h){
+    const hw=document.getElementById('examHowto'),meta=document.querySelector('#pgExam .cd.meta');
+    const inCard=!!hw&&!howtoOff();
+    // 置き場所：初回カードの中（閉じるボタンの前）／カードを閉じた後はカードと入力欄の間
+    if(inCard){if(h.parentElement!==hw){hw.insertBefore(h,document.getElementById('howtoX'))}h.className='hw-drv'}
+    else{if(meta&&h.parentElement!==meta.parentElement)meta.parentElement.insertBefore(h,meta);h.className='cd'}
     let off=false;try{off=localStorage.getItem(DRVHINTKEY)==='1'}catch(e){}
-    if(st!=='none'||off){h.style.display='none';return}
+    if(st!=='none'||(!inCard&&off)){h.style.display='none';return}
     h.style.display='';
+    if(inCard){
+      h.innerHTML=`☁ ${esc(t2('drvHintS'))} <button type="button" class="hw-link" id="drvHintGo" onclick="gotoCfgPart('gUrl')">${esc(t2('drvHintGo'))} ›</button>`;
+      return;
+    }
     h.innerHTML=`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.8rem;color:var(--sub);line-height:1.6">
       <span style="flex:1 1 200px">${esc(t2('drvHint'))}</span>
       <button type="button" class="b b3" id="drvHintGo" style="flex:0 0 auto;padding:6px 10px;font-size:.74rem" onclick="gotoCfgPart('gUrl')">${esc(t2('drvHintGo'))}</button>
       <button type="button" class="b b4" id="drvHintX" style="flex:0 0 auto;padding:6px 10px;font-size:.74rem" onclick="dismissDrvHint()" aria-label="${esc(t('btnClose'))}">${esc(t('btnClose'))}</button></div>`;
   }
 }
+/* 初回カードの「詳しく」：使い方の全文を開く／畳む */
+let howtoMoreOn=false;
+function renderHowtoMore(){
+  const b=document.getElementById('howtoMore'),l=document.getElementById('howtoLong');if(!b||!l)return;
+  b.textContent=t2(howtoMoreOn?'howtoLess':'howtoMore')+(howtoMoreOn?' ▴':' ▾');
+  b.setAttribute('aria-expanded',howtoMoreOn?'true':'false');
+  l.hidden=!howtoMoreOn;
+}
+function toggleHowtoMore(){howtoMoreOn=!howtoMoreOn;renderHowtoMore()}
 
 /* 試問タブ：録音進捗バー＋合否の進捗＋セクションジャンプ
    完了（緑・✓）は「録音と○×の両方がそろった」とき。録音だけでは完了にしない（○×の付け忘れを見逃さない） */
@@ -107,7 +128,10 @@ function updateExamProg(){
   const items=getItems(),secs=getSections();
   const m=items.length;
   if(!m){box.style.display='none';box.classList.remove('complete');return}
-  box.style.display='block';
+  // 初回（使い方カードが開いていて、まだ1問も録音していない）はヒーローを出さない：
+  // 最初の画面に1問目の「録音」まで収める（ドライブの状態は初回カードの中に出る）。1件録音するか、カードを閉じたら出す
+  const n0=items.filter(examRecd).length;
+  box.style.display=(!n0&&!howtoOff()&&document.getElementById('examHowto'))?'none':'block';
   const done=it=>examRecd(it)&&examJudged(it);
   const n=items.filter(examRecd).length;
   box.classList.toggle('fresh',!n); // まだ1問も録音していない：スマホではセクションのチップを畳んで1問目を最初の画面に出す

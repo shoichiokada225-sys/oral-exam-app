@@ -347,9 +347,13 @@ function renderHowto(){
   const h=document.getElementById('examHowto');if(!h)return;
   let off=false;try{off=localStorage.getItem(HOWTOKEY)==='1'}catch(e){}
   h.style.display=off?'none':'';
+  // 初回カードを閉じた／開いた：ドライブ案内の置き場所と進捗ヒーローの出し入れを追従させる
+  if(typeof updateExamProg==='function')updateExamProg();
 }
 function toggleHowto(show){
   try{if(show)localStorage.removeItem(HOWTOKEY);else localStorage.setItem(HOWTOKEY,'1')}catch(e){}
+  // 初回カードの閉じるは1つ：中のドライブ未設定の1行もいっしょに閉じる（閉じた直後に別の案内カードを出さない）
+  if(!show&&typeof DRVHINTKEY!=='undefined'){try{localStorage.setItem(DRVHINTKEY,'1')}catch(e){}}
   renderExamSetSel();
   if(show){const h=document.getElementById('examHowto');if(h)h.scrollIntoView({behavior:'smooth',block:'nearest'})}
   else{const b=document.getElementById('howtoBtn');if(b)b.focus()}

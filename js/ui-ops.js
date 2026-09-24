@@ -342,3 +342,46 @@ function clearDrvOrphans(){
   if(cur)saveDraft();
   renderDrvOrphans();
 }
+
+/* ==============================================================
+   R5b「この設定を他の端末へ」：設定済みの端末から ?gurl=&gfolder=(&gtoken=&gauto=) のリンクを作る
+   受け取る側は drive.js の applyUrlConfig（Google の https だけ許可・送信先が変わるときは確認）。取り込み処理は変えない。
+   合言葉は既定では含めない（リンクがチャット等で広がると誰でも送れる）。含めないときは gauto も付けない
+   → 受け取った端末で合言葉を入れて「設定を保存」を押すと、接続テスト→つながれば自動保存ON（saveGoogleCfg の既定ON）
+   ============================================================== */
+let gShareTokOn=false;
+function gShareLink(){
+  const g=getGoogleCfg();if(!g.url)return'';
+  const u=new URL(location.href);u.hash='';
+  const p=new URLSearchParams();
+  p.set('gurl',g.url);
+  if(g.folder)p.set('gfolder',g.folder);
+  if(gShareTokOn&&g.token){p.set('gtoken',g.token);p.set('gauto',g.auto?'1':'0')}
+  u.search=p.toString();
+  return u.href;
+}
+function renderGShare(){
+  const el=document.getElementById('gShare');if(!el)return;
+  const g=getGoogleCfg();
+  if(!g.url){el.style.display='none';el.innerHTML='';return}
+  el.style.display='';
+  const canShare=typeof navigator!=='undefined'&&typeof navigator.share==='function';
+  el.innerHTML=`<div class="gsh-t">📲 ${esc(t2('gShareT'))}</div>
+    <div class="gsh-n">${esc(t2('gShareNote'))}</div>
+    ${g.token?`<label class="ckrow gsh-ck"><input type="checkbox" id="gShareTok"${gShareTokOn?' checked':''} onchange="gShareTokOn=this.checked;renderGShare()"> <span>${esc(t2('gShareTok'))}</span></label>`:''}
+    ${g.token&&!gShareTokOn?`<div class="gsh-n">${esc(t2('gShareNoTok'))}</div>`:''}
+    <input type="text" id="gShareUrl" readonly aria-label="${esc(t2('gShareT'))}" onfocus="this.select()">
+    <div class="btnrow"><button type="button" class="b b3 grow" id="gShareCopy" onclick="copyGShare()">${esc(t2('gShareCopy'))}</button>${canShare?`<button type="button" class="b b4 grow" id="gShareSend" onclick="sendGShare()">${esc(t2('gShareSend'))}</button>`:''}</div>`;
+  document.getElementById('gShareUrl').value=gShareLink(); // 値はプロパティで入れる（HTMLに埋め込まない）
+}
+async function copyGShare(){
+  const v=gShareLink();if(!v)return;
+  let ok=false;
+  try{if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(v);ok=true}}catch(e){}
+  if(!ok){try{const i=document.getElementById('gShareUrl');i.focus();i.select();ok=document.execCommand('copy')}catch(e){}}
+  toast(t2(ok?'gShareCopied':'gShareCopyFail'),ok?0:1);
+}
+async function sendGShare(){
+  const v=gShareLink();if(!v)return;
+  try{await navigator.share({title:t('appTitle'),url:v})}catch(e){/* 利用者が閉じた */}
+}

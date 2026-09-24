@@ -22,7 +22,11 @@ function applyT(){
   const nav=document.getElementById('mainNav');if(nav)nav.setAttribute('aria-label',t('navMain'));
   const bl=document.getElementById('beepLbl');if(bl)bl.textContent=t2('beepOpt');
   const ct=document.getElementById('cfgConnTitle');if(ct)ct.textContent=t2('cfgConnTitle');
-  const hx=document.getElementById('howtoX');if(hx){hx.textContent=t('btnClose');hx.setAttribute('aria-label',t2('howtoHide'))}
+  const hx=document.getElementById('howtoX');if(hx){hx.textContent='×';hx.setAttribute('aria-label',t2('howtoHide'));hx.title=t2('howtoHide')}
+  const hs=document.getElementById('howtoS');if(hs)hs.textContent=t2('howtoS');
+  if(typeof renderHowtoMore==='function')renderHowtoMore();
+  const gl=document.getElementById('gSetupLink');if(gl)gl.textContent=t2('gSetupLink')+' ↗';
+  if(typeof renderGShare==='function')renderGShare();
   const sh=document.getElementById('cfgSaveHint');if(sh)sh.textContent=t2('saveCfgHint');
   const hq=document.getElementById('hQ');if(hq)hq.setAttribute('aria-label',t('searchPh'));
   const sf=document.getElementById('scFil');if(sf)sf.setAttribute('aria-label',t('alFilter'));
@@ -73,20 +77,36 @@ function injectDynamicContainers(){
     d.id='examSetBox';d.className='esbox';
     meta.appendChild(d); // 受験者名の欄と同じ面の最下段（スマホで最初の画面に1問目まで収める）
   }
-  // 試問タブ上部：使い方ガイド（初見の試問者向け。文言はi18n howto・applyTで言語追従）。
-  // 閉じたら出題の行の「？」に畳む（R4：毎回の最初の画面を説明文で埋めない）
+  // 試問タブ上部：初回カード（R5b）＝手順1行（詳しくで全文）＋ドライブ未設定の1行＋閉じるボタン1つ。
+  // 初回でもスマホ・タブレットの最初の画面に1問目の「録音」まで収める。閉じたら出題の行の「？」に畳む（R4）
   if(meta&&!document.getElementById('examHowto')){
     const d=document.createElement('div');
-    d.id='examHowto';d.className='cd';
-    d.style.cssText='font-size:.8rem;color:var(--sub);line-height:1.7;display:flex;gap:8px;align-items:flex-start';
-    d.innerHTML='<span data-t="howto" style="flex:1 1 auto"></span><button type="button" class="b b4" id="howtoX" style="flex:0 0 auto;padding:4px 10px;font-size:.74rem" onclick="toggleHowto(false)"></button>';
+    d.id='examHowto';d.className='cd howto';
+    d.innerHTML='<div class="hw-t"><span id="howtoS"></span> <button type="button" class="hw-link" id="howtoMore" aria-expanded="false" aria-controls="howtoLong" onclick="toggleHowtoMore()"></button></div>'
+      +'<div id="howtoLong" class="hw-long" data-t="howto" hidden></div>'
+      +'<button type="button" class="hw-x" id="howtoX" onclick="toggleHowto(false)"></button>';
     meta.parentElement.insertBefore(d,meta);
   }
-  // 試問タブ：ドライブ未設定の案内（使い方の下・閉じたら出さない。中身は updateDriveUi）
+  // ドライブ未設定の案内：初回カードが出ている間はその中の1行、閉じた後は単独の小さな案内（中身と置き場所は updateDriveUi）
   if(meta&&!document.getElementById('drvHint')){
     const d=document.createElement('div');
     d.id='drvHint';d.className='cd';d.setAttribute('role','note');d.style.display='none';
     meta.parentElement.insertBefore(d,meta);
+  }
+  // 設定タブのドライブ欄：設定手順へのリンク（gNote の別紙名だけでは開けない）と「この設定を他の端末へ」
+  const gNote=document.querySelector('#pgCfg [data-t="gNote"]');
+  if(gNote&&!document.getElementById('gSetupLink')){
+    const a=document.createElement('a');
+    a.id='gSetupLink';a.className='gsetup';a.target='_blank';a.rel='noopener';
+    // 公開中の Pages では Markdown が HTML に変換されて読める（.html）。ローカル（file:）では .md をそのまま開く
+    a.href=location.protocol==='file:'?'SETUP-GOOGLE-DRIVE.md':'SETUP-GOOGLE-DRIVE.html';
+    gNote.insertAdjacentElement('afterend',a);
+  }
+  const gSt=document.getElementById('gStatus');
+  if(gSt&&!document.getElementById('gShare')){
+    const d=document.createElement('div');
+    d.id='gShare';d.className='gshare';d.style.display='none';
+    gSt.insertAdjacentElement('afterend',d);
   }
   // 設定タブ「接続とデータ」の先頭：録音の合図（開始・停止で短い音。振動は対応端末で常に）
   const cfgPg=document.getElementById('pgCfg');
@@ -133,6 +153,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   fEe.addEventListener('input',()=>{eeTyping=true});
   fEe.addEventListener('change',()=>{eeCommitted()});
   fEe.addEventListener('blur',()=>{eeCommitted()});
+  // 初回（まだ1問も録音していない）に受験者名を入れ終えたら、1問目の「録音」が画面の外なら見える位置へ送る（R5b）。
+  // 少しでも見えていれば動かさない（そのボタンを押そうとしている指の下で画面をずらさない）
+  fEe.addEventListener('change',()=>{setTimeout(scrollFirstRecIntoView,60)});
   refreshNameLists();
   const s=getStt();
   document.getElementById('sttEndpoint').value=s.endpoint||'';
@@ -509,3 +532,14 @@ let active=null;         // 録音中の状態 {itemId,mr,stream,chunks,rec,draf
 let curScore=null;       // 採点中のセッション
 let curScoreUrls=[];     // 採点画面で作成したObjectURL（破棄用）
 let examUrls=[];         // 試問画面で作成したObjectURL（破棄用）
+/* 受験者名を入れた直後：まだ録音が無く、1問目の録音ボタンが見えていなければ見える位置へ */
+function scrollFirstRecIntoView(){
+  if(!cur||active||!String(cur.examinee||'').trim())return;
+  const items=getItems();if(!items.length)return;
+  if(items.some(it=>cur.items[it.id]&&cur.items[it.id].hasAudio))return;
+  const rb=document.getElementById('rb-'+sanitizeId(items[0].id));if(!rb)return;
+  const tb=document.querySelector('.tabs'),lim=tb&&getComputedStyle(tb).display!=='none'?tb.getBoundingClientRect().top:innerHeight;
+  const r=rb.getBoundingClientRect();
+  if(r.top<lim&&r.bottom>0)return; // 見えている
+  rb.scrollIntoView({behavior:'smooth',block:'center'});
+}

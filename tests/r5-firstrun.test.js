@@ -186,8 +186,15 @@ const audioPosts = posts => posts.filter(x => !x.ping);
     T.ok('未設定の案内が出る', await p.isVisible('#drvHint') && (await p.textContent('#drvHint')).includes('この端末だけ'));
     const order = await p.evaluate(() => { const h = document.getElementById('examHowto'), d = document.getElementById('drvHint'); return !!(h.compareDocumentPosition(d) & Node.DOCUMENT_POSITION_FOLLOWING); });
     T.ok('使い方の下に置かれる', order);
-    await p.click('#drvHintX'); await p.waitForTimeout(100);
+    // R5b：初回は使い方と1枚のカード（閉じるは1つ）。閉じるとドライブの1行もいっしょに閉じる
+    T.ok('初回はカードの中の1行（別の閉じるボタンは無い）', await p.evaluate(() => document.getElementById('drvHint').parentElement.id === 'examHowto') && !(await p.isVisible('#drvHintX')));
+    await p.click('#howtoX'); await p.waitForTimeout(100);
     T.ok('閉じると消える・新しいキーに記録', !(await p.isVisible('#drvHint')) && await p.evaluate(() => localStorage.getItem('oral_exam_drvhint_off')) === '1');
+    // 使い方だけ閉じていた既存の端末（ドライブ案内のキーなし）：単独の小さな案内＋自分の閉じる
+    await p.evaluate(() => localStorage.removeItem('oral_exam_drvhint_off')); await p.reload(); await p.waitForTimeout(300);
+    T.ok('使い方を閉じた端末では単独の案内（閉じる付き）', await p.isVisible('#drvHint') && await p.isVisible('#drvHintX') && !(await p.isVisible('#examHowto')));
+    await p.click('#drvHintX'); await p.waitForTimeout(100);
+    T.ok('単独の案内を閉じるとキーに記録', !(await p.isVisible('#drvHint')) && await p.evaluate(() => localStorage.getItem('oral_exam_drvhint_off')) === '1');
     await p.reload(); await p.waitForTimeout(300);
     T.ok('再読み込み後も出さない', !(await p.isVisible('#drvHint')));
     T.ok('ヒーローの状態表示は残る', (await p.textContent('#epDrv')).includes('未設定'));
