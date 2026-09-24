@@ -105,7 +105,6 @@
   "qbankToCfgItem",
   "qsApplySel",
   "qsDeleteSel",
-  "qsOverwriteSel",
   "qsRenameSel",
   "qsSaveNew",
   "qsSelP",

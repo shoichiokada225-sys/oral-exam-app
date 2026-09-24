@@ -138,7 +138,7 @@ function commitTake(sess,itemId,blob,old){
   clearRecFail(itemId);
   const au=document.getElementById('au-'+itemId);
   if(au){const u=URL.createObjectURL(blob);examUrls.push(u);au.src=u;au.style.display='block'}
-  const card=document.getElementById('q-'+itemId);if(card)card.classList.add('done');
+  // カードの✓(done)は updateExamProg が録音と○×の両方で付け外しする
   const rs=document.getElementById('rs-'+itemId);if(rs){rs.textContent='● '+t('recDone');rs.classList.add('ok')}
   const rb=document.getElementById('rb-'+itemId);if(rb){const l=rb.querySelector('.rlab');if(l)l.textContent=t('recRedo')}
   updateExamProg();

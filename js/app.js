@@ -196,7 +196,10 @@ async function saveSession(){
   // 試問中に録音した全問へ○×が付いていれば、採点の確定も選べる（キャンセル＝従来どおり録音のみで保存）
   const recIds=Object.keys(cur.items).filter(k=>cur.items[k]&&cur.items[k].hasAudio);
   const prevStatus=cur.status,prevUpd=cur.updatedAt;
-  if(cur.status!=='scored'&&recIds.length&&recIds.every(k=>isPF(cur.items[k].score))&&confirm(t2('confirmScored')))cur.status='scored';
+  // 録音していない問に○×が付いている（試問画面は録音前でも押せる）ときは、ここでは確定を勧めない：
+  // 確定すると未録音の○まで合格率に入るため。採点タブで全問を見てから確定してもらう
+  const unrecPF=Object.keys(cur.items).some(k=>cur.items[k]&&!cur.items[k].hasAudio&&isPF(cur.items[k].score));
+  if(cur.status!=='scored'&&recIds.length&&!unrecPF&&recIds.every(k=>isPF(cur.items[k].score))&&confirm(t2('confirmScored')))cur.status='scored';
   const all=getAll();
   const idx=all.findIndex(s=>s.id===cur.id);
   cur.updatedAt=new Date().toISOString();

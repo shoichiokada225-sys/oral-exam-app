@@ -105,21 +105,23 @@ function snapMeta(s){
 }
 /* 採点は合格/不合格（score='pass'|'fail'）。2026-09-23以前の5段階（score=1〜5の数値）は旧データとして読めるよう残す */
 function isPF(v){return v==='pass'||v==='fail'}
-function scoredVals(r){return sessItemIds(r).map(id=>r.items[id]&&r.items[id].score).filter(x=>x!=null)}
+/* recOnly=true：録音した問だけを数える（未確定の試問の表示用。試問画面は録音前でも○×を押せるため、
+   録音していない問の○を合格数に混ぜると「合格2・判定1/録音2」のように食い違う） */
+function scoredVals(r,recOnly){return sessItemIds(r).filter(id=>!recOnly||(r.items[id]&&r.items[id].hasAudio)).map(id=>r.items[id]&&r.items[id].score).filter(x=>x!=null)}
 /* 合否集計 {pass,total}。旧5段階の数値は数えない */
-function pfCount(r){const v=scoredVals(r).filter(isPF);return{pass:v.filter(x=>x==='pass').length,total:v.length}}
+function pfCount(r,recOnly){const v=scoredVals(r,recOnly).filter(isPF);return{pass:v.filter(x=>x==='pass').length,total:v.length}}
 /* 合格率(0〜100)。合否採点が無ければNaN */
 function passRate(r){const c=pfCount(r);return c.total?Math.round(c.pass/c.total*100):NaN}
 /* 旧5段階の数値か（数値1〜5。文字列'4'等の混入にも耐える）。pass/fail・null・N/Aは偽 */
 function isOld(v){if(v==null||v===''||isPF(v))return false;const n=Number(v);return isFinite(n)&&n>=1&&n<=5}
 /* 旧5段階の採点が付いた項目数 */
-function oldCount(r){return scoredVals(r).filter(isOld).length}
+function oldCount(r,recOnly){return scoredVals(r,recOnly).filter(isOld).length}
 /* 旧5段階の平均（旧データ表示用） */
 function avg(r){const v=scoredVals(r).filter(isOld).map(Number);return v.length?(v.reduce((a,b)=>a+b,0)/v.length).toFixed(1):'-'}
 /* 一覧・詳細に出す結果ラベル：合否のみ「2/3」、旧評価が混ざれば「1/1＋旧評価2問」、旧データのみ「旧評価 平均4.0」
    （旧5段階の点数を黙って捨てない＝低評価が合格表示に化けない） */
-function resLbl(r){
-  const c=pfCount(r),o=oldCount(r);
+function resLbl(r,recOnly){
+  const c=pfCount(r,recOnly),o=oldCount(r,recOnly);
   if(c.total)return c.pass+'/'+c.total+(o?'＋'+t2('oldN').replace('{n}',o):'');
   if(o)return t2('oldAvg')+avg(r);
   return '-';
@@ -127,9 +129,10 @@ function resLbl(r){
 /* 詳細等で結果ラベルの前に付ける見出し（合否があれば「合格」、旧データのみなら「旧5段階評価」） */
 function resHead(r){return pfCount(r).total||!oldCount(r)?t2('passCnt'):t2('oldScore')}
 /* 結果の色クラス：全問合格=a5・全問不合格=a1・混在=a3。旧5段階が1問でも残れば中立色(old)＝全問合格の緑に見せない */
-function resCls(r){const c=pfCount(r);if(oldCount(r))return'old';if(c.total)return c.pass===c.total?'a5':c.pass===0?'a1':'a3';return''}
-/* 合否が1問以上付いているか（試問中の○×だけで未確定のものも含む） */
-function hasPF(r){return pfCount(r).total>0}
+function resCls(r,recOnly){const c=pfCount(r,recOnly);if(oldCount(r,recOnly))return'old';if(c.total)return c.pass===c.total?'a5':c.pass===0?'a1':'a3';return''}
+/* 未確定の試問で、録音した問に合否が1問以上付いているか（試問中の○×だけで未確定のものも含む）。
+   録音していない問の○×は数えない（judgeState・pendLblと同じ問の集合で数える） */
+function hasPF(r){return pfCount(r,true).total>0}
 /* 未確定の試問の判定状況：録音した問（rec）のうち合否または「質問しなかった」が付いた数（judged）。
    full=録音した全問が判定済み（＝「判定済み・確定待ち」）。途中までなら「採点途中」として区別する */
 function judgeState(r){
@@ -141,8 +144,8 @@ function judgeState(r){
 function pendLbl(r){
   if(!hasPF(r))return'';
   const j=judgeState(r);
-  if(j.full)return resLbl(r)+t2('unconf');
-  return t2('partLbl').replace('{p}',pfCount(r).pass).replace('{j}',j.judged).replace('{m}',j.rec);
+  if(j.full)return resLbl(r,true)+t2('unconf');
+  return t2('partLbl').replace('{p}',pfCount(r,true).pass).replace('{j}',j.judged).replace('{m}',j.rec);
 }
 
 /* ==============================================================
@@ -235,6 +238,10 @@ function importBackup(input){
                return copyLocFields(it,o,['name','desc','ans']);
              })};
         localStorage.setItem(CKEY,JSON.stringify(cfg));
+        // 取り込んだ構成は使用中セットの中身ではない：activeIdを外す（resetCfg・項目の置き換えと同じ）。
+        // 外さないと次の「項目を保存」(syncActiveSet)で保存済みセットが黙って上書きされる。presets自体は触らない
+        const qs=getQuestionSets();if(qs.activeId){qs.activeId=null;saveQuestionSets(qs)}
+        if(typeof renderQsetUI==='function')renderQsetUI();if(typeof renderExamSetSel==='function')renderExamSetSel();
       }
       buildExamCards();buildCfgUI();refreshSel();
       toast(added+t('bkImported'));

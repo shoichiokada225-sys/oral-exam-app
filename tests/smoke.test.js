@@ -27,7 +27,7 @@ function ok(name, cond) {
   ok('録音中表示', await page.locator('#rb-q1.recording').count() === 1);
   await page.click('#rb-q1');
   await page.waitForTimeout(800);
-  ok('録音完了マーク', await page.locator('#q-q1.done').count() === 1);
+  ok('録音完了マーク', await page.locator('#rs-q1.ok').count() === 1 && await page.locator('#q-q1.done').count() === 0); // カードの✓は録音と○×の両方がそろってから（R5）
   ok('進捗 1/3', (await page.locator('#epCnt').textContent()).trim() === '1 / 3');
   ok('音声プレーヤー表示', await page.locator('#au-q1').isVisible());
 

@@ -17,7 +17,7 @@ function buildExamCards(){
       const rec=cur&&cur.items[it.id];
       const has=rec&&rec.hasAudio;
       const ansTxt=loc(it,'ans');
-      h+=`<div class="cd qc${has?' done':''}" id="q-${iid}">
+      h+=`<div class="cd qc${has&&isPF(rec.score)?' done':''}" id="q-${iid}">
         <div class="en">${esc(secName.charAt(0))}-${ii+1}</div>
         <div class="enm">${esc(loc(it,'name'))}</div>
         <div class="ed">${esc(loc(it,'desc'))}</div>
@@ -83,6 +83,8 @@ function updateExamProg(){
   const j=items.filter(it=>examRecd(it)&&examJudged(it)).length;
   // 録音完了直後（media.jsのonstopから呼ばれる）に「次の未録音へ」ボタンを出す
   items.forEach(it=>{const b=document.getElementById('nx-'+sanitizeId(it.id));if(b)b.style.display=examRecd(it)?'inline-block':'none'});
+  // カード右上の✓も進捗バー・チップと同じ基準（録音と○×の両方）で付け外しする
+  items.forEach(it=>{const c=document.getElementById('q-'+sanitizeId(it.id));if(c)c.classList.toggle('done',done(it))});
   document.getElementById('epLbl').textContent=t('progRec');
   document.getElementById('epCnt').textContent=n+' / '+m;
   document.getElementById('epBar').style.width=Math.round(n/m*100)+'%';
@@ -91,8 +93,10 @@ function updateExamProg(){
   const pf=document.getElementById('epPf');
   if(pf){
     const miss=n-j;
+    if(!n){pf.innerHTML='';pf.style.display='none'}else{pf.style.display='';
     pf.innerHTML=`<span class="${miss?'pj-warn':''}" id="epPfTxt">${esc(t2('pfProg').replace('{j}',j).replace('{n}',n))}${miss?' · '+esc(t2('pfMiss').replace('{n}',miss)):''}</span>`
       +(miss?`<button type="button" id="epNextUnj" onclick="gotoNextUnjudged()">${esc(t2('nextUnjudged'))} ▾</button>`:'');
+    } // 録音0件のうちは「合否 0 / 録音 0」を出さない（まだ何も無い段階のノイズ）
   }
   const chips=document.getElementById('epChips');chips.innerHTML='';
   secs.forEach((sec,si)=>{

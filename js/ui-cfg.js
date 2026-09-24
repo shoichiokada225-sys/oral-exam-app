@@ -253,14 +253,6 @@ function applySet(id){
   return true;
 }
 function qsApplySel(){const p=qsSelP();if(p)applySet(sanitizeId(p.id))}
-function qsOverwriteSel(){
-  const qs=getQuestionSets();const s=document.getElementById('qsSel');if(!s)return;
-  const p=qs.presets.find(x=>sanitizeId(x.id)===s.value);if(!p)return;
-  p.cfg=JSON.parse(JSON.stringify(cfg));qs.activeId=p.id;saveQuestionSets(qs);
-  cfgDirty=false;updateDirtyBadge();
-  renderQsetUI();if(typeof renderExamSetSel==='function')renderExamSetSel();
-  toast(t2('qsSaved'));
-}
 function qsRenameSel(){
   const qs=getQuestionSets();const s=document.getElementById('qsSel');if(!s)return;
   const p=qs.presets.find(x=>sanitizeId(x.id)===s.value);if(!p)return;

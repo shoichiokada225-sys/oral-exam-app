@@ -21,7 +21,7 @@ chPending:'判定済み・確定待ちの試問があります。「採点」タ
 stPartial:'採点途中',partLbl:'合格{p}・判定{j}/録音{m}',chPartial:'○×が途中までの試問（採点途中）があります。「採点」タブで残りの合否を付けて「採点を保存」するとグラフに表示されます',
 pfProg:'合否 {j} / 録音 {n}',pfMiss:'○×未入力 {n}問',nextUnjudged:'次の未判定へ',allJudged:'録音した問はすべて○×済みです',
 savedScored:'試問と採点を保存しました。結果は「履歴」タブで確認できます',cfgSavedSet:'項目を保存しました（セット「{n}」にも反映）',
-qsTitle:'試問セット',qsCur:'現在のセット',qsNone:'（セット未保存の構成）',qsSaveNew:'名前を付けて別のセットに保存',qsOver:'上書き保存',qsApply:'切替',qsRen:'名前変更',qsDel:'削除',
+qsTitle:'試問セット',qsCur:'現在のセット',qsNone:'（セット未保存の構成）',qsSaveNew:'名前を付けて別のセットに保存',qsApply:'切替',qsRen:'名前変更',qsDel:'削除',
 qsNamePrompt:'セット名を入力してください（例：新人向け／繁殖担当／棚倉農場）',
 qsSwConfirm:'セット「{n}」の保存済みの内容に切り替えます。「項目を保存」していない編集は失われます（過去の試問データは消えません）。よろしいですか？',
 qsDelConfirm:'セット「{n}」を削除しますか？（過去の試問データは消えません）',
@@ -54,7 +54,7 @@ chPending:'There are judged exams waiting for confirmation. Open them in the "Sc
 stPartial:'Partly judged',partLbl:'Pass {p} · judged {j}/rec {m}',chPartial:'Some exams are only partly judged. Open them in the "Score" tab, judge the rest and press "Save Score" to show them here',
 pfProg:'Pass/Fail {j} / Rec {n}',pfMiss:'{n} without ○/×',nextUnjudged:'Next unjudged',allJudged:'Every recorded question has ○/×',
 savedScored:'Exam and scores saved. See the result in the "History" tab',cfgSavedSet:'Items saved (also to set "{n}")',
-qsTitle:'Question set',qsCur:'Active set',qsNone:'(unsaved layout)',qsSaveNew:'Save as a new set (name it)',qsOver:'Overwrite',qsApply:'Switch',qsRen:'Rename',qsDel:'Delete',
+qsTitle:'Question set',qsCur:'Active set',qsNone:'(unsaved layout)',qsSaveNew:'Save as a new set (name it)',qsApply:'Switch',qsRen:'Rename',qsDel:'Delete',
 qsNamePrompt:'Enter a set name',
 qsSwConfirm:'Switch to the saved contents of set "{n}"? Edits not saved with "Save Items" will be lost (past exam data is kept).',
 qsDelConfirm:'Delete set "{n}"? (past exam data is kept)',
@@ -87,7 +87,7 @@ chPending:'Có bài thi đã đánh giá đang chờ xác nhận. Mở ở thẻ
 stPartial:'Đang chấm dở',partLbl:'Đạt {p} · đã đánh giá {j}/ghi âm {m}',chPartial:'Có bài thi mới đánh giá một phần. Mở ở thẻ "Chấm", đánh giá các câu còn lại và nhấn "Lưu điểm" để hiển thị',
 pfProg:'Đạt/Không {j} / Ghi âm {n}',pfMiss:'{n} câu chưa chọn ○/×',nextUnjudged:'Câu chưa đánh giá tiếp theo',allJudged:'Tất cả câu đã ghi âm đều đã có ○/×',
 savedScored:'Đã lưu bài thi và điểm. Xem kết quả ở thẻ "Lịch sử"',cfgSavedSet:'Đã lưu (cũng lưu vào bộ "{n}")',
-qsTitle:'Bộ câu hỏi',qsCur:'Bộ hiện tại',qsNone:'(chưa lưu thành bộ)',qsSaveNew:'Lưu thành bộ mới (đặt tên)',qsOver:'Ghi đè',qsApply:'Chuyển',qsRen:'Đổi tên',qsDel:'Xóa',
+qsTitle:'Bộ câu hỏi',qsCur:'Bộ hiện tại',qsNone:'(chưa lưu thành bộ)',qsSaveNew:'Lưu thành bộ mới (đặt tên)',qsApply:'Chuyển',qsRen:'Đổi tên',qsDel:'Xóa',
 qsNamePrompt:'Nhập tên bộ',qbTitle:'Bộ câu hỏi mẫu',qbReplace:'Thay thế mục',qbAppend:'Thêm vào mục',
 naLbl:'Không hỏi (không chấm)',nextUnrec:'Mục chưa ghi tiếp theo',nextUnscored:'Mục chưa chấm tiếp theo',allRec:'Đã ghi tất cả',allScored:'Không còn mục chưa chấm',
 recBusy:'Đang ghi âm — hãy nhấn "Dừng" trước',noRecGroup:'Mục không có ghi âm ({n})',
@@ -120,7 +120,7 @@ chPending:'Ada ujian yang sudah dinilai dan menunggu konfirmasi. Buka di tab "Ni
 stPartial:'Penilaian belum selesai',partLbl:'Lulus {p} · dinilai {j}/rekam {m}',chPartial:'Ada ujian yang baru sebagian dinilai. Buka di tab "Nilai", nilai sisanya, lalu tekan "Simpan Nilai" agar tampil di sini',
 pfProg:'Lulus/Tidak {j} / Rekam {n}',pfMiss:'{n} belum ○/×',nextUnjudged:'Belum dinilai berikutnya',allJudged:'Semua yang direkam sudah ○/×',
 savedScored:'Ujian dan nilai tersimpan. Lihat hasil di tab "Riwayat"',cfgSavedSet:'Tersimpan (juga ke set "{n}")',
-qsTitle:'Set pertanyaan',qsCur:'Set aktif',qsNone:'(belum disimpan sebagai set)',qsSaveNew:'Simpan sebagai set baru (beri nama)',qsOver:'Timpa',qsApply:'Ganti',qsRen:'Ubah nama',qsDel:'Hapus',
+qsTitle:'Set pertanyaan',qsCur:'Set aktif',qsNone:'(belum disimpan sebagai set)',qsSaveNew:'Simpan sebagai set baru (beri nama)',qsApply:'Ganti',qsRen:'Ubah nama',qsDel:'Hapus',
 qsNamePrompt:'Masukkan nama set',qbTitle:'Set pertanyaan preset',qbReplace:'Ganti item',qbAppend:'Tambahkan item',
 naLbl:'Tidak ditanya (tidak dinilai)',nextUnrec:'Item belum direkam berikutnya',nextUnscored:'Item belum dinilai berikutnya',allRec:'Semua sudah direkam',allScored:'Tidak ada yang belum dinilai',
 recBusy:'Sedang merekam — tekan "Stop" dulu',noRecGroup:'Item tanpa rekaman ({n})',
@@ -152,5 +152,5 @@ function rowRes(r){
   if(!sc&&!pf)return{badge,cls:'',lbl:'–'};
   const lbl=sc?resLbl(r):pendLbl(r);
   // 採点途中は合否の色を付けない（判定した問だけ全問合格＝緑に見せない）
-  return{badge,cls:(sc||full?resCls(r):'old')+(lbl.length>5?' lng':''),lbl};
+  return{badge,cls:(sc?resCls(r):full?resCls(r,true):'old')+(lbl.length>5?' lng':''),lbl};
 }
