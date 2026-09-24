@@ -141,6 +141,12 @@ document.addEventListener('DOMContentLoaded',()=>{
       else if(!mo.contains(document.activeElement)){e.preventDefault();first.focus()}
     }
   });
+  // キーボード移動の先が固定表示（ヘッダー・試問ヒーロー・採点保存バー・タブ）に隠れたら押し上げる。
+  // 指で触った時は動かさない（タップ中にスクロールすると押し間違いになるため、直前の入力がキーの時だけ）
+  let kbdNav=false;
+  document.addEventListener('keydown',e=>{if(e.key==='Tab'||e.key.startsWith('Arrow'))kbdNav=true},true);
+  document.addEventListener('pointerdown',()=>{kbdNav=false},true);
+  document.addEventListener('focusin',e=>{if(kbdNav)requestAnimationFrame(()=>revealFocused(e.target))});
   applyTheme(theme);
   // OSのライト/ダーク切替に合わせてメタ色・グラフ配色を引き直す（自動モード時）
   try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>applyTheme(theme))}catch(e){}
@@ -153,6 +159,22 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 });
 
+/* 要素が上下の固定表示に重なっていれば、見える位置までスクロールする（モーダル内・固定表示そのものは対象外） */
+function revealFocused(el){
+  if(!el||el!==document.activeElement||!el.getBoundingClientRect)return;
+  if(el.closest('.hdr,.tabs,.savebar,.prog,#modal,.toast'))return;
+  const r=el.getBoundingClientRect();if(!r.height&&!r.width)return;
+  const vis=x=>x&&x.offsetParent!==null&&getComputedStyle(x).position!=='static';
+  let top=0;const hd=document.querySelector('.hdr');if(vis(hd))top=Math.max(top,hd.getBoundingClientRect().bottom);
+  const pg=document.querySelector('.pg.on .prog');if(vis(pg)&&!pg.contains(el))top=Math.max(top,pg.getBoundingClientRect().bottom);
+  let bot=window.innerHeight;const tb=document.querySelector('.tabs');if(vis(tb))bot=Math.min(bot,tb.getBoundingClientRect().top);
+  const sb=document.querySelector('#scDetail .savebar');
+  if(vis(sb)){const s=sb.getBoundingClientRect();if(s.top<bot&&s.bottom>top&&s.top>r.top-1)bot=Math.min(bot,s.top-14)} // ::before のぼかし14pxぶんも避ける
+  const pad=8;let dy=0;
+  if(r.bottom>bot-pad)dy=r.bottom-(bot-pad);
+  if(r.top-dy<top+pad)dy=r.top-(top+pad); // 画面より高い要素は上端を優先
+  if(dy)window.scrollBy({top:dy,behavior:'instant'});
+}
 function newSession(){
   cur={id:crypto.randomUUID(),date:todayStr(),examiner:'',examinee:'',items:{},overall:'',status:'rec',createdAt:new Date().toISOString()};
 }

@@ -10,12 +10,13 @@ function drawScoreList(){
   all.sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.createdAt||'').localeCompare(a.createdAt||''));
   const c=document.getElementById('scList');
   document.getElementById('scDetail').style.display='none';
+  syncScoringClass();
   c.style.display='flex';
   document.querySelector('#pgScore .hctrl').style.display='flex';
   if(!all.length){c.innerHTML=`<div class="nd">${fil==='all'?t('noData'):t('noUnscored')}</div>`;return}
   c.innerHTML=all.map(r=>{
     const x=rowRes(r);
-    return `<button type="button" class="hi" onclick="openScore('${sanitizeId(r.id)}')"><span class="hii"><span class="hid">${esc(r.date)} · ${t('erLbl')}: ${esc(r.examiner)}</span><span class="hin">${esc(r.examinee)}</span>${x.badge}</span><span class="hia ${x.cls}">${esc(x.lbl)}</span></button>`;
+    return `<button type="button" class="hi" data-sid="${sanitizeId(r.id)}" onclick="openScore('${sanitizeId(r.id)}')"><span class="hii"><span class="hid">${esc(r.date)} · ${t('erLbl')}: ${esc(r.examiner)}</span><span class="hin">${esc(r.examinee)}</span>${x.badge}</span><span class="hia ${x.cls}">${esc(x.lbl)}</span></button>`;
   }).join('');
 }
 
@@ -25,7 +26,18 @@ function drawScoreList(){
 async function openScore(id){
   const r=getAll().find(s=>s.id===id);if(!r)return;
   curScore=r;
-  await renderScoreDetail(r);
+  await renderScoreDetail(r,{focus:true});
+}
+/* 採点画面を開いている間だけ html.scoring（scroll-padding で保存バー・タブ・ヘッダーの下にフォーカスを隠さない） */
+function syncScoringClass(){
+  const det=document.getElementById('scDetail'),pg=document.getElementById('pgScore');
+  document.documentElement.classList.toggle('scoring',!!(det&&pg&&pg.classList.contains('on')&&det.style.display!=='none'));
+}
+/* 一覧へ戻ったとき、直前に開いていた受験者の行へフォーカスを戻す（無ければ絞り込み→先頭行の順に代替） */
+function focusScoreRow(id){
+  const rows=[...document.querySelectorAll('#scList .hi')];
+  const el=(id&&rows.find(b=>b.dataset.sid===sanitizeId(id)))||document.getElementById('scFil')||rows[0];
+  if(el&&el.focus)el.focus();
 }
 // 採点フォームの現在値をcurScoreに退避（言語切替などの再描画で入力を失わないため）
 function captureScoreForm(){
@@ -110,23 +122,23 @@ function scoreCardHtml(r,id,en,name,desc,ans,ansJa){
     ${ans?`<details class="ans"><summary>${t('ansLbl')}${ansJa&&lang!=='ja'?' '+esc(t('ansJaNote')):''}</summary><div class="ansb">${esc(ans)}</div></details>`:''}
     ${rec.hasAudio?`<audio id="sa-${id}" controls></audio>`:`<div class="recstat">${t('recReady')}</div>`}
     <div class="tlbl"><span>${t('trLbl')}</span>${rec.hasAudio&&sttReady?`<button class="aibtn" id="ai-${id}" onclick="aiTranscribe('${id}')">${t('aiBtn')}</button>`:''}</div>
-    <textarea class="trta" id="tr-${id}" placeholder="${t('phTr')}">${esc(rec.transcript!=null?rec.transcript:(rec.draft||''))}</textarea>
+    <textarea class="trta" id="tr-${id}" aria-label="${esc(name)} ${esc(t('trLbl'))}" placeholder="${t('phTr')}">${esc(rec.transcript!=null?rec.transcript:(rec.draft||''))}</textarea>
     <div class="tlbl">${t('scoreLbl')}</div>
     <div class="sr" role="radiogroup" aria-label="${esc(name)} ${esc(t2('pfLbl'))}">${['pass','fail'].map(s=>`<button class="sb pf${sc===s?' sel':''}" role="radio" aria-checked="${sc===s?'true':'false'}" data-id="${id}" data-s="${s}" onclick="pickScore('${id}','${s}',this)">${s==='pass'?'○':'×'}<span class="sl">${esc(t2(s))}</span></button>`).join('')}</div>
     <div class="spick" id="sp-${id}">${isPF(sc)?esc(t2(sc)):(sc!=null?esc(t2('oldScore'))+': '+esc(pfLabel(sc)):'')}</div>
     ${rec.hasAudio?`<div class="cloud" id="scl-${id}" role="status" style="font-size:.78rem;font-weight:700;margin-top:6px;display:none"></div>`:''}
-    ${rec.hasAudio?`<label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:.8rem;color:var(--sub);cursor:pointer"><input type="checkbox" class="nachk" data-id="${id}" ${rec.na?'checked':''} onchange="pickNA('${id}',this.checked)" style="width:auto"> ${esc(t2('naLbl'))}</label>`:''}
+    ${rec.hasAudio?`<label class="nalbl"><input type="checkbox" class="nachk" data-id="${id}" ${rec.na?'checked':''} onchange="pickNA('${id}',this.checked)"> ${esc(t2('naLbl'))}</label>`:''}
     <div class="clbl">${t('cmtLbl')}</div>
-    <textarea id="cm-${id}" placeholder="${t('phCmt')}">${esc(rec.comment||'')}</textarea>
+    <textarea id="cm-${id}" aria-label="${esc(name)} ${esc(t('cmtLbl'))}" placeholder="${t('phCmt')}">${esc(rec.comment||'')}</textarea>
   </div>`;
 }
-async function renderScoreDetail(r){
+async function renderScoreDetail(r,opt){
   releaseScoreUrls();
   document.getElementById('scList').style.display='none';
   document.querySelector('#pgScore .hctrl').style.display='none';
   const det=document.getElementById('scDetail');det.style.display='block';
   const secs=getSections(),items=getItems();
-  let h=`<div class="cd meta"><div style="font-size:.85rem;color:var(--sub)">${esc(r.date)} · ${t('erLbl')}: ${esc(r.examiner)}</div><div style="font-size:1.1rem;font-weight:700;margin-top:2px">${esc(r.examinee)}</div><div class="pmeta" style="margin-top:10px"><span>${t('progScore')}</span><span><span id="spAvg" class="spavg"></span><span id="spCnt"></span></span></div><div class="pbar"><i id="spBar"></i></div><button type="button" class="b b3" id="spdBtn" style="margin-top:10px;padding:6px 12px;font-size:.78rem" onclick="cycleSpeed()">${esc(t2('spd'))} ${playRate}x</button></div>`;
+  let h=`<div class="cd meta"><div style="font-size:.85rem;color:var(--sub)">${esc(r.date)} · ${t('erLbl')}: ${esc(r.examiner)}</div><div id="scHead" role="heading" aria-level="2" tabindex="-1" style="font-size:1.1rem;font-weight:700;margin-top:2px">${esc(r.examinee)}</div><div class="pmeta" style="margin-top:10px"><span>${t('progScore')}</span><span><span id="spAvg" class="spavg"></span><span id="spCnt"></span></span></div><div class="pbar"><i id="spBar"></i></div><button type="button" class="b b3" id="spdBtn" style="margin-top:10px;padding:6px 12px;font-size:.78rem" onclick="cycleSpeed()">${esc(t2('spd'))} ${playRate}x</button></div>`;
   // 録音も点も文字起こしも無い項目は折りたたみへ退避（採点すべきカードだけを本流に並べる）
   const noRec=[];
   secs.forEach(sec=>{
@@ -166,6 +178,9 @@ async function renderScoreDetail(r){
   // ドライブへ届いていない録音に「☁未送信（タップで再送）」を出す
   if(typeof isUnsent==='function')sessItemIds(r).forEach(id=>{if(isUnsent(r,id))setScoreCloud(r,id,'fail')});
   updateScoreProg();
+  syncScoringClass();
+  // 開いた直後は受験者名の見出しへフォーカス（bodyに落とさない＝読み上げ・キーボードで現在位置を見失わない）。言語切替の再描画では動かさない
+  if(opt&&opt.focus){const hd=document.getElementById('scHead');if(hd)hd.focus({preventScroll:true})}
   window.scrollTo({top:0,behavior:'smooth'});
   // 音声URL（セッション自身のキーで走査＝過去項目の録音も再生できる）
   for(const id of sessItemIds(r)){
@@ -246,7 +261,7 @@ function pickScore(id,s,btn){
   if(curScore){curScore.items[id]=curScore.items[id]||{};curScore.items[id].score=s}
   if(curScore&&typeof resyncDriveName==='function')resyncDriveName(curScore,id); // ドライブのファイル名の合否も付け直す
   btn.parentElement.querySelectorAll('.sb').forEach(b=>{b.classList.remove('sel');b.setAttribute('aria-checked','false')});btn.classList.add('sel');btn.setAttribute('aria-checked','true');const sp=document.getElementById('sp-'+id);if(sp)sp.textContent=pfLabel(s);const c=document.getElementById('sc-'+id);if(c){c.classList.add('scored');c.classList.toggle('v-pass',s==='pass');c.classList.toggle('v-fail',s==='fail')}const na=document.querySelector('.nachk[data-id="'+id+'"]');if(na&&na.checked){na.checked=false;if(curScore&&curScore.items[id])curScore.items[id].na=false}updateScoreProg();queueScoreDraft();queueAutoNext()}
-function backToScoreList(){clearTimeout(autoNextTimer);persistScoreDraft(false);curScore=null;releaseScoreUrls();document.getElementById('scDetail').style.display='none';drawScoreList()}
+function backToScoreList(){clearTimeout(autoNextTimer);persistScoreDraft(false);const sid=curScore&&curScore.id;curScore=null;releaseScoreUrls();document.getElementById('scDetail').style.display='none';drawScoreList();focusScoreRow(sid)}
 function releaseScoreUrls(){curScoreUrls.forEach(u=>{try{URL.revokeObjectURL(u)}catch(e){}});curScoreUrls=[]}
 
 
@@ -292,4 +307,5 @@ function saveScore(){
   // 保存直後は「すべて」表示に切替＝いま採点した行が「採点済」バッジ付きで見え続ける（空画面の行き止まり防止）
   const sf=document.getElementById('scFil');if(sf)sf.value='all';
   drawScoreList();refreshSel();
+  focusScoreRow(r.id); // 保存して一覧へ戻ったら、いま採点した行へフォーカスを戻す
 }

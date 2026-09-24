@@ -20,29 +20,31 @@ function buildCfgUI(){
   let h=`<div style="font-size:.75rem;color:var(--sub);margin-bottom:10px">${esc(t2('cfgNote'))}</div>`;
   secs.forEach((sec,si)=>{
     const secItems=items.filter(it=>it.secId===sec.id);
+    const sn=esc(sec.name||t('secName')); // 読み上げ用：削除・移動ボタンにどのセクションかを入れる
     const sid=sanitizeId(sec.id); // 多層防御: onclick属性への埋め込みは描画側でも無害化（buildExamCards/renderScoreDetailと同水準）
     h+=`<div class="cfg-sec" data-sec="${sid}">`;
     h+=`<div class="cfg-sec-hdr">
-      <input type="text" value="${esc(sec.name)}" onchange="cfgSecName('${sid}',this.value)" placeholder="${t('secName')}">
+      <input type="text" value="${esc(sec.name)}" aria-label="${t('secName')}" onchange="cfgSecName('${sid}',this.value)" placeholder="${t('secName')}">
       <div class="ci-btns">
-        ${si>0?`<button aria-label="${t('alUp')}" onclick="moveSec('${sid}',-1)">&#9650;</button>`:'<button style="visibility:hidden" aria-hidden="true">&#9650;</button>'}
-        ${si<secs.length-1?`<button aria-label="${t('alDown')}" onclick="moveSec('${sid}',1)">&#9660;</button>`:'<button style="visibility:hidden" aria-hidden="true">&#9660;</button>'}
-        <button class="del" aria-label="${t('btnDel')}" onclick="delSec('${sid}')">&#10005;</button>
+        ${si>0?`<button aria-label="${t('alUp')}: ${sn}" onclick="moveSec('${sid}',-1)">&#9650;</button>`:'<button style="visibility:hidden" aria-hidden="true">&#9650;</button>'}
+        ${si<secs.length-1?`<button aria-label="${t('alDown')}: ${sn}" onclick="moveSec('${sid}',1)">&#9660;</button>`:'<button style="visibility:hidden" aria-hidden="true">&#9660;</button>'}
+        <button class="del" aria-label="${t('btnDel')}: ${sn}" onclick="delSec('${sid}')">&#10005;</button>
       </div>
     </div>`;
     secItems.forEach((it,ii)=>{
       const iid=sanitizeId(it.id);
+      const inm=esc(it.name||t('itemName')); // 読み上げ用：どの質問の欄・ボタンかを名前に入れる
       h+=`<div class="cfg-item">
         <div class="ci-row">
-          <input type="text" value="${esc(it.name)}" onchange="cfgItemName('${iid}',this.value)" placeholder="${t('itemName')}">
+          <input type="text" value="${esc(it.name)}" aria-label="${t('itemName')}" onchange="cfgItemName('${iid}',this.value)" placeholder="${t('itemName')}">
           <div class="ci-btns">
-            ${ii>0?`<button aria-label="${t('alUp')}" onclick="moveItem('${iid}',-1)">&#9650;</button>`:'<button style="visibility:hidden" aria-hidden="true">&#9650;</button>'}
-            ${ii<secItems.length-1?`<button aria-label="${t('alDown')}" onclick="moveItem('${iid}',1)">&#9660;</button>`:'<button style="visibility:hidden" aria-hidden="true">&#9660;</button>'}
-            <button class="del" aria-label="${t('btnDel')}" onclick="delItem('${iid}')">&#10005;</button>
+            ${ii>0?`<button aria-label="${t('alUp')}: ${inm}" onclick="moveItem('${iid}',-1)">&#9650;</button>`:'<button style="visibility:hidden" aria-hidden="true">&#9650;</button>'}
+            ${ii<secItems.length-1?`<button aria-label="${t('alDown')}: ${inm}" onclick="moveItem('${iid}',1)">&#9660;</button>`:'<button style="visibility:hidden" aria-hidden="true">&#9660;</button>'}
+            <button class="del" aria-label="${t('btnDel')}: ${inm}" onclick="delItem('${iid}')">&#10005;</button>
           </div>
         </div>
-        <textarea onchange="cfgItemDesc('${iid}',this.value)" placeholder="${t('itemDesc')}">${esc(it.desc)}</textarea>
-        ${it.ans!=null?`<div class="ans-lbl">${t('ansLbl')}</div><textarea onchange="cfgItemAns('${iid}',this.value)">${esc(it.ans)}</textarea>`:''}
+        <textarea aria-label="${inm} ${t('itemDesc')}" onchange="cfgItemDesc('${iid}',this.value)" placeholder="${t('itemDesc')}">${esc(it.desc)}</textarea>
+        ${it.ans!=null?`<div class="ans-lbl">${t('ansLbl')}</div><textarea aria-label="${inm} ${t('ansLbl')}" onchange="cfgItemAns('${iid}',this.value)">${esc(it.ans)}</textarea>`:''}
       </div>`;
     });
     h+=`<div class="cfg-add"><button onclick="addItem('${sid}')">${t('addItem')}</button></div>`;

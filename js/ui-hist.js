@@ -94,14 +94,26 @@ function gotoScore(id){
 }
 /* モーダルを開く（開いた要素を記憶し、閉じるボタンへフォーカス移動） */
 let moOpener=null;
+/* モーダル表示中は背後（ヘッダー・本文・タブ）を inert にして、読み上げのスワイプ操作でも背後へ移れないようにする
+   （inert 非対応ブラウザでは aria-hidden で読み上げ対象から外す） */
+function moSetBackdrop(on){
+  document.querySelectorAll('body>header,body>main,body>nav.tabs').forEach(el=>{
+    if('inert' in el)el.inert=on;
+    if(on)el.setAttribute('aria-hidden','true');else el.removeAttribute('aria-hidden');
+  });
+}
 function moShow(){
   moOpener=document.activeElement;
+  const mb=document.getElementById('moBody');
+  if(mb&&document.getElementById('moTitle'))mb.setAttribute('aria-labelledby','moTitle');
+  moSetBackdrop(true);
   document.getElementById('modal').classList.add('show');
   const mx=document.querySelector('#moBody .mx');
   if(mx)setTimeout(()=>mx.focus(),60);
 }
 function closeMo(){
   document.getElementById('modal').classList.remove('show');
+  moSetBackdrop(false); // フォーカスを戻す前に背後の inert を外す（inert の要素へは focus できない）
   releaseScoreUrls();
   if(moOpener&&moOpener.isConnected&&moOpener.focus)moOpener.focus();
   moOpener=null;

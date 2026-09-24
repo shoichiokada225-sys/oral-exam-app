@@ -872,3 +872,17 @@ details.ans .ansb{padding:0 13px 11px;font-size:.84rem;line-height:1.75;white-sp
 .prog.mini .epdrv{display:none}
 @media print{.prog .epdrv{display:none}}
 input[aria-invalid="true"]{border-color:var(--s1)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--s1) 25%,transparent)}
+
+/* ---- R7 アクセシビリティ ---- */
+/* 採点画面を開いている間：キーボードで移動した先が下部の保存バー（2段で約128px）＋タブ、上部のヘッダーに隠れないよう余白を取る */
+html.scoring{
+  scroll-padding-top:calc(var(--hdr-h) + 12px);
+  scroll-padding-bottom:calc(var(--tabs-h) + 140px + env(safe-area-inset-bottom,0px));
+}
+/* 試問ヒーロー内のドライブ状態：見た目は下線テキストのまま、当たり判定だけ44pxへ（上下の負マージンで配置の高さはほぼ据え置き） */
+.prog .epdrv{display:flex;align-items:center;min-height:44px;padding:0 10px;margin:-9px 0 -7px -10px;max-width:calc(100% + 10px)} /* 上はチップ列の下余白・下はヒーローの下余白(7px)の中に収める */
+.prog.mini .epdrv{display:none}
+.pjudge #epNextUnj{min-height:44px;margin:-4px 0} /* 当たり判定44px・負マージンで配置の高さは据え置き */
+/* 「質問しなかった」チェック：行の高さ44px・チェック本体22px */
+#scDetail .nalbl{display:flex;align-items:center;gap:8px;min-height:44px;padding:8px 0;margin-top:0;font-size:.8rem;color:var(--sub);cursor:pointer}
+#scDetail .nalbl .nachk{width:22px;height:22px;flex:0 0 22px;margin:0;accent-color:var(--btn-pri)}
