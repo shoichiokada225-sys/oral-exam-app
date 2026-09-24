@@ -53,7 +53,7 @@ function drawHist(){
     const ym=(r.date||'').slice(0,7);
     if(ym&&ym!==pm){h+=`<div class="mgrp">${esc(fmtMonth(ym))}</div>`;pm=ym}
     const x=rowRes(r);
-    h+=`<button type="button" class="hi" onclick="showDet('${sanitizeId(r.id)}')"><span class="hii"><span class="hid">${esc(r.date)} · ${t('erLbl')}: ${esc(r.examiner)} · <span class="hset">${esc(setLbl(r))}</span></span><span class="hin">${esc(r.examinee)}</span>${x.badge}</span><span class="hia ${x.cls}">${esc(x.lbl)}</span></button>`;
+    h+=`<button type="button" class="hi" onclick="showDet('${sanitizeId(r.id)}')"><span class="hii"><span class="hid">${esc(r.date)} · <span class="hset">${esc(setLbl(r))}</span></span><span class="hin">${esc(r.examinee)}</span>${x.badge}</span><span class="hia ${x.cls}">${esc(x.lbl)}</span></button>`;
   });
   c.innerHTML=h;
 }
@@ -64,7 +64,7 @@ async function showDet(id){
   // cfg変更後も過去項目が消えないよう「cfg ∪ セッション自身のキー」で走査、名前はスナップショット優先
   const ids=sessItemIds(r);
   let h=`<div class="mh"><h2 id="moTitle">${esc(r.examinee)} - ${esc(r.date)}</h2><button class="mx" aria-label="${t('btnClose')}" onclick="closeMo()">&times;</button></div>`;
-  h+=`<div style="font-size:.85rem;color:var(--sub);margin-bottom:12px">${t('erLbl')}: ${esc(r.examiner)} · ${esc(t2('examSetLbl'))}: ${esc(setLbl(r))} · ${esc(resHead(r))}: ${esc(r.status==='scored'?resLbl(r):pendLbl(r)||'-')}${unaskedCount(r)?' · '+esc(t2('unaskedN').replace('{u}',unaskedCount(r))):''}</div>`;
+  h+=`<div style="font-size:.85rem;color:var(--sub);margin-bottom:12px">${esc(t2('examSetLbl'))}: ${esc(setLbl(r))} · ${esc(resHead(r))}: ${esc(r.status==='scored'?resLbl(r):pendLbl(r)||'-')}${unaskedCount(r)?' · '+esc(t2('unaskedN').replace('{u}',unaskedCount(r))):''}</div>`;
   ids.forEach(iid=>{
     const rec=r.items[iid]||{};
     if(!rec.hasAudio&&rec.score==null&&!rec.transcript)return;
@@ -150,12 +150,12 @@ function doCSV(){
     if(!seen.has(id)&&safeKey(id)){seen.add(id);cols.push({id,name:itemMeta(r,id).name})}
   }));
   // ヘッダーはUI言語に追従（CSVは書き出し専用＝再取り込みしないため後方互換の懸念なし）
-  const hd=[t('labelDate'),t('labelExaminer'),t('labelExaminee'),t2('qsTitle'),t('csvStatus'),...cols.map(c=>c.name+'('+t2('pfLbl')+')'),...cols.map(c=>c.name+'('+t('trLbl')+')'),...cols.map(c=>c.name+'('+t('csvCmt')+')'),t2('csvPass'),t('overall'),t('csvCreated')];
+  const hd=[t('labelDate'),t('labelExaminee'),t2('qsTitle'),t('csvStatus'),...cols.map(c=>c.name+'('+t2('pfLbl')+')'),...cols.map(c=>c.name+'('+t('trLbl')+')'),...cols.map(c=>c.name+'('+t('csvCmt')+')'),t2('csvPass'),t('overall'),t('csvCreated')];
   // 数式インジェクション対策：=,+,-,@ 等で始まる値は先頭に ' を付ける
   const cell=s=>{let v=String(s==null?'':s);if(/^[=+\-@\t\r]/.test(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"'};
   let csv='﻿'+hd.map(cell).join(',')+'\n';
   all.forEach(r=>{
-    const row=[r.date,r.examiner,r.examinee,setLbl(r),r.status==='scored'?t('stScored'):t('stRec'),
+    const row=[r.date,r.examinee,setLbl(r),r.status==='scored'?t('stScored'):t('stRec'),
       ...cols.map(c=>{const v=r.items[c.id]&&r.items[c.id].score;return v==null?'':scoreTxt(v)}),
       ...cols.map(c=>(r.items[c.id]&&r.items[c.id].transcript)||''),
       ...cols.map(c=>(r.items[c.id]&&r.items[c.id].comment)||''),

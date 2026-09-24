@@ -55,7 +55,7 @@ function findNameVariant(name,field,exceptId){return findNameVariants(name,field
 /* 保存の直前：既存の名前と表記だけ違えば「同じ人ですか？」と候補ごとに確認し、OKの表記にそろえる。
    すべてキャンセル＝別の人（入力した表記のまま。同じ日の判定・一括訂正でも別人として扱う） */
 function alignNames(sess){
-  [['examinee','fEe','labelExaminee'],['examiner','fEr','labelExaminer']].forEach(([f,iid,lbl])=>{
+  [['examinee','fEe','labelExaminee']].forEach(([f,iid,lbl])=>{
     const vs=findNameVariants(sess[f],f,sess.id);
     for(const v of vs){
       const msg=t2('nameSame').replace(/\{f\}/g,t(lbl)).replace(/\{a\}/g,v).replace(/\{b\}/g,sess[f]);
@@ -263,7 +263,7 @@ function renameForm(id){
   let h=`<div class="mh"><h2 id="moTitle">${esc(t2('rnTitle'))}</h2><button class="mx" aria-label="${esc(t('btnClose'))}" onclick="closeMo()">&times;</button></div>`;
   // 入力欄は試問タブと同じ見た目（.meta）。名前は利用者の入力＝ value も esc() して出す
   h+=`<div class="meta"><label for="rnEe">${esc(t('labelExaminee'))}</label><input type="text" id="rnEe" list="dlEe" autocomplete="off" value="${esc(r.examinee)}">`;
-  h+=`<label for="rnEr">${esc(t('labelExaminer'))}</label><input type="text" id="rnEr" list="dlEr" autocomplete="off" value="${esc(r.examiner)}"></div>`;
+  h+=`</div>`;
   if(grp.length>1||vars.length){
     h+=`<fieldset style="border:1px solid var(--line,#ccc);border-radius:8px;margin-top:12px;padding:8px 10px;font-size:.85rem"><legend style="font-weight:700;padding:0 4px">${esc(t2('rnScope'))}</legend>
       <label style="display:block;padding:4px 0"><input type="radio" name="rnScope" value="one" checked> ${esc(t2('rnOne'))}</label>
@@ -281,9 +281,11 @@ function renameForm(id){
   if(!document.getElementById('modal').classList.contains('show'))moShow();
   setTimeout(()=>{const i=document.getElementById('rnEe');if(i)i.focus()},80);
 }
+/* 試問者は入力欄をなくしたので、訂正でも元の値のまま */
+function r0Examiner(id){const x=getAll().find(s=>s.id===id);return x?(x.examiner||''):''}
 function applyRename(id){
-  const ee=(document.getElementById('rnEe').value||'').trim(),er=(document.getElementById('rnEr').value||'').trim();
-  if(!ee||!er){toast(t('eNm'),1);return}
+  const ee=(document.getElementById('rnEe').value||'').trim(),er=r0Examiner(id);
+  if(!ee){toast(t('eNm'),1);return}
   const sc=document.querySelector('input[name="rnScope"]:checked');
   const all=getAll();const r=all.find(s=>s.id===id);if(!r)return;
   // 全件＝表記が完全一致する試問＋利用者が「同じ人」として選んだ表記の試問だけ

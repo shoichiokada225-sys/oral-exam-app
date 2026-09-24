@@ -32,7 +32,6 @@ function ok(name, cond) {
   ok('音声プレーヤー表示', await page.locator('#au-q1').isVisible());
 
   console.log('[3] 試問の保存 → 採点');
-  await page.fill('#fEr', '岡田');
   await page.fill('#fEe', 'テスト太郎');
   await page.click('button:has-text("試問を保存")'); // 使い方ガイド文中の「試問を保存」と衝突しないようbuttonに限定
   await page.waitForTimeout(400);

@@ -86,7 +86,7 @@ const firstScreen = p => p.evaluate(() => {
   }
   {
     const { ctx, p, errors } = await open(b);
-    await p.fill('#fEr', '岡田'); await p.fill('#fEe', 'グエン'); await p.press('#fEe', 'Tab');
+    await p.fill('#fEe', 'グエン'); await p.press('#fEe', 'Tab');
     await p.click('#rb-q1'); await p.waitForTimeout(900); await p.click('#rb-q1'); await p.waitForTimeout(900);
     T.ok('1件録音するとヒーローが出る（カードは開いたままでも）', await p.isVisible('#examProg') && await p.isVisible('#examHowto'));
     T.ok('JSエラーなし ' + errors.join('|'), !errors.length);
@@ -96,10 +96,10 @@ const firstScreen = p => p.evaluate(() => {
   /* ---------- [3] 名前を入れたら1問目へ ---------- */
   console.log('[3] 名前の入力後に1問目の録音へ送る');
   {
-    const { ctx, p, errors } = await open(b, { width: 375, height: 600 }); // 低い画面：初回は録音ボタンが画面外
+    const { ctx, p, errors } = await open(b, { width: 375, height: 520 }); // 低い画面（試問者名欄を外して上部が1段減ったため600→520）：初回は録音ボタンが画面外
     const before = await firstScreen(p);
     T.ok('前提：低い画面では画面外 ' + JSON.stringify(before), before.rbTop >= before.lim);
-    await p.fill('#fEr', '岡田'); await p.fill('#fEe', 'グエン'); await p.press('#fEe', 'Tab'); await p.waitForTimeout(900);
+    await p.fill('#fEe', 'グエン'); await p.press('#fEe', 'Tab'); await p.waitForTimeout(900);
     const af = await p.evaluate(() => { const tb = document.querySelector('.tabs').getBoundingClientRect().top, r = document.getElementById('rb-q1').getBoundingClientRect(); return { top: r.top, bot: r.bottom, tb, y: scrollY }; });
     T.ok('名前を入れ終えると録音ボタンが見える位置へ ' + JSON.stringify(af), af.y > 0 && af.top >= 0 && af.bot <= af.tb);
     T.ok('JSエラーなし ' + errors.join('|'), !errors.length);

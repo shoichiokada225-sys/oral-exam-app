@@ -69,7 +69,7 @@ const S = (id, ee, date, status, items) => ({ id, date, examiner: '岡田', exam
 
   console.log('[2] 保存で採点を確定 → 履歴へ案内');
   const fillAll = async (ee, scores) => {
-    await p.fill('#fEr', '岡田'); await p.fill('#fEe', ee);
+    await p.fill('#fEe', ee);
     await p.evaluate(sc => { getItems().forEach((it, i) => { if (sc[i] === undefined) return; cur.items[it.id] = { hasAudio: true, score: sc[i] }; }); saveDraft(); buildExamCards(); }, scores);
   };
   await fillAll('グエン', ['pass', 'pass', 'fail']);

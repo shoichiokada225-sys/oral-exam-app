@@ -127,7 +127,7 @@ const SESS=[
   console.log('[3b] 試問保存時、録音全問に○×があれば採点確定を選べる');
   await tab('pgExam');
   // R5: ドライブ自動保存ONでは受験者名を先に入れないと録音を始めない
-  await p.fill('#fEr','岡田');await p.fill('#fEe','確定テスト');
+  await p.fill('#fEe','確定テスト');
   await p.click('#rb-q1');await p.waitForTimeout(900);await p.click('#rb-q1');await p.waitForTimeout(800);
   await p.click('#vp-q1');
   dialogs.length=0;dialogAns=true;

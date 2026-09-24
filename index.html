@@ -47,8 +47,9 @@ try{var _th=localStorage.getItem('oral_exam_theme');if(_th==='light'||_th==='dar
   <div class="cd meta">
     <label for="fDate" data-t="labelDate">試問日</label>
     <input type="date" id="fDate">
-    <label for="fEr" data-t="labelExaminer">試問者名</label>
-    <input type="text" id="fEr" data-ph="phEr" placeholder="例：山田太郎">
+    <!-- 試問者名は不要（2026-09-25 社長判断）。JSの参照を壊さないよう要素は残して非表示 -->
+    <label for="fEr" data-t="labelExaminer" hidden>試問者名</label>
+    <input type="text" id="fEr" data-ph="phEr" placeholder="例：山田太郎" hidden tabindex="-1" aria-hidden="true">
     <label for="fEe" data-t="labelExaminee">受験者名</label>
     <input type="text" id="fEe" data-ph="phEe" placeholder="例：佐藤花子">
   </div>

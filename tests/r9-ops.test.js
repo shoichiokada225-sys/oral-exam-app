@@ -49,12 +49,12 @@ const mk = (id, ee, date, items, extra) => Object.assign({ id, date, examiner: '
     const k = await p.evaluate(() => [nameKey('グエン・ヴァン・A') === nameKey('グエン ヴァン A '), nameKey('ｸﾞｴﾝ ｳﾞｧﾝ a') === nameKey('グエン・ヴァン・A'),
       nameKey('Nguyễn Văn An') === nameKey('nguyen  van an'), nameKey('Đặng') === nameKey('dang'), nameKey('ガ') !== nameKey('カ')]);
     T.ok('比較キー: 中黒/空白/半角カナ/大小文字/声調記号をそろえ、濁点は区別 ' + k.join(','), k.every(Boolean));
-    const dl = await p.evaluate(() => ({ list: document.getElementById('fEe').getAttribute('list'), er: document.getElementById('fEr').getAttribute('list'),
+    const dl = await p.evaluate(() => ({ list: document.getElementById('fEe').getAttribute('list'),
       opts: [...document.querySelectorAll('#dlEe option')].map(o => o.value) }));
-    T.ok('受験者名欄に候補（datalist）: ' + dl.opts.length + '件', dl.list === 'dlEe' && dl.er === 'dlEr' && dl.opts.includes('グエン・ヴァン・A'));
+    T.ok('受験者名欄に候補（datalist）: ' + dl.opts.length + '件', dl.list === 'dlEe' && dl.opts.includes('グエン・ヴァン・A'));
     T.ok('候補の名前はエスケープ（値として保持・実行されない）', dl.opts.includes(XSS) && !(await p.evaluate(() => window.__x)));
     // 表記違いで保存 → 「同じ人ですか？」→ OK で既存の表記にそろう
-    await p.fill('#fEr', '岡田'); await p.fill('#fEe', 'グエン ヴァン A'); await rec(p, 'q1');
+    await p.fill('#fEe', 'グエン ヴァン A'); await rec(p, 'q1');
     dlg.log.length = 0; dlg.plan = ['accept', 'dismiss']; // nameSame=OK, confirmScored=キャンセル
     await p.click('button:has-text("試問を保存")'); await p.waitForTimeout(500);
     const ss = await sess(p);
@@ -74,7 +74,7 @@ const mk = (id, ee, date, items, extra) => Object.assign({ id, date, examiner: '
       mk('s1', 'Nguyen Van An', '2026-09-01', { q1: { score: 'pass' } }),
       mk('s2', 'nguyen  van an', '2026-09-02', { q1: { score: 'fail' } }),
     ] });
-    await p.fill('#fEr', '岡田'); await p.fill('#fEe', 'Nguyen Van An'); await rec(p, 'q1');
+    await p.fill('#fEe', 'Nguyen Van An'); await rec(p, 'q1');
     await p.click('#vp-q1'); await p.waitForTimeout(2200);
     dlg.plan = ['dismiss']; // confirmScored=キャンセル
     await p.click('button:has-text("試問を保存")'); await p.waitForTimeout(600);
@@ -87,7 +87,7 @@ const mk = (id, ee, date, items, extra) => Object.assign({ id, date, examiner: '
     await p.evaluate(id => showDet(id), sid); await p.waitForTimeout(300);
     T.ok('履歴詳細に「名前を直す」', await p.locator('#rnBtn').count() === 1);
     await p.click('#rnBtn'); await p.waitForTimeout(200);
-    T.ok('名前の入力欄2つと範囲の選択', await p.locator('#rnEe').count() === 1 && await p.locator('#rnEr').count() === 1 && await p.locator('input[name="rnScope"]').count() === 2);
+    T.ok('名前の入力欄（受験者のみ）と範囲の選択', await p.locator('#rnEe').count() === 1 && await p.locator('#rnEr').count() === 0 && await p.locator('input[name="rnScope"]').count() === 2);
     await p.fill('#rnEe', 'Nguyen Van Anh'); await p.check('input[name="rnScope"][value="all"]');
     // 表記ゆれ（大小文字・空白の違い）は既定では含めない＝利用者が「同じ人」として選んだ時だけ
     T.ok('表記の違う名前は選択式（既定は未選択）', await p.locator('input[name="rnVar"]').count() === 1 && !(await p.locator('input[name="rnVar"]').isChecked()));
@@ -117,7 +117,7 @@ const mk = (id, ee, date, items, extra) => Object.assign({ id, date, examiner: '
   console.log('[3] 名前の入力中は送らない');
   {
     const { p, errors, posts, dlg } = await setup(b, { drive: true });
-    await p.fill('#fEr', '岡田'); await p.fill('#fEe', 'Siti'); await rec(p, 'q1');
+    await p.fill('#fEe', 'Siti'); await rec(p, 'q1');
     const n0 = posts.length;
     await p.click('#vp-q1');              // 1.5秒後に付け直し送信
     await p.focus('#fEe'); await p.keyboard.type(' Nur');  // 入力中（欄を離れない）
@@ -135,7 +135,7 @@ const mk = (id, ee, date, items, extra) => Object.assign({ id, date, examiner: '
   console.log('[4] この試問を続ける');
   {
     const { p, errors, dlg } = await setup(b, {});
-    await p.fill('#fEr', '岡田'); await p.fill('#fEe', 'Siti'); await rec(p, 'q1');
+    await p.fill('#fEe', 'Siti'); await rec(p, 'q1');
     await p.click('button:has-text("試問を保存")'); await p.waitForTimeout(500);
     const sid = (await sess(p))[0].id;
     await p.click('.tabs button[data-pg="pgScore"]'); await p.waitForTimeout(300);
@@ -171,7 +171,7 @@ const mk = (id, ee, date, items, extra) => Object.assign({ id, date, examiner: '
   console.log('[5] 同じ日の再保存：まとめる／追試');
   {
     const { p, errors, posts, dlg } = await setup(b, { drive: true });
-    await p.fill('#fEr', '岡田'); await p.fill('#fEe', 'Nguyen Van Anh'); await rec(p, 'q1');
+    await p.fill('#fEe', 'Nguyen Van Anh'); await rec(p, 'q1');
     await p.click('button:has-text("試問を保存")'); await p.waitForTimeout(700);
     const sid = (await sess(p))[0].id;
     // 2回目（別の問）→ OK＝まとめる
@@ -202,7 +202,6 @@ const mk = (id, ee, date, items, extra) => Object.assign({ id, date, examiner: '
   console.log('[6] 名前なし録音の促し・下書きの案内');
   {
     const { p, errors } = await setup(b, {});
-    await p.fill('#fEr', '岡田');
     await p.click('#rb-q1'); await p.waitForTimeout(300);
     const nag = await p.evaluate(() => ({ t: document.getElementById('toast').textContent, inv: document.getElementById('fEe').getAttribute('aria-invalid'), recOn: !!active }));
     T.ok('受験者名が空で録音開始→名前を促す（録音は続く）', /受験者名が未入力/.test(nag.t) && nag.inv === 'true' && nag.recOn);
@@ -210,7 +209,7 @@ const mk = (id, ee, date, items, extra) => Object.assign({ id, date, examiner: '
     await p.fill('#fEe', '<b>スリ</b>'); await p.click('#vp-q1'); await p.waitForTimeout(300);
     await p.reload(); await p.waitForTimeout(500);
     const dn = await p.evaluate(() => { const e = document.getElementById('draftNote'); return e ? { txt: e.innerText, b: !!e.querySelector('b'), btn: e.querySelectorAll('button').length } : null; });
-    T.ok('復元したら常設の案内（受験者・録音1問・合否1問・試問者）', dn && dn.txt.includes('<b>スリ</b>') && /録音1問/.test(dn.txt) && /合否1問/.test(dn.txt) && dn.txt.includes('岡田') && dn.btn === 3);
+    T.ok('復元したら常設の案内（受験者・録音1問・合否1問・試問者は出さない）', dn && dn.txt.includes('<b>スリ</b>') && /録音1問/.test(dn.txt) && /合否1問/.test(dn.txt) && !dn.txt.includes('試問者') && dn.btn === 3);
     T.ok('案内の名前はエスケープ', dn && !dn.b);
     await p.click('#dnCont'); await p.waitForTimeout(100);
     T.ok('［続ける］で案内を閉じる（試問はそのまま）', await p.locator('#draftNote').count() === 0 && await p.evaluate(() => !!cur.items.q1.hasAudio));

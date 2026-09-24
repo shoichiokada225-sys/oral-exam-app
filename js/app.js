@@ -300,7 +300,7 @@ async function saveSession(opt){
   cur.examiner=document.getElementById('fEr').value.trim();
   cur.examinee=document.getElementById('fEe').value.trim();
   // 名前・日付が空：トーストだけでなく、空の欄へスクロールしてフォーカスし赤枠を付ける（欄は画面外のことが多い）
-  if(!cur.examiner||!cur.examinee){toast(t('eNm'),1);markInvalid(!cur.examiner?'fEr':'fEe');if(!cur.examiner&&!cur.examinee)setInvalid('fEe',true);return}
+  if(!cur.examinee){toast(t('eNm'),1);markInvalid('fEe');return} // 試問者名は不要（入力欄なし）
   if(!cur.date){toast(t('eDt'),1);markInvalid('fDate');return}
   // 録音の有無は今の試問の全部の問で見る（出題を切り替えて画面に出ていない問の録音も「無い」と言わない）
   const recd=Object.keys(cur.items||{}).some(k=>cur.items[k]&&cur.items[k].hasAudio);

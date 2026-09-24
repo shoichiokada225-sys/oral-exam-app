@@ -39,7 +39,7 @@ const hit = (a, b) => a && b && a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b
     const { p, errors } = await mkPage(ctx, lang);
     const ids = await p.evaluate(() => getItems().map(i => i.id));
     const A = ids[ids.length - 1]; // 最後の問＝バーと重なりやすい最下部
-    await p.fill('#fEr', '岡田'); await p.fill('#fEe', 'グエン');
+    await p.fill('#fEe', 'グエン');
     for (const [mode, sel] of [['redo', '#rb-'], ['cont', '#rc-']]) {
       if (mode === 'redo') { await p.click('#rb-' + A); await p.waitForTimeout(1300); await p.click('#rb-' + A); await p.waitForFunction(id => !active && cur && cur.items[id] && cur.items[id].hasAudio, A); }
       await p.locator(sel + A).scrollIntoViewIfNeeded();
@@ -84,7 +84,7 @@ const hit = (a, b) => a && b && a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b
     const ctx = await b.newContext({ viewport: { width: 375, height: 740 }, isMobile: true, hasTouch: true });
     let { p } = await mkPage(ctx);
     const [A, B] = await p.evaluate(() => getItems().map(i => i.id));
-    await p.fill('#fEr', '岡田'); await p.fill('#fEe', 'Aさん');
+    await p.fill('#fEe', 'Aさん');
     await p.click('#rb-' + A); await p.waitForTimeout(3200);
     const sidA = await p.evaluate(() => cur.id);
     // [3] 書き足し形式
@@ -106,7 +106,7 @@ const hit = (a, b) => a && b && a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b
     // 録音済みの問がない下書きは戻らない＝起動すると新しい試問（ここへ次の受験者Bさんを入れる）
     const sidB = await p.evaluate(() => cur.id);
     T.ok('新しい試問（Aとは別ID）', sidB !== sidA);
-    await p.fill('#fEr', '岡田'); await p.fill('#fEe', 'Bさん');
+    await p.fill('#fEe', 'Bさん');
     await p.click('#vp-' + B); await p.waitForTimeout(150);
     p.__dlg = [];
     await p.click('#lrRestore'); await p.waitForTimeout(1000);
@@ -164,7 +164,7 @@ const hit = (a, b) => a && b && a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b
     let { p, errors } = await mkPage(ctx);
     const [A, B] = await p.evaluate(() => getItems().map(i => i.id));
     const dur = id => p.evaluate(async id => { const x = await getAudio(cur.id + '_' + id); if (!x) return -1; const ac = new AudioContext(); try { return (await ac.decodeAudioData(await x.arrayBuffer())).duration; } finally { ac.close(); } }, id);
-    await p.fill('#fEr', '岡田'); await p.fill('#fEe', 'シティ');
+    await p.fill('#fEe', 'シティ');
     await p.click('#rb-' + A); await p.waitForTimeout(1500); await p.click('#rb-' + A); await p.waitForTimeout(1000);
     const sid = await p.evaluate(() => cur.id);
     // 以後「試問の記録」と「一時保存の片付け」が走らない＝その間に落ちたのと同じ状態

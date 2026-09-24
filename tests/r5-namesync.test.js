@@ -36,7 +36,7 @@ const sessions = p => p.evaluate(() => JSON.parse(localStorage.getItem('oral_exa
     const { p, errors, posts, dialogs } = await setup(b, ans, ping);
     await p.evaluate(u => localStorage.setItem('oral_exam_google_v1', JSON.stringify({ url: u, auto: true, autoSet: true })), GURL);
     await p.reload(); await p.waitForTimeout(300);
-    await p.fill('#fEr', '岡田'); await p.fill('#fEe', 'A'); await p.press('#fEe', 'Tab');
+    await p.fill('#fEe', 'A'); await p.press('#fEe', 'Tab');
     await rec(p, 'q1'); await p.waitForTimeout(500);
     T.ok('録音は未判定の名前で送られる ' + JSON.stringify(audioPosts(posts)), audioPosts(posts).length === 1 && audioPosts(posts)[0].name.includes('_未判定_'));
     dialogs.length = 0;
@@ -66,7 +66,7 @@ const sessions = p => p.evaluate(() => JSON.parse(localStorage.getItem('oral_exa
   {
     console.log('[2] 録音が無ければ名前の書き換えを確認しない');
     const { p, errors, dialogs } = await setup(b, ans, ping);
-    await p.fill('#fEr', '岡田'); await p.fill('#fEe', 'A'); await p.press('#fEe', 'Tab');
+    await p.fill('#fEe', 'A'); await p.press('#fEe', 'Tab');
     await p.click('#vp-q1'); await p.waitForTimeout(200);
     dialogs.length = 0;
     await p.fill('#fEe', 'B'); await p.press('#fEe', 'Tab'); await p.waitForTimeout(5800);
@@ -82,7 +82,7 @@ const sessions = p => p.evaluate(() => JSON.parse(localStorage.getItem('oral_exa
   {
     console.log('[3] 名前を消してから別の名前を入れても確認を素通りしない');
     const { p, errors, dialogs } = await setup(b, ans, ping);
-    await p.fill('#fEr', '岡田'); await p.fill('#fEe', 'A'); await p.press('#fEe', 'Tab');
+    await p.fill('#fEe', 'A'); await p.press('#fEe', 'Tab');
     await rec(p, 'q1');
     dialogs.length = 0;
     await p.fill('#fEe', ''); await p.press('#fEe', 'Tab'); await p.waitForTimeout(200);

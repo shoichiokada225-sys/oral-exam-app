@@ -46,7 +46,7 @@ const setHidden = (p, hidden) => p.evaluate(h => {
   let errors2 = [];
   const ids = await p.evaluate(() => getItems().map(i => i.id));
   const [A, B, C] = ids;
-  await p.fill('#fEr', '岡田'); await p.fill('#fEe', 'グエン');
+  await p.fill('#fEe', 'グエン');
 
   console.log('[1] 1秒ごとの一時保存');
   await p.click('#rb-' + A); await p.waitForTimeout(3500);
@@ -163,7 +163,7 @@ const setHidden = (p, hidden) => p.evaluate(h => {
   console.log('[4b] まだ何も保存していない試問の最初の録音中に落ちた → 新しい試問として復元');
   const ctx2 = await b.newContext({ viewport: { width: 375, height: 740 }, isMobile: true, hasTouch: true });
   let q = await mkPage(ctx2, [WAKE_NONE]);
-  await q.p.fill('#fEr', '岡田'); await q.p.fill('#fEe', 'ブディ');
+  await q.p.fill('#fEe', 'ブディ');
   await q.p.click('#rb-' + B); await q.p.waitForTimeout(1300);
   T.ok('Wake Lock の無い端末は「画面を消さないで」を録音中ずっと表示', await q.p.locator('#wakeNote').isVisible() && /画面を消さない/.test(await q.p.locator('#wakeNote').textContent()));
   await q.p.waitForTimeout(1300);
@@ -183,7 +183,7 @@ const setHidden = (p, hidden) => p.evaluate(h => {
   const ctx3 = await b.newContext({ viewport: { width: 740, height: 375 }, isMobile: true, hasTouch: true });
   q = await mkPage(ctx3, [WAKE_OK]);
   const P = q.p;
-  await P.fill('#fEr', '岡田'); await P.fill('#fEe', 'グエン');
+  await P.fill('#fEe', 'グエン');
   await P.evaluate(() => window.scrollTo(0, 400)); await P.waitForTimeout(200);
   const lay = await P.evaluate(() => {
     const r = s => document.querySelector(s).getBoundingClientRect();

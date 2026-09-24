@@ -941,18 +941,17 @@ html.scoring{
 /* ---- R4 情報設計：試問タブの「出題」1行・出題の選択モーダル・メタ入力の詰め ---- */
 #pgExam .cd.meta{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);column-gap:10px;padding:12px 14px}
 #pgExam .meta label[for="fDate"]{grid-column:1;grid-row:1}
-#pgExam .meta label[for="fEr"]{grid-column:2;grid-row:1}
+#pgExam .meta label[for="fEr"],#pgExam .meta #fEr{display:none}
 #pgExam .meta #fDate{grid-column:1;grid-row:2;margin-bottom:10px;min-width:0;padding:10px 8px}
-#pgExam .meta #fEr{grid-column:2;grid-row:2;margin-bottom:10px;min-width:0}
-#pgExam .meta label[for="fEe"]{grid-column:1 / -1;grid-row:3}
-#pgExam .meta #fEe{grid-column:1 / -1;grid-row:4}
-#pgExam .meta .esbox{grid-column:1 / -1;grid-row:5;margin-top:10px;padding-top:8px;border-top:1px solid var(--bdr)}
+#pgExam .meta label[for="fEe"]{grid-column:2;grid-row:1}
+#pgExam .meta #fEe{grid-column:2;grid-row:2;margin-bottom:10px;min-width:0}
+#pgExam .meta .esbox{grid-column:1 / -1;grid-row:3;margin-top:10px;padding-top:8px;border-top:1px solid var(--bdr)}
 #pgExam .meta .esbox .b{min-height:40px}
 @media (max-width:480px){
   #pgExam .cd.meta{padding:10px 12px;margin-bottom:10px}
   #pgExam .meta label{font-size:.76rem;margin-bottom:3px}
   #pgExam .meta input{min-height:44px;padding:8px 11px}
-  #pgExam .meta #fDate,#pgExam .meta #fEr{margin-bottom:8px}
+  #pgExam .meta #fDate,#pgExam .meta #fEe{margin-bottom:8px}
   .prog.fresh .chips{display:none}
   #examCards>.stit:first-child{margin-top:0;padding-top:2px;padding-bottom:6px;margin-bottom:10px}
   #pgExam .meta .esbox{margin-top:8px;padding-top:6px}

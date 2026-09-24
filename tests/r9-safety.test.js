@@ -43,7 +43,7 @@ const mk = (id, ee, date, items, extra) => Object.assign({ id, date, examiner: '
   console.log('[1] 続きの保存で採点を消さない');
   {
     const { p, errors, dlg } = await setup(b, {});
-    await p.fill('#fEr', '岡田'); await p.fill('#fEe', 'Tran'); await rec(p, 'q1'); await rec(p, 'q4');
+    await p.fill('#fEe', 'Tran'); await rec(p, 'q1'); await rec(p, 'q4');
     await p.click('button:has-text("試問を保存")'); await p.waitForTimeout(600);
     const X = (await sess(p))[0].id;
     await p.evaluate(id => resumeExam(id), X); await p.waitForTimeout(500);
@@ -100,7 +100,7 @@ const mk = (id, ee, date, items, extra) => Object.assign({ id, date, examiner: '
   {
     const { p, errors, posts, dlg } = await setup(b, { drive: true, sessions: [mk('h1', HUNG, TODAY, { q1: { hasAudio: true, score: 'pass' } })] });
     T.ok('比較キー（候補用）は同じ・完全一致は別', await p.evaluate(([a, c]) => nameKey(a) === nameKey(c) && nameExact(a) !== nameExact(c) && nameExact(' ' + a + ' ') === nameExact(a), [HUNG, HUNG2]));
-    await p.fill('#fEr', '岡田'); await p.fill('#fEe', HUNG2); await rec(p, 'q4');
+    await p.fill('#fEe', HUNG2); await rec(p, 'q4');
     dlg.log.length = 0; dlg.plan = ['dismiss', 'dismiss', 'dismiss']; // nameSame=別の人
     await p.click('button:has-text("試問を保存")'); await p.waitForTimeout(1500);
     const ss = await sess(p);
@@ -125,7 +125,7 @@ const mk = (id, ee, date, items, extra) => Object.assign({ id, date, examiner: '
   {
     const { p, errors, dlg } = await setup(b, { sessions: [
       mk('a1', HUNG, '2026-09-01', { q1: { score: 'pass' } }), mk('a2', HUNG, '2026-09-02', { q1: { score: 'pass' } }), mk('a3', HUNG2, '2026-09-03', { q1: { score: 'fail' } })] });
-    await p.fill('#fEr', '岡田'); await p.fill('#fEe', 'Nguyen Van Hung'); await rec(p, 'q1');
+    await p.fill('#fEe', 'Nguyen Van Hung'); await rec(p, 'q1');
     dlg.log.length = 0; dlg.plan = ['dismiss', 'accept', 'dismiss'];
     await p.click('button:has-text("試問を保存")'); await p.waitForTimeout(600);
     const ss = await sess(p);
@@ -173,7 +173,7 @@ const mk = (id, ee, date, items, extra) => Object.assign({ id, date, examiner: '
   console.log('[6] 録り直しの破棄');
   {
     const { p, errors, dlg } = await setup(b, {});
-    await p.fill('#fEr', '岡田'); await p.fill('#fEe', 'Siti'); await rec(p, 'q1', 1000);
+    await p.fill('#fEe', 'Siti'); await rec(p, 'q1', 1000);
     await p.click('button:has-text("試問を保存")'); await p.waitForTimeout(600);
     const X = (await sess(p))[0].id, K = X + '_q1';
     const s0 = await size(p, K);

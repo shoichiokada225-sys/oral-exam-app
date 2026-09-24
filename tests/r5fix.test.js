@@ -74,7 +74,7 @@ const T = env.counter();
   await p.click('#vp-' + a1); await p.waitForTimeout(150);
 
   console.log('[2b] 未録音に○があるときは保存時に採点確定を勧めない');
-  await p.fill('#fEr', '岡田'); await p.fill('#fEe', '受験者R5');
+  await p.fill('#fEe', '受験者R5');
   dialogs.length = 0;
   await p.click('button:has-text("試問を保存")'); await p.waitForTimeout(500);
   T.ok('確定の確認を出さない: ' + dialogs.join('|'), !dialogs.some(m => m.includes('採点も確定')));

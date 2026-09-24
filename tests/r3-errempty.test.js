@@ -31,7 +31,7 @@ async function saveExam(p) { await p.click('button:has-text("試問を保存")')
     await p.evaluate(g => localStorage.setItem('oral_exam_google_v1', g), GCFG);
     await p.reload(); await p.waitForTimeout(300);
     await p.evaluate(() => { GAS_TO_BASE = 1500; GAS_TO_PER_MB = 0; }); // テスト用に打ち切りを短く
-    await p.fill('#fEr', '岡田'); await p.fill('#fEe', 'グエン');
+    await p.fill('#fEe', 'グエン');
     await rec(p, 'q1');
     c.ok('A 送信中の表示', (await p.textContent('#cl-q1')).includes('保存中'));
     // 送信中に名前の確定などで予約された送り直しが1回続くことがある→時間切れの表示になるまで最大8秒待つ
@@ -93,7 +93,7 @@ async function saveExam(p) { await p.click('button:has-text("試問を保存")')
     c.ok('B vi でも理由が訳される: ' + tt, tt.includes('Mật khẩu chung không khớp'));
     await p.click('.lsw button:has-text("JP")'); await p.waitForTimeout(200);
     // 録音ごとの送信失敗：カードに理由が残る
-    await p.fill('#fEr', '岡田'); await p.fill('#fEe', 'グエン');
+    await p.fill('#fEe', 'グエン');
     mode = 'token'; await rec(p, 'q1'); await p.waitForTimeout(500);
     const cl = await p.textContent('#cl-q1');
     c.ok('B カードに理由（合言葉）が出る: ' + cl, cl.includes('⚠') && cl.includes('合言葉'));
@@ -188,7 +188,7 @@ async function saveExam(p) { await p.click('button:has-text("試問を保存")')
     await p.route('https://script.google.com/**', r => { posts.push(1); r.fulfill({ contentType: 'application/json', body: JSON.stringify({ ok: true, id: 'X', url: 'u' }) }); });
     p.on('dialog', d => d.accept());
     await p.goto(env.URL); await p.waitForTimeout(300);
-    await p.fill('#fEr', '岡田'); await p.fill('#fEe', 'チャン');
+    await p.fill('#fEe', 'チャン');
     await rec(p, 'q1'); await rec(p, 'q4');
     await saveExam(p);
     const sid = await p.evaluate(() => JSON.parse(localStorage.getItem('oral_exam_sessions_v1')).sessions[0].id);

@@ -59,7 +59,7 @@ const st = p => p.evaluate(() => ({ cfg: JSON.parse(localStorage.getItem('oral_e
     T.ok('接続テスト（ping）が走る ' + JSON.stringify(posts), posts.filter(x => x.ping).length === 1);
     T.ok('自動保存が既定ONになる ' + JSON.stringify(s), s.cfg && s.cfg.url === GURL && s.cfg.auto === true && s.state === 'on');
     T.ok('トーストで自動保存ONを知らせる: ' + await p.textContent('#toast'), (await p.textContent('#toast')).includes(await p.evaluate(() => t2('gAutoOn'))));
-    await p.fill('#fEr', '岡田'); await p.fill('#fEe', 'テスト太郎');
+    await p.fill('#fEe', 'テスト太郎');
     await p.click('#rb-q1'); await p.waitForTimeout(1000); await p.click('#rb-q1'); await p.waitForTimeout(2500);
     const sent = posts.filter(x => x.dataB64);
     T.ok('1問録音するとGASへ送られる（' + sent.length + '件）', sent.length >= 1 && sent[0].folder === '口頭試問音声' && sent[0].examinee === 'テスト太郎');

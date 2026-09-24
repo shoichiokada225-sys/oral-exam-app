@@ -30,7 +30,6 @@ const T = env.counter();
   {
     console.log('[1] 試問の途中の出題切り替え');
     const { p, errors, ctx } = await setup();
-    await p.fill('#fEr', '岡田');
     await rec(p, 'q1'); await p.click('#vp-q1');
     // 受験者名が空のまま切り替え → 保存できない → 切り替えない（録音は画面に残る）
     await tab(p, 'pgCfg');
@@ -64,7 +63,7 @@ const T = env.counter();
     await p.evaluate(() => pickSetFromList('def', 'def')); await p.waitForTimeout(300);
     T.ok('○×だけの時は見えなくなる旨を確認・キャンセルで切り替えない', /録音なし/.test(dlg.log[0] || '') && await p.evaluate(() => getItems().length) === 16);
     // 画面に出ていない問の録音も「録音がありません」と言わない（別経路で質問が消えた場合の保険）
-    await p.fill('#fEr', '岡田'); await p.fill('#fEe', 'ブディ');
+    await p.fill('#fEe', 'ブディ');
     await rec(p, firstId);
     await p.evaluate(() => { cfg.items = cfg.items.slice(1); buildExamCards(); });
     dlg.plan = ['dismiss'];
@@ -130,7 +129,7 @@ const T = env.counter();
     });
     await p.reload(); await p.waitForTimeout(300);
     // 今回：初期設定3問のうち2問だけ録音・判定（1問未実施）
-    await p.fill('#fEr', '岡田'); await p.fill('#fEe', 'グエン');
+    await p.fill('#fEe', 'グエン');
     await rec(p, 'q1'); await p.click('#vp-q1');
     await rec(p, 'q4'); await p.click('#vf-q4');
     dlg.log.length = 0; dlg.plan = ['accept', 'accept'];
@@ -166,7 +165,7 @@ const T = env.counter();
     console.log('[4] 採点画面の見出しとボタン');
     // 確定待ちの試問を作る（試問で○×を付け、確定はキャンセル）
     await tab(p, 'pgExam');
-    await p.fill('#fEr', '岡田'); await p.fill('#fEe', 'シティ');
+    await p.fill('#fEe', 'シティ');
     await rec(p, 'q1'); await p.click('#vp-q1');
     await rec(p, 'q4'); await p.click('#vf-q4');
     dlg.plan = ['dismiss'];
@@ -204,8 +203,9 @@ const T = env.counter();
     });
     T.ok('1問目の録音ボタンが最初の画面に見える: ' + JSON.stringify(vis), vis.y === 0 && vis.rb <= vis.tb && vis.set <= vis.tb && vis.ee <= vis.tb);
     T.ok('横スクロールなし', vis.sw <= 375);
-    const row = await p.evaluate(() => { const a = document.getElementById('fDate').getBoundingClientRect(), b = document.getElementById('fEr').getBoundingClientRect(); return Math.abs(a.top - b.top) < 2; });
-    T.ok('試問日と試問者名は1行に並ぶ', row);
+    const row = await p.evaluate(() => { const a = document.getElementById('fDate').getBoundingClientRect(), b = document.getElementById('fEe').getBoundingClientRect(); return Math.abs(a.top - b.top) < 2; });
+    T.ok('試問日と受験者名は1行に並ぶ', row);
+    T.ok('試問者名の欄は表示しない', !(await p.isVisible('#fEr')) && !(await p.isVisible('label[for="fEr"]')));
     await p.click('#howtoBtn'); await p.waitForTimeout(150);
     T.ok('「？」で使い方を再表示', await p.isVisible('#examHowto'));
 

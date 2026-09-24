@@ -73,7 +73,7 @@ const rd = req => new Promise(res => { const ch = []; req.on('data', d => ch.pus
   await p.evaluate(() => gasTest()); await p.waitForTimeout(600); tt = await toastTxt(p);
   c.ok('G1 404・CORSなし（URL違い・削除済み）→ 同じ案内: ' + tt, tt.includes('GASに届きません') && !tt.includes('圏外'));
   // 録音ごとの送信でも同じ理由がカードに残る
-  await p.fill('#fEr', '岡田'); await p.fill('#fEe', 'グエン');
+  await p.fill('#fEe', 'グエン');
   await rec(p, 'q1'); await p.waitForTimeout(700);
   let cl = await p.textContent('#cl-q1');
   c.ok('G1 カードの理由も「届きません」: ' + cl, cl.includes('⚠') && cl.includes('GASに届きません') && !cl.includes('圏外'));
