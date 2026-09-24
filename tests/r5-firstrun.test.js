@@ -1,5 +1,5 @@
 /* 辛口レビュー R5「初回利用の導線」の回帰テスト。実行: node tests/r5-firstrun.test.js
-   [1] 新しい端末：URLを初めて保存すると自動保存が既定ON→接続テスト→録音が実際に送られる
+   [1] 新しい端末：URLを初めて保存すると続けて接続テスト→つながれば自動保存が既定ON→録音が実際に送られる
    [1b] 自分でOFFにした人・既存のOFF設定は既定ONで上書きしない／接続OKでもOFFなら「自動保存できます」と言わない
    [2] ドライブ自動保存ONで受験者名が空なら録音を始めない（欄へフォーカス・赤枠）／名前の訂正は保存時に replaceId で付け直す
    [3] 保存せずに受験者名を書き換えると確認→OKで前の人を保存してから次の人へ（録音と○×を付け替えない）
@@ -42,8 +42,9 @@ const audioPosts = posts => posts.filter(x => !x.ping);
     T.ok('設定タブのドライブ欄が開いてURL欄が見える', await p.isVisible('#gUrl'));
     T.ok('既定では自動保存チェックOFF（未設定）', !(await p.isChecked('#gAuto')));
     await p.fill('#gUrl', GURL);
-    await p.click('#pgCfg button[onclick="saveGoogleCfg()"]'); await p.waitForTimeout(200);
-    T.ok('初めてのURL保存で自動保存が既定ON（保存値）', (await gcfg(p)).auto === true);
+    await p.click('#pgCfg button[onclick="saveGoogleCfg()"]'); await p.waitForTimeout(500);
+    T.ok('初めてのURL保存で続けて接続テストが走る', posts.filter(x => x.ping).length === 1);
+    T.ok('接続できたので自動保存が既定ON（保存値）', (await gcfg(p)).auto === true);
     T.ok('チェックボックスもONになる', await p.isChecked('#gAuto'));
     T.ok('トーストでONにしたことを知らせる: ' + await toastTxt(p), (await toastTxt(p)).includes('自動保存をONにしました'));
     await p.click('#gTestBtn'); await p.waitForTimeout(400);

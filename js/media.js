@@ -271,13 +271,15 @@ let gConnected=false;
 function saveGoogleCfg(){
   const prev=getGoogleCfg();
   const g=Object.assign({},prev,{url:document.getElementById('gUrl').value.trim(),token:document.getElementById('gToken').value.trim(),folder:document.getElementById('gFolder').value.trim()||'口頭試問音声',auto:document.getElementById('gAuto').checked});
-  // 初めてURLを保存するとき（チェックを自分で触っていない）は自動保存を既定ONにする
-  //（URLを入れて接続OKなのに1件も送られない事故を防ぐ。自分でOFFにした人＝autoSet は変えない）
-  let turnedOn=false;
-  if(g.url&&!prev.url&&!prev.autoSet&&!g.auto){g.auto=true;turnedOn=true;document.getElementById('gAuto').checked=true}
+  // 初めてURLを保存するとき（チェックを自分で触っていない・自動保存が未設定）は、続けて接続テストを行い、
+  // つながったら自動保存を既定ONにする（gasTest）。URLを入れて接続OKなのに1件も送られない事故を防ぎつつ、
+  // 間違ったURLのまま全録音が送信失敗になるのも避ける。自分でOFFにした人＝autoSet・既存の auto:false は変えない
+  const pendOn=!!(g.url&&!prev.autoSet&&prev.auto===undefined&&!g.auto);
+  if(pendOn)delete g.auto; // 未設定のまま（接続テスト成功でONになる）
   localStorage.setItem(GKEY,JSON.stringify(g));
-  toast(t('gCfgSaved')+(turnedOn?' · '+t2('gAutoOn'):''));
+  toast(t('gCfgSaved')+(pendOn?' · '+t2('gAutoWait'):''));
   updateGoogleStatus();
+  if(pendOn)gasTest(true);
 }
 function toggleAuto(){
   const g=getGoogleCfg();
@@ -306,7 +308,7 @@ async function gasPost(payload){
   if(!j.ok)throw new Error(j.error||'gas-error');
   return j;
 }
-async function gasTest(){
+async function gasTest(fromSave){
   const g=getGoogleCfg();
   if(!g.url){toast(t('gNeedCfg'),1);return}
   const btn=document.getElementById('gTestBtn');const old=btn.textContent;btn.disabled=true;
@@ -317,23 +319,37 @@ async function gasTest(){
     let turnedOn=false;
     if(g.auto===undefined&&!g.autoSet){const g2=getGoogleCfg();g2.auto=true;localStorage.setItem(GKEY,JSON.stringify(g2));const cb=document.getElementById('gAuto');if(cb)cb.checked=true;turnedOn=true}
     updateGoogleStatus();toast(t('gTestOk')+(turnedOn?' · '+t2('gAutoOn'):''));
-  }catch(e){gConnected=false;updateGoogleStatus();toast(t('gTestFail')+'（'+e.message+'）',1)}
+  }catch(e){
+    gConnected=false;updateGoogleStatus();
+    // 自動保存の既定ONを待っている（未設定）：つながるまでONにしないことを添える
+    const pend=getGoogleCfg().auto===undefined&&!getGoogleCfg().autoSet;
+    toast(t('gTestFail')+'（'+e.message+'）'+(pend?' · '+t2('gAutoPend'):''),1);
+  }
   finally{btn.disabled=false;btn.textContent=old}
 }
 // 合否ラベル（ドライブのファイル名用。受け取るのは社長側なので言語に関わらず日本語固定）
 // 合否は採点と同じ score='pass'|'fail' を使う（旧5段階の数値や未採点は「未判定」）
 function verdictTag(v){return v==='pass'?'合格':v==='fail'?'不合格':'未判定'}
-async function gasUpload(session,itemId,replaceId){
-  const g=getGoogleCfg();
-  const blob=await getAudio(session.id+'_'+itemId);if(!blob)return null;
-  const b64=await blobToB64(blob);
+/* ドライブのファイル名（拡張子なし）：飼-1_合格_質問名 */
+function driveBaseName(session,itemId){
   const it=getItems().find(x=>x.id===itemId);
   const sec=getSections().find(s=>s.id===(it&&it.secId));
   const ii=sec?getItems().filter(x=>x.secId===sec.id).findIndex(x=>x.id===itemId):0;
   const tag=sec?sec.name.charAt(0)+'-'+(ii+1):itemId;
-  const ext=(blob.type.indexOf('mp4')>=0)?'mp4':'webm';
   const rec=session.items[itemId]||{};
-  const name=safeName(tag+'_'+verdictTag(rec.score)+'_'+(it?it.name:itemId))+'.'+ext;
+  return safeName(tag+'_'+verdictTag(rec.score)+'_'+(it?it.name:itemId));
+}
+/* 送った時の合否ラベルが今の合否と違うか（driveName が無い旧データは判定しない） */
+function driveNameStale(session,itemId){
+  const r=session.items[itemId];if(!r||!r.driveName)return false;
+  return String(r.driveName).replace(/\.[^.]+$/,'')!==driveBaseName(session,itemId);
+}
+async function gasUpload(session,itemId,replaceId){
+  const g=getGoogleCfg();
+  const blob=await getAudio(session.id+'_'+itemId);if(!blob)return null;
+  const b64=await blobToB64(blob);
+  const ext=(blob.type.indexOf('mp4')>=0)?'mp4':'webm';
+  const name=driveBaseName(session,itemId)+'.'+ext;
   const ee=String(session.examinee||'').trim()||'受験者';
   const body={token:g.token,folder:g.folder||'口頭試問音声',examinee:ee,date:session.date||'',name,mime:blob.type||'audio/webm',dataB64:b64};
   if(replaceId)body.replaceId=replaceId; // 合否変更時：旧名のファイルをGAS側でゴミ箱へ（旧GASは無視＝新旧2本残るだけ）
@@ -479,7 +495,9 @@ function syncExamineeOnSave(saved){
   Object.keys(saved.items).forEach(k=>{
     const r=saved.items[k];if(!r||!r.hasAudio||!safeKey(k))return;
     const key=saved.id+'_'+k;
-    if(r.driveFileId&&r.driveEe!==undefined&&r.driveEe!==ee){n++;maybeAutoUpload(k,{replace:true},saved);return}
+    // 受験者名が違う・または合否などで今の名前がドライブのファイル名と違う
+    //（名前が空の間に○×を変えると付け直し送信が見送られるため、ここで拾う）→ replaceId で付け直す
+    if(r.driveFileId&&((r.driveEe!==undefined&&r.driveEe!==ee)||driveNameStale(saved,k))){n++;maybeAutoUpload(k,{replace:true},saved);return}
     if(upBusy[key])return;
     if(!r.driveFileId&&g.auto&&!r.driveSt){n++;maybeAutoUpload(k,undefined,saved)} // 名前待ちで送っていなかった録音
   });

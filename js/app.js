@@ -108,7 +108,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   ['fDate','fEr','fEe'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{clearInvalid(id);if(cur){cur.date=document.getElementById('fDate').value;cur.examiner=document.getElementById('fEr').value;cur.examinee=document.getElementById('fEe').value;saveDraft()}}));
   // 受験者名を書き換えたとき：前の人の未保存の録音・合否を黙って次の人に付け替えない
   const fEe=document.getElementById('fEe');
-  fEe.addEventListener('focus',()=>{eeBefore=cur?String(cur.examinee||'').trim():''});
+  // 名前が空の間は、消す前の名前を覚えたままにする（A→空→B でも A からの書き換えとして確認する）
+  fEe.addEventListener('focus',()=>{const v=cur?String(cur.examinee||'').trim():'';if(v||!cur)eeBefore=v});
   fEe.addEventListener('change',()=>{onExamineeChange()});
   const s=getStt();
   document.getElementById('sttEndpoint').value=s.endpoint||'';
@@ -260,10 +261,15 @@ function curWork(){
 async function onExamineeChange(){
   const el=document.getElementById('fEe');
   const prev=eeBefore,next=el.value.trim();
+  // 名前を消しただけ（空）は確認しない。元の名前を覚えておき、次に別の名前を入れた時に確認する
+  //（A→空→B で確認を素通りしない。A→空→A なら訂正なし）
+  if(!next)return;
   eeBefore=next;
   if(!cur||!prev||prev===next)return;
   const w=curWork();
-  if(!w.n&&!w.m)return;
+  // 録音が無ければ「保存してから次の人へ」は保存できない（録音のない試問は保存しない）→確認せず名前の訂正として扱う
+  //（○×だけなら新しい名前にそのまま付く）
+  if(!w.n)return;
   const fill=s=>s.replace(/\{o\}/g,prev).replace(/\{e\}/g,next||'—').replace('{n}',w.n).replace('{m}',w.m);
   if(!confirm(fill(t2('eeSwitch'))))return; // 名前の訂正だけ（保存時にドライブの名前も付け直す）
   // 元の名前に戻して保存 → 成功したら新しい名前で次の試問を始める
@@ -308,7 +314,7 @@ async function resetExam(){
   if(!saved)Object.keys(cur.items||{}).forEach(k=>{if(cur.items[k]&&cur.items[k].hasAudio)delAudio(cur.id+'_'+k)});
   dropPendingTakes();
   newSession();
-  document.getElementById('fEr').value='';document.getElementById('fEe').value='';
+  document.getElementById('fEr').value='';document.getElementById('fEe').value='';eeBefore='';
   document.getElementById('fDate').value=todayStr();
   localStorage.removeItem(DRAFTKEY);
   showSaveErr(false);
