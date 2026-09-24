@@ -72,6 +72,8 @@ async function toggleRec(itemId,opt){
   // ドライブ自動保存がONなら、録音は停止直後に「受験者名」のフォルダへ送られる→名前が空のうちは録音を始めない
   {const g=getGoogleCfg();const fe=document.getElementById('fEe');
    if(g.url&&g.auto&&fe&&!fe.value.trim()){needExamineeUi();return}}
+  // ドライブ未設定・OFFでも、受験者名が空なら1試問に1回だけ名前の入力を促す（録音は止めない）
+  if(!(active&&active.itemId===itemId)&&typeof nagEmptyExaminee==='function')nagEmptyExaminee();
   const had=!!(cur&&cur.items[itemId]&&cur.items[itemId].hasAudio);
   const append=!!(opt&&opt.append&&had); // 続きを録音：前の録音の後ろに足す（上書きしない）
   // 録り直しは開始前に必ず確認（停止した瞬間に前のテイクが上書きされるため。誤タップの唯一の出口が破壊にならないように）
@@ -611,6 +613,7 @@ function updateGoogleStatus(){
     el.style.color=gConnected&&auto?'var(--pri)':'var(--sub)';
   }
   if(typeof updateDriveUi==='function')updateDriveUi();
+  if(typeof renderDrvOrphans==='function')renderDrvOrphans(); // ドライブに残った旧名のファイルの案内
 }
 
 // GASにPOST（プリフライト回避のためtext/plainで送る。bodyはJSON文字列）
@@ -651,7 +654,9 @@ function driveBaseName(session,itemId){
   const ii=sec?getItems().filter(x=>x.secId===sec.id).findIndex(x=>x.id===itemId):0;
   const tag=sec?sec.name.charAt(0)+'-'+(ii+1):itemId;
   const rec=session.items[itemId]||{};
-  return safeName(tag+'_'+verdictTag(rec.score)+'_'+(it?it.name:itemId));
+  // 同じ日の追試（2回目以降として別に保存した試問）は末尾に「_2回目」。1回目と旧データは今までと同じ名前
+  const nth=+session.attempt>1?'_'+(+session.attempt)+'回目':'';
+  return safeName(tag+'_'+verdictTag(rec.score)+'_'+(it?it.name:itemId)+nth);
 }
 /* 送った時の合否ラベルが今の合否と違うか（driveName が無い旧データは判定しない） */
 function driveNameStale(session,itemId){
@@ -683,6 +688,8 @@ async function maybeAutoUpload(itemId,opt,sessArg){
   // 試問中で受験者名が空のまま送ると、ドライブの「受験者」フォルダに誰のものか分からない録音が並ぶ→送らない
   //（名前を入れて「試問を保存」したときに syncExamineeOnSave が送る）
   if(sess===cur&&!String(cur.examinee||'').trim()){if(opt&&opt.manual&&!opt.quiet)needExamineeUi();return}
+  // 受験者名を入力している途中（欄を離れていない）：途中の名前のフォルダを作らないよう、確定してから送る
+  if(sess===cur&&!(opt&&opt.manual)&&typeof eeEditing==='function'&&eeEditing()){eeWaitSend(itemId,opt);return}
   const key=sess.id+'_'+itemId;
   // 送信中に合否が変わった等：終わってから最新の状態でもう一度送る（多重送信・順序逆転を防ぐ）
   if(upBusy[key]){upPend[key]=upPend[key]||opt||{};return}
@@ -695,8 +702,17 @@ async function maybeAutoUpload(itemId,opt,sessArg){
   showCloud(sess,itemId,'up');
   try{
     const prev=sess.items[itemId];
+    const oldEe=prev.driveEe,oldName=prev.driveName; // 送り直す前の受験者名・ファイル名（フォルダが変わると旧ファイルは消えない）
     const res=await gasUpload(sess,itemId,isRep?prev.driveFileId:null);
     if(!res)throw new Error('no-audio');
+    // GAS は replaceId の旧ファイルを「新しいフォルダの中にある時だけ」ゴミ箱へ入れる（gas/Code.gs）。
+    // 受験者名が変わった＝別フォルダ（受験者名_日付）なので旧ファイルが残る→案内用に記録（項目を足すだけ）
+    if(isRep&&oldEe!==undefined&&oldEe!==res.ee){
+      const o=Array.isArray(sess.items[itemId].driveOrphan)?sess.items[itemId].driveOrphan:[];
+      const folder=oldEe+'_'+(sess.date||'');
+      if(!o.some(x=>x.folder===folder&&x.name===(oldName||'')))o.push({folder,name:oldName||''});
+      sess.items[itemId].driveOrphan=o;
+    }
     sess.items[itemId].driveFileId=res.id;sess.items[itemId].driveLink=res.link;sess.items[itemId].driveName=res.name;sess.items[itemId].driveEe=res.ee; // 送った受験者名（保存時に名前が変わっていたら付け直す）
     delete sess.items[itemId].driveSt;
     persistDriveState(sess,itemId);
@@ -721,6 +737,7 @@ function persistDriveInfo(sess,itemId){
   const src=sess.items[itemId]||{};
   const dst=x.items[itemId]=Object.assign(x.items[itemId]||{},{driveFileId:src.driveFileId,driveLink:src.driveLink,driveName:src.driveName});
   if(src.driveEe!==undefined)dst.driveEe=src.driveEe;
+  if(src.driveOrphan!==undefined)dst.driveOrphan=src.driveOrphan;
   if(src.driveSt)dst.driveSt=src.driveSt;else delete dst.driveSt;
   saveAll(all);
 }
@@ -731,7 +748,7 @@ function persistDriveState(sess,itemId){
   [typeof cur!=='undefined'?cur:null,typeof curScore!=='undefined'?curScore:null].forEach(o=>{
     if(!o||o===sess||o.id!==sess.id)return;
     const src=sess.items[itemId]||{},dst=o.items[itemId]=o.items[itemId]||{};
-    ['driveFileId','driveLink','driveName','driveEe'].forEach(f=>{if(src[f]!==undefined||f!=='driveEe')dst[f]=src[f]});
+    ['driveFileId','driveLink','driveName','driveEe','driveOrphan'].forEach(f=>{if(src[f]!==undefined||(f!=='driveEe'&&f!=='driveOrphan'))dst[f]=src[f]});
     if(src.driveSt)dst.driveSt=src.driveSt;else delete dst.driveSt;
   });
   if(cur===sess)saveDraft();else persistDriveInfo(sess,itemId);
@@ -746,6 +763,9 @@ function unsentCount(sess){return Object.keys((sess&&sess.items)||{}).filter(k=>
 function showCloud(sess,itemId,state){
   if(cur===sess)setCloud(itemId,state);
   if(typeof curScore!=='undefined'&&curScore&&curScore.id===sess.id)setScoreCloud(sess,itemId,state);
+  const dor=document.getElementById('dor-'+sanitizeId(itemId));
+  if(dor&&dor.dataset.sid===sess.id&&state==='done'&&typeof orphanHtml==='function')dor.innerHTML=orphanHtml(sess.items[itemId]); // 旧名ファイルの案内
+  if(state==='done'&&typeof renderDrvOrphans==='function')renderDrvOrphans();
   const d=document.getElementById('dcl-'+sanitizeId(itemId));
   if(d&&d.dataset.sid===sess.id){d.textContent=state==='up'?t('clUp'):state==='done'?t('clDone'):t2('drvUnsent');d.style.color=state==='fail'?'var(--s1)':state==='done'?'var(--pri)':'var(--sub)';d.disabled=state!=='fail';d.style.cursor=state==='fail'?'pointer':'default'}
 }
@@ -802,7 +822,8 @@ function resyncDriveName(sess,itemId){
 
 /* 「試問を保存」の直後：確定した受験者名とドライブへ送った名前が違う録音を付け直す（replaceId で旧ファイルを置き換え）。
    名前が空で送れずに待っていた録音もここで送る。saved は保存したセッション（保存後は cur ではない） */
-function syncExamineeOnSave(saved){
+/* opt.onlySent＝送ったことのある録音だけ付け直す（履歴から名前を直した時。未送信の古い録音をまとめて送り出さない） */
+function syncExamineeOnSave(saved,opt){
   const g=getGoogleCfg();if(!g.url||!saved||!saved.items)return 0;
   const ee=String(saved.examinee||'').trim();if(!ee)return 0;
   let n=0;
@@ -813,6 +834,7 @@ function syncExamineeOnSave(saved){
     //（名前が空の間に○×を変えると付け直し送信が見送られるため、ここで拾う）→ replaceId で付け直す
     if(r.driveFileId&&((r.driveEe!==undefined&&r.driveEe!==ee)||driveNameStale(saved,k))){n++;maybeAutoUpload(k,{replace:true},saved);return}
     if(upBusy[key])return;
+    if(opt&&opt.onlySent)return;
     if(!r.driveFileId&&g.auto&&!r.driveSt){n++;maybeAutoUpload(k,undefined,saved)} // 名前待ちで送っていなかった録音
   });
   return n;

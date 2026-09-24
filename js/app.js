@@ -10,6 +10,7 @@ function setLang(l){
   applyT();buildExamCards();buildCfgUI();
   if(document.getElementById('saveErr'))showSaveErr(true,true); // 保存失敗の常設案内も言語に追従（スクロールはしない）
   if(typeof renderExamSetSel==='function')renderExamSetSel(); // セット切替UIも言語に追従
+  if(typeof draftNoteOn!=='undefined'&&draftNoteOn)showDraftNote(true); // 下書きの案内も言語に追従
   // 開いている採点画面・一覧を再描画（入力中の採点は退避してから再描画）
   if(document.getElementById('pgScore').classList.contains('on')){if(curScore){captureScoreForm();renderScoreDetail(curScore)}else{drawScoreList()}}
 }
@@ -121,6 +122,11 @@ document.addEventListener('DOMContentLoaded',()=>{
   // 名前が空の間は、消す前の名前を覚えたままにする（A→空→B でも A からの書き換えとして確認する）
   fEe.addEventListener('focus',()=>{const v=cur?String(cur.examinee||'').trim():'';if(v||!cur)eeBefore=v});
   fEe.addEventListener('change',()=>{onExamineeChange()});
+  // 名前の入力中はドライブへ送らない（途中の名前のフォルダを作らない）。欄を離れた・確定したら待たせていた分を送る
+  fEe.addEventListener('input',()=>{eeTyping=true});
+  fEe.addEventListener('change',()=>{eeCommitted()});
+  fEe.addEventListener('blur',()=>{eeCommitted()});
+  refreshNameLists();
   const s=getStt();
   document.getElementById('sttEndpoint').value=s.endpoint||'';
   document.getElementById('sttModel').value=s.model||'';
@@ -129,6 +135,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   setLang(lang);
   renderExamSetSel();
   if(gImported)setTimeout(()=>toast(t('gCfgSaved')),400);
+  if(draftRestored)showDraftNote(true); // 前回の途中の試問を黙って開かない（共用端末）
   // 孤児音声GC（どのセッションにも属さない録音を検出→件数確認のうえ削除）
   setTimeout(()=>gcOrphanAudio(),2500);
   // 前回、録音の途中で端末が落ちた・タブが閉じられた：一時保存から「中断された録音を復元」を出す
@@ -191,11 +198,13 @@ function newSession(){
   if(typeof hideUndoBar==='function')hideUndoBar(); // 別の試問になったら前の試問の「元に戻す」は閉じる
   cur={id:crypto.randomUUID(),date:todayStr(),examiner:'',examinee:'',items:{},overall:'',status:'rec',createdAt:new Date().toISOString()};
 }
+let draftRestored=false; // 起動時に前回の下書きを開いた（案内を出す）
 function restoreDraftOrNew(){
   try{
     const d=JSON.parse(localStorage.getItem(DRAFTKEY));
-    // 録音済み項目を含む下書きのみ復元（保存済みセッションと重複しないもの）
-    if(d&&d.id&&d.items&&Object.values(d.items).some(x=>x&&x.hasAudio)&&!getAll().some(s=>s.id===d.id)){cur=d;return}
+    // 録音済み項目か○×を含む下書きを復元（保存済みセッションと重複しないもの。「続ける」で開いた保存済みの試問は _resume の印で復元）
+    //（○×だけの途中経過もリロード・再起動で黙って失わない。形式は今と同じ cur）
+    if(d&&d.id&&d.items&&Object.values(d.items).some(x=>x&&(x.hasAudio||isPF(x.score)))&&(d._resume||!getAll().some(s=>s.id===d.id))){cur=d;draftRestored=true;return}
   }catch(e){}
   newSession();
 }
@@ -244,7 +253,9 @@ function scrollToBand(el,behavior){
   const dy=(r.height>b.bot-b.top-16)?r.top-(b.top+8):(r.top+r.height/2)-(b.top+b.bot)/2;
   if(Math.abs(dy)>1)window.scrollBy({top:dy,behavior:behavior||'instant'});
 }
-async function saveSession(){
+/* opt.switching＝受験者名の書き換えから（次の人の名前は入っている）／opt.quiet＝「続ける」の前の保存。どちらも保存後に名前欄へ移らない */
+async function saveSession(opt){
+  if(opt instanceof Event)opt=null; // onclick から直接呼ばれた場合
   // 録音の真っ最中の保存は回答を途中で切断してコミットするため、必ず確認を挟む（タブ/言語切替の保護と一貫させる）
   if(active){if(!confirm(t('saveWhileRec')))return;await stopRec()}
   cur.date=document.getElementById('fDate').value;
@@ -262,37 +273,75 @@ async function saveSession(){
     const box=document.getElementById('rf-'+pend[0].slice(cur.id.length+1));if(box)box.scrollIntoView({behavior:'smooth',block:'center'});
     return;
   }
+  // 履歴にある名前と表記だけ違う（中黒と空白・大文字小文字・声調記号など）：同じ人か確かめて既存の表記にそろえる
+  if(typeof alignNames==='function')alignNames(cur);
   snapMeta(cur); // 項目名スナップショット（cfg変更後も履歴・CSVで名前が出る）
+  // 同じ受験者・同じ日の保存済み試問がほかにある（途中で分けた・その場で追試した・二重に保存しかけた）：
+  // OK＝前回の続きにまとめる／キャンセル＝追試として別に保存（ドライブのファイル名に「_2回目」を付ける）
+  let tgt=cur,merged=null,copied=[],retakeMsg='';
+  const isNew=!getAll().some(s=>s.id===cur.id);
+  if(isNew&&typeof sameDaySessions==='function'){
+    const dup=sameDaySessions(cur);
+    if(dup.length){
+      const last=dup.slice().sort((a,b)=>(a.createdAt||'').localeCompare(b.createdAt||'')).pop();
+      const clash=recKeys(cur).some(k=>last.items[k]&&last.items[k].hasAudio);
+      const nextN=Math.max(...dup.map(s=>+s.attempt||1))+1;
+      const fillD=s=>s.replace(/\{e\}/g,last.examinee).replace('{d}',cur.date).replace('{n}',dup.length).replace('{k}',nextN);
+      if(!clash&&confirm(fillD(t2('dupAsk')))){
+        merged=JSON.parse(JSON.stringify(last));
+        try{copied=await copySessInto(cur,merged)}catch(e){toast(t2('mergeSaveFail'),1);return}
+        snapMeta(merged);
+        tgt=merged;
+      }else{
+        cur.attempt=nextN;
+        retakeMsg=fillD(t2('savedRetake'));
+      }
+    }
+  }else if(isNew)delete cur.attempt;
   // 試問中に録音した全問へ○×が付いていれば、採点の確定も選べる（キャンセル＝従来どおり録音のみで保存）
-  const recIds=Object.keys(cur.items).filter(k=>cur.items[k]&&cur.items[k].hasAudio);
-  const prevStatus=cur.status,prevUpd=cur.updatedAt;
+  const recIds=Object.keys(tgt.items).filter(k=>tgt.items[k]&&tgt.items[k].hasAudio);
+  const prevStatus=tgt.status,prevUpd=tgt.updatedAt,wasResume=!!cur._resume;
+  // 採点済みの試問に○×の無い録音を足した（まとめた）：採点待ちに戻す
+  if(merged&&tgt.status==='scored'&&!recIds.every(k=>isPF(tgt.items[k].score)))tgt.status='rec';
   // 録音していない問に○×が付いている（試問画面は録音前でも押せる）ときは、ここでは確定を勧めない：
   // 確定すると未録音の○まで合格率に入るため。採点タブで全問を見てから確定してもらう
-  const unrecPF=Object.keys(cur.items).some(k=>cur.items[k]&&!cur.items[k].hasAudio&&isPF(cur.items[k].score));
-  if(cur.status!=='scored'&&recIds.length&&!unrecPF&&recIds.every(k=>isPF(cur.items[k].score))&&confirm(t2('confirmScored')))cur.status='scored';
+  const unrecPF=Object.keys(tgt.items).some(k=>tgt.items[k]&&!tgt.items[k].hasAudio&&isPF(tgt.items[k].score));
+  if(tgt.status!=='scored'&&recIds.length&&!unrecPF&&recIds.every(k=>isPF(tgt.items[k].score))&&confirm(t2('confirmScored')))tgt.status='scored';
+  delete tgt._resume; // 下書きだけの印（「続ける」で開いた試問）。保存済みの試問には残さない
   const all=getAll();
-  const idx=all.findIndex(s=>s.id===cur.id);
-  cur.updatedAt=new Date().toISOString();
-  if(idx>=0)all[idx]=cur;else all.push(cur);
+  const idx=all.findIndex(s=>s.id===tgt.id);
+  tgt.updatedAt=new Date().toISOString();
+  if(idx>=0)all[idx]=tgt;else all.push(tgt);
   // 保存に失敗したら（容量不足等）下書きを消さず・新しい試問にもせず、入力と録音をそのまま残す
   //（storeFailのトーストを「保存しました」で上書きしない。画面内に退避の案内を常設する）
-  if(!saveAll(all)){cur.status=prevStatus;cur.updatedAt=prevUpd;saveDraft();showSaveErr(true);return}
+  if(!saveAll(all)){
+    if(merged){for(const k of copied)await delAudio(merged.id+'_'+k)} // まとめ先へ写した録音は取り消す（今の試問の録音は無傷）
+    else{cur.status=prevStatus;cur.updatedAt=prevUpd}
+    if(wasResume)cur._resume=true;
+    saveDraft();showSaveErr(true);return;
+  }
+  // まとめた：今の試問のキーの録音は、まとめ先へ写し終えたので片付ける
+  if(merged)for(const k of copied)await delAudio(cur.id+'_'+k);
   showSaveErr(false);
   dropPendingTakes(); // 確認のうえで保存した＝取り戻さないと決めた録音はメモリからも手放す
   localStorage.removeItem(DRAFTKEY);
   try{localStorage.setItem(EKEY,cur.examiner)}catch(e){} // 試問者名を次回の初期値に
+  if(typeof showDraftNote==='function')showDraftNote(false);
   // 成果物の行き先へ視覚誘導（保存直後の「消えた」誤解を防ぐ）。
   // 採点まで確定した試問は採点タブの既定表示（採点待ち）に出ないため、履歴タブへ案内する
-  const scored=cur.status==='scored';
-  toast(scored?t2('savedScored'):t('tSaved'));
+  const scored=tgt.status==='scored';
+  const quiet=opt&&(opt.switching||opt.quiet);
+  toast((merged?t2('savedMerged').replace('{e}',tgt.examinee):retakeMsg||(scored?t2('savedScored'):t('tSaved')))+(quiet?'':' · '+t2('nextEe')));
   const sb=document.querySelector('.tabs button[data-pg="'+(scored?'pgHi':'pgScore')+'"]');
   if(sb){sb.classList.add('attn');setTimeout(()=>sb.classList.remove('attn'),5000)}
-  const saved=cur;
+  const saved=tgt;
   newSession();
   document.getElementById('fEr').value=cur.examiner=(localStorage.getItem(EKEY)||'');
   document.getElementById('fEe').value='';eeBefore='';
   document.getElementById('fDate').value=todayStr();
   buildExamCards();refreshSel();
+  // 次の受験者名の欄を見える位置に出してフォーカス（連続試問で名前の無いまま次の人を録音し始めない）
+  if(!quiet&&typeof focusNextExaminee==='function')focusNextExaminee();
   // ドライブへ送った受験者名が確定した名前と違う録音（名前の訂正など）を付け直す
   if(typeof syncExamineeOnSave==='function')syncExamineeOnSave(saved);
   return true;
@@ -332,7 +381,7 @@ async function onExamineeChange(){
   if(!confirm(fill(t2('eeSwitch'))))return; // 名前の訂正だけ（保存時にドライブの名前も付け直す）
   // 元の名前に戻して保存 → 成功したら新しい名前で次の試問を始める
   el.value=prev;cur.examinee=prev;saveDraft();
-  const ok=await saveSession();
+  const ok=await saveSession({switching:true});
   if(ok===true){
     el.value=next;eeBefore=next;
     if(cur){cur.examinee=next}
@@ -363,13 +412,15 @@ function pendingTakes(){
 function dropPendingTakes(){pendingTakes().forEach(k=>{delete failedTakes[k]})}
 async function resetExam(){
   // 消える録音の件数を明示（confirm一発で試問1回分が消える事故の抑止）
-  const n=cur?Object.keys(cur.items||{}).filter(k=>cur.items[k]&&cur.items[k].hasAudio).length:0;
+  // 「続ける」で開いた保存済みの試問は、保存済みの録音を消さない＝消えるのはこの続きで足した録音だけ
+  const savedS=cur?getAll().find(s=>s.id===cur.id):null;
+  const addedK=cur?Object.keys(cur.items||{}).filter(k=>cur.items[k]&&cur.items[k].hasAudio&&!(savedS&&savedS.items[k]&&savedS.items[k].hasAudio)):[];
+  const n=addedK.length;
   const pf=pendingTakes().length; // 端末に保存できていない録音も消える（件数に含めて先に知らせる）
   if(!confirm(t('cReset')+(n?'\n'+t2('resetCnt').replace('{n}',n):'')+(pf?'\n'+t2('pendTakeReset').replace('{n}',pf):'')))return;
   if(active)await stopRec();
   // 未保存セッションの音声を破棄（セッション自身のキーで走査＝cfg変更後も取り残さない）
-  const saved=getAll().some(s=>s.id===cur.id);
-  if(!saved)Object.keys(cur.items||{}).forEach(k=>{if(cur.items[k]&&cur.items[k].hasAudio)delAudio(cur.id+'_'+k)});
+  addedK.forEach(k=>delAudio(cur.id+'_'+k));
   dropPendingTakes();
   newSession();
   document.getElementById('fEr').value='';document.getElementById('fEe').value='';eeBefore='';
@@ -377,7 +428,9 @@ async function resetExam(){
   localStorage.removeItem(DRAFTKEY);
   showSaveErr(false);
   buildExamCards();
-  toast(t('tReset'));
+  if(typeof showDraftNote==='function')showDraftNote(false);
+  toast(t('tReset')+' · '+t2('nextEe'));
+  if(typeof focusNextExaminee==='function')focusNextExaminee(); // 次の受験者名の欄へ
 }
 
 /* ==============================================================
@@ -404,6 +457,7 @@ function swTab(btn){
   if(btn.dataset.pg==='pgCfg'){buildCfgUI();const s=getStt();document.getElementById('sttEndpoint').value=s.endpoint||'';document.getElementById('sttModel').value=s.model||'';document.getElementById('sttKey').value=s.key||'';const g=getGoogleCfg();document.getElementById('gUrl').value=g.url||'';document.getElementById('gToken').value=g.token||'';document.getElementById('gFolder').value=g.folder||'';document.getElementById('gAuto').checked=!!g.auto;updateGoogleStatus()}
 }
 function refreshSel(){
+  if(typeof refreshNameLists==='function')refreshNameLists(); // 受験者名・試問者名の候補も最新に
   const ns=[...new Set(getAll().map(e=>e.examinee))].sort();
   const hf=document.getElementById('hFil'),hv=hf.value;
   hf.innerHTML=`<option value="">${t('filterAllEe')}</option>`+ns.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');hf.value=hv;

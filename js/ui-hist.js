@@ -69,11 +69,15 @@ async function showDet(id){
     if(rec.hasAudio)h+=`<audio id="da-${iid}" controls></audio>`;
     // ドライブへ届いていない録音：履歴からも分かり・再送できるように
     if(rec.hasAudio&&typeof isUnsent==='function'&&isUnsent(r,iid))h+=`<button type="button" class="cloud" id="dcl-${sanitizeId(iid)}" data-sid="${esc(r.id)}" onclick="resendDrive('${sanitizeId(r.id)}','${sanitizeId(iid)}')" style="display:block;background:none;border:0;padding:0;margin-top:6px;font:inherit;font-size:.78rem;font-weight:700;color:var(--s1);cursor:pointer;text-align:left">${esc(t2('drvUnsent'))}</button>`;
+    // ドライブに残った旧名のファイル（名前の訂正で送り直した録音）。送り直しが後で終わったら showCloud が差し替える
+    if(rec.hasAudio)h+=`<div id="dor-${sanitizeId(iid)}" data-sid="${esc(r.id)}">${typeof orphanHtml==='function'?orphanHtml(rec):''}</div>`;
     if(rec.transcript)h+=`<div class="ditr">${esc(rec.transcript)}</div>`;
     if(rec.comment)h+=`<div class="dic">${esc(rec.comment)}</div>`;
     h+=`</div>`;
   });
   if(r.overall)h+=`<div class="dov"><strong>${t('ovLbl')}:</strong><br>${esc(r.overall)}</div>`;
+  // 試問当日の運用：途中で中断した試問の続きを録る／受験者名・試問者名の表記を直す
+  h+=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">${typeof resumeBtnHtml==='function'?resumeBtnHtml(r,'mo'):''}<button type="button" class="b b3" id="rnBtn" style="flex:1 1 140px" onclick="renameForm('${sanitizeId(r.id)}')">✎ ${esc(t2('rnBtn'))}</button></div>`;
   h+=`<div class="ma"><button class="b b4" style="flex:1" onclick="closeMo();gotoScore('${sanitizeId(r.id)}')">${t('btnScore')}</button><button class="b b2" style="flex:1" onclick="doDel('${sanitizeId(r.id)}')">${t('btnDel')}</button><button class="b b3" style="flex:1" onclick="closeMo()">${t('btnClose')}</button></div>`;
   document.getElementById('moBody').innerHTML=h;
   moShow();

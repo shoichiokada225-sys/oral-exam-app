@@ -138,7 +138,7 @@ async function renderScoreDetail(r,opt){
   document.querySelector('#pgScore .hctrl').style.display='none';
   const det=document.getElementById('scDetail');det.style.display='block';
   const secs=getSections(),items=getItems();
-  let h=`<div class="cd meta"><div style="font-size:.85rem;color:var(--sub)">${esc(r.date)} · ${t('erLbl')}: ${esc(r.examiner)}</div><div id="scHead" role="heading" aria-level="2" tabindex="-1" style="font-size:1.1rem;font-weight:700;margin-top:2px">${esc(r.examinee)}</div><div class="pmeta" style="margin-top:10px"><span>${t('progScore')}</span><span><span id="spAvg" class="spavg"></span><span id="spCnt"></span></span></div><div class="pbar"><i id="spBar"></i></div><button type="button" class="b b3" id="spdBtn" style="margin-top:10px;padding:6px 12px;font-size:.78rem" onclick="cycleSpeed()">${esc(t2('spd'))} ${playRate}x</button></div>`;
+  let h=`<div class="cd meta"><div style="font-size:.85rem;color:var(--sub)">${esc(r.date)} · ${t('erLbl')}: ${esc(r.examiner)}</div><div id="scHead" role="heading" aria-level="2" tabindex="-1" style="font-size:1.1rem;font-weight:700;margin-top:2px">${esc(r.examinee)}</div><div class="pmeta" style="margin-top:10px"><span>${t('progScore')}</span><span><span id="spAvg" class="spavg"></span><span id="spCnt"></span></span></div><div class="pbar"><i id="spBar"></i></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px"><button type="button" class="b b3" id="spdBtn" style="padding:6px 12px;font-size:.78rem;flex:0 0 auto" onclick="cycleSpeed()">${esc(t2('spd'))} ${playRate}x</button>${typeof resumeBtnHtml==='function'?resumeBtnHtml(r,'sc'):''}</div></div>`;
   // 録音も点も文字起こしも無い項目は折りたたみへ退避（採点すべきカードだけを本流に並べる）
   const noRec=[];
   secs.forEach(sec=>{
