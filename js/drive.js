@@ -41,34 +41,59 @@ function updateGoogleStatus(){
 }
 
 // GASにPOST（プリフライト回避のためtext/plainで送る。bodyはJSON文字列）
-// 応答が無いまま止まる（農場の弱い電波で途中で切れる）と upBusy が残って再送できなくなるので、
-// 録音の大きさに合わせた時間で打ち切る（既定: 30秒＋1MBあたり60秒）。失敗は種類(kind)を付けて投げる
-var GAS_TO_BASE=30000,GAS_TO_PER_MB=60000;
+// 送信は XMLHttpRequest（アップロードの進み具合が分かる）。応答が無いまま止まる（農場の弱い電波で途中で切れる）と
+// upBusy が残って再送できなくなるので、次の3つで打ち切る:
+//  ・進み具合が届かない環境の上限: 60秒＋1MBあたり10分（≒実効14kbps。遅いが進んでいる送信を切らない）
+//  ・送信中に進み具合が届く環境: 上限の代わりに「90秒間まったく進まない」で打ち切り（遅くても進んでいれば待つ）
+//  ・送り終えた後の応答待ち: GASの実行上限(6分)＋α。ここで切れた時は「届いた可能性あり」(maybe)＝
+//    ドライブに保存済みかもしれないので自動再送はせず、確認してから手で再送してもらう（同名ファイルの二重保存を防ぐ）
+// 失敗は種類(kind)を付けて投げる。通信自体が失敗した時は、端末が圏外(navigator.onLine=false)なら offline、
+// 電波はある（onLine）のに届かない時は reach＝GASの公開範囲が「全員」でない（ログイン画面へ302・CORSなし）
+// またはURL違い・削除済み。実際のブラウザではどちらも HTML ではなく通信失敗(TypeError)になるため区別する
+var GAS_TO_BASE=60000,GAS_TO_PER_MB=600000,GAS_STALL=90000,GAS_RESP_MAX=390000;
 function gasErr(kind,detail){const e=new Error(detail||kind);e.kind=kind;return e}
-async function gasPost(payload){
+function gasNetKind(){return (typeof navigator!=='undefined'&&navigator.onLine===false)?'offline':'reach'}
+function gasPost(payload){
   const g=getGoogleCfg();
   const body=JSON.stringify(payload);
-  const ms=GAS_TO_BASE+Math.ceil(body.length/1048576*GAS_TO_PER_MB);
-  const ac=typeof AbortController==='function'?new AbortController():null;
-  let timedOut=false;
-  const tm=ac?setTimeout(()=>{timedOut=true;ac.abort()},ms):null;
-  try{
-    let res;
-    try{res=await fetch(g.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body,signal:ac?ac.signal:undefined})}
-    catch(e){throw gasErr(timedOut||(e&&e.name==='AbortError')?'timeout':'offline',e&&e.message)}
-    if(!res.ok)throw gasErr('http','HTTP '+res.status);
-    const ct=(res.headers&&res.headers.get&&res.headers.get('content-type'))||'';
-    let j;
-    try{j=await res.json()}
-    catch(e){throw gasErr(timedOut?'timeout':/html/i.test(ct)||/Unexpected token|JSON/i.test(String(e&&e.message))?'html':'gas',e&&e.message)}
-    if(!j||!j.ok){const er=(j&&j.error)||'gas-error';throw gasErr(er==='bad-token'?'token':'gas',er)}
-    return j;
-  }finally{if(tm)clearTimeout(tm)}
+  const cap=GAS_TO_BASE+Math.ceil(body.length/1048576*GAS_TO_PER_MB);
+  return new Promise((resolve,reject)=>{
+    const x=new XMLHttpRequest();
+    let fin=false,sent=false,tCap=null,tStall=null,tResp=null;
+    const clear=()=>{clearTimeout(tCap);clearTimeout(tStall);clearTimeout(tResp)};
+    const fail=(kind,detail)=>{if(fin)return;fin=true;clear();reject(gasErr(kind,detail))};
+    const cut=(kind,detail)=>{fail(kind,detail);try{x.abort()}catch(e){}};
+    const arm=()=>{clearTimeout(tStall);tStall=setTimeout(()=>cut('timeout','stalled'),GAS_STALL)};
+    try{x.open('POST',g.url,true);x.setRequestHeader('Content-Type','text/plain;charset=utf-8')}
+    catch(e){fail('http',e&&e.message);return} // URLの形が不正
+    if(x.upload){
+      // 進み具合が届く＝遅くても進んでいる間は上限で切らない（止まったら打ち切り）
+      x.upload.onprogress=()=>{if(fin||sent)return;clearTimeout(tCap);arm()};
+      // 送り終えた→ここからはGASの処理と応答を待つ（GASは届いた時点で保存を始めている）
+      x.upload.onload=()=>{if(fin)return;sent=true;clearTimeout(tCap);clearTimeout(tStall);tResp=setTimeout(()=>cut('maybe','no-response'),GAS_RESP_MAX)};
+    }
+    x.onerror=()=>fail(gasNetKind(),'network-error');
+    x.onabort=()=>fail('timeout','aborted');
+    x.onload=()=>{
+      if(fin)return;
+      if(x.status<200||x.status>=300)return fail(x.status?'http':gasNetKind(),x.status?'HTTP '+x.status:'network-error');
+      const ct=x.getResponseHeader('content-type')||'',txt=String(x.responseText||'');
+      let j;
+      try{j=JSON.parse(txt)}
+      catch(e){return fail(/html/i.test(ct)||/^\s*</.test(txt)?'html':'gas',e&&e.message)}
+      if(!j||!j.ok){const er=(j&&j.error)||'gas-error';return fail(er==='bad-token'?'token':'gas',er)}
+      fin=true;clear();resolve(j);
+    };
+    tCap=setTimeout(()=>cut(sent?'maybe':'timeout',sent?'no-response':'timeout'),cap);
+    try{x.send(body)}catch(e){fail(gasNetKind(),e&&e.message)}
+  });
 }
 /* 失敗の種類→画面に出す理由（4言語）。技術情報は呼び出し側で括弧内に小さく添える */
 function gasErrMsg(kind,detail){
-  const k={timeout:'drvErrTimeout',offline:'drvErrOffline',html:'drvErrHtml',token:'drvErrToken',http:'drvErrHttp',noaudio:'drvErrNoAudio'}[kind]||'drvErrGas';
-  return t2(k).replace('{s}',detail||'');
+  const k={timeout:'drvErrTimeout',offline:'drvErrOffline',reach:'drvErrReach',maybe:'drvErrMaybe',html:'drvErrHtml',token:'drvErrToken',http:'drvErrHttp',noaudio:'drvErrNoAudio'}[kind]||'drvErrGas';
+  const m=t2(k);
+  // 詳細が無い（保存しておいた失敗理由から出す時）は「（）」を残さず括弧ごと外す
+  return detail?m.replace('{s}',detail):m.replace(/\s*[（(]\{s\}[)）]/,'').replace('{s}','');
 }
 async function gasTest(fromSave){
   const g=getGoogleCfg();
@@ -206,7 +231,10 @@ function isUnsent(sess,itemId){
   const r=sess&&sess.items&&sess.items[itemId];
   return !!(r&&r.hasAudio&&r.driveSt&&!upBusy[sess.id+'_'+itemId]);
 }
-function unsentCount(sess){return Object.keys((sess&&sess.items)||{}).filter(k=>isUnsent(sess,k)).length}
+/* 送り直せば届く見込みのある未送信か（録音の実体が無い noaudio は何度送っても失敗するので除く） */
+function isResendable(sess,itemId){return isUnsent(sess,itemId)&&!driveNoAudio(sess.items[itemId])}
+/* 未送信バッジの件数＝送り直しの対象（録音の実体が無いものは各問の案内だけ出し、件数に入れない） */
+function unsentCount(sess){return Object.keys((sess&&sess.items)||{}).filter(k=>isResendable(sess,k)).length}
 /* 表示中の画面（試問カード・採点カード・履歴詳細）の送信状態を更新 */
 function showCloud(sess,itemId,state){
   if(cur===sess)setCloud(itemId,state);
@@ -263,7 +291,8 @@ function resendAllUnsent(){
   list.forEach(s0=>{
     if(seen.has(s0.id))return;seen.add(s0.id);
     const s=sessById(s0.id)||s0;
-    Object.keys(s.items||{}).forEach(k=>{if(safeKey(k)&&isUnsent(s,k)){n++;resendDrive(s.id,k,true)}});
+    // 録音の実体が無いもの（noaudio）と、届いた可能性があるもの（maybe＝自動で送ると同名の二重保存になりうる）は自動では送らない
+    Object.keys(s.items||{}).forEach(k=>{if(safeKey(k)&&isResendable(s,k)&&s.items[k].driveErr!=='maybe'){n++;resendDrive(s.id,k,true)}});
   });
   return n;
 }

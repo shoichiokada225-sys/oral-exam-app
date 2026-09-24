@@ -79,8 +79,14 @@ async function saveExam(p) { await p.click('button:has-text("試問を保存")')
     c.ok('B 合言葉違いを案内: ' + tt, tt.includes('合言葉が一致しません'));
     mode = 'http'; await p.evaluate(() => gasTest()); await p.waitForTimeout(400); tt = await toastTxt(p);
     c.ok('B HTTPエラーはURL確認: ' + tt, tt.includes('URL') && tt.includes('404'));
+    // 電波はある（navigator.onLine=true）のに通信が失敗＝URL違い・公開範囲の設定ミス → 「圏外」とは言わない
     mode = 'off'; await p.evaluate(() => gasTest()); await p.waitForTimeout(400); tt = await toastTxt(p);
-    c.ok('B 通信失敗は圏外・通信不良: ' + tt, tt.includes('圏外'));
+    c.ok('B 電波があるのに届かない＝URL・公開範囲を確認: ' + tt, tt.includes('GASに届きません') && tt.includes('全員') && !tt.includes('圏外'));
+    // 端末が本当に圏外（navigator.onLine=false）の時だけ「圏外・自動で再送」
+    await p.context().setOffline(true); await p.waitForTimeout(200);
+    await p.evaluate(() => gasTest()); await p.waitForTimeout(400); tt = await toastTxt(p);
+    c.ok('B 圏外の時は圏外・通信不良: ' + tt, tt.includes('圏外'));
+    await p.context().setOffline(false); await p.waitForTimeout(300);
     // ベトナム語でも理由は訳文（英語コードだけにしない）
     await p.click('.lsw button:has-text("VI")'); await p.waitForTimeout(200);
     mode = 'token'; await p.evaluate(() => gasTest()); await p.waitForTimeout(400); tt = await toastTxt(p);
