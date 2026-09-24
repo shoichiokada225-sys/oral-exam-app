@@ -89,6 +89,9 @@ const mk = (id, ee, date, items, extra) => Object.assign({ id, date, examiner: '
     await p.click('#rnBtn'); await p.waitForTimeout(200);
     T.ok('名前の入力欄2つと範囲の選択', await p.locator('#rnEe').count() === 1 && await p.locator('#rnEr').count() === 1 && await p.locator('input[name="rnScope"]').count() === 2);
     await p.fill('#rnEe', 'Nguyen Van Anh'); await p.check('input[name="rnScope"][value="all"]');
+    // 表記ゆれ（大小文字・空白の違い）は既定では含めない＝利用者が「同じ人」として選んだ時だけ
+    T.ok('表記の違う名前は選択式（既定は未選択）', await p.locator('input[name="rnVar"]').count() === 1 && !(await p.locator('input[name="rnVar"]').isChecked()));
+    await p.check('input[name="rnVar"]');
     await p.click('#rnOk'); await p.waitForTimeout(1200);
     const ss = await sess(p);
     T.ok('同じ人の全3件（表記ゆれ含む）が新しい名前に', ss.length === 3 && ss.every(s => s.examinee === 'Nguyen Van Anh'));

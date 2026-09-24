@@ -275,6 +275,13 @@ async function saveSession(opt){
   }
   // 履歴にある名前と表記だけ違う（中黒と空白・大文字小文字・声調記号など）：同じ人か確かめて既存の表記にそろえる
   if(typeof alignNames==='function')alignNames(cur);
+  // 「続ける」で開いた保存済みの試問：開いている間に採点タブなどで保存された合否・文字起こし・コメント・状態を
+  // 古い写しで上書きしない（続きで変えた所だけを、いま保存されている版へ重ねる）
+  let resumeSv=null;
+  if(cur._resume&&typeof mergeResumed==='function'){
+    const sv0=getAll().find(s=>s.id===cur.id);
+    if(sv0){resumeSv=JSON.parse(JSON.stringify(sv0));mergeResumed(cur,sv0,cur._base||null)}
+  }
   snapMeta(cur); // 項目名スナップショット（cfg変更後も履歴・CSVで名前が出る）
   // 同じ受験者・同じ日の保存済み試問がほかにある（途中で分けた・その場で追試した・二重に保存しかけた）：
   // OK＝前回の続きにまとめる／キャンセル＝追試として別に保存（ドライブのファイル名に「_2回目」を付ける）
@@ -307,7 +314,9 @@ async function saveSession(opt){
   // 確定すると未録音の○まで合格率に入るため。採点タブで全問を見てから確定してもらう
   const unrecPF=Object.keys(tgt.items).some(k=>tgt.items[k]&&!tgt.items[k].hasAudio&&isPF(tgt.items[k].score));
   if(tgt.status!=='scored'&&recIds.length&&!unrecPF&&recIds.every(k=>isPF(tgt.items[k].score))&&confirm(t2('confirmScored')))tgt.status='scored';
+  const bakKeep={base:cur._base,bak:cur._origBak};
   delete tgt._resume; // 下書きだけの印（「続ける」で開いた試問）。保存済みの試問には残さない
+  delete tgt._base;delete tgt._origBak;
   const all=getAll();
   const idx=all.findIndex(s=>s.id===tgt.id);
   tgt.updatedAt=new Date().toISOString();
@@ -317,11 +326,17 @@ async function saveSession(opt){
   if(!saveAll(all)){
     if(merged){for(const k of copied)await delAudio(merged.id+'_'+k)} // まとめ先へ写した録音は取り消す（今の試問の録音は無傷）
     else{cur.status=prevStatus;cur.updatedAt=prevUpd}
-    if(wasResume)cur._resume=true;
+    if(wasResume){
+      cur._resume=true;
+      // 重ねた後の値は cur に入っている＝次の保存では「いま保存されている版」を起点に比べる
+      cur._base=resumeSv||bakKeep.base;if(bakKeep.bak)cur._origBak=bakKeep.bak;
+    }
     saveDraft();showSaveErr(true);return;
   }
   // まとめた：今の試問のキーの録音は、まとめ先へ写し終えたので片付ける
   if(merged)for(const k of copied)await delAudio(cur.id+'_'+k);
+  // 続きで録り直した問：保存した＝新しい録音に決めた。退避しておいた元の録音を片付ける
+  if(wasResume&&bakKeep.bak&&bakKeep.bak.length&&typeof settleResumeBackups==='function')await settleResumeBackups({id:tgt.id,_origBak:bakKeep.bak},false);
   showSaveErr(false);
   dropPendingTakes(); // 確認のうえで保存した＝取り戻さないと決めた録音はメモリからも手放す
   localStorage.removeItem(DRAFTKEY);
@@ -415,12 +430,15 @@ async function resetExam(){
   // 「続ける」で開いた保存済みの試問は、保存済みの録音を消さない＝消えるのはこの続きで足した録音だけ
   const savedS=cur?getAll().find(s=>s.id===cur.id):null;
   const addedK=cur?Object.keys(cur.items||{}).filter(k=>cur.items[k]&&cur.items[k].hasAudio&&!(savedS&&savedS.items[k]&&savedS.items[k].hasAudio)):[];
-  const n=addedK.length;
+  // 続きで録り直した保存済みの問：破棄したら元の録音へ戻す（退避は resumeBackup）
+  const bakK=(cur&&cur._resume&&savedS&&Array.isArray(cur._origBak))?cur._origBak.slice():[];
+  const n=addedK.length+bakK.length;
   const pf=pendingTakes().length; // 端末に保存できていない録音も消える（件数に含めて先に知らせる）
   if(!confirm(t('cReset')+(n?'\n'+t2('resetCnt').replace('{n}',n):'')+(pf?'\n'+t2('pendTakeReset').replace('{n}',pf):'')))return;
   if(active)await stopRec();
   // 未保存セッションの音声を破棄（セッション自身のキーで走査＝cfg変更後も取り残さない）
   addedK.forEach(k=>delAudio(cur.id+'_'+k));
+  if(bakK.length&&typeof settleResumeBackups==='function')await settleResumeBackups(cur,true);
   dropPendingTakes();
   newSession();
   document.getElementById('fEr').value='';document.getElementById('fEe').value='';eeBefore='';
@@ -452,6 +470,11 @@ function swTab(btn){
   document.getElementById(btn.dataset.pg).classList.add('on');
   releaseScoreUrls();
   if(btn.dataset.pg==='pgScore'){curScore=null;document.getElementById('scDetail').style.display='none';document.querySelector('#pgScore .hctrl').style.display='flex';drawScoreList()}
+  // 「続ける」で開いている試問：採点タブで同じ試問が保存されていたら、その合否などを試問画面にも映す（古い写しのまま見せない）
+  if(btn.dataset.pg==='pgExam'&&cur&&cur._resume&&typeof mergeResumed==='function'){
+    const sv=getAll().find(s=>s.id===cur.id);
+    if(sv&&JSON.stringify(sv)!==JSON.stringify(cur._base||null)){mergeResumed(cur,sv,cur._base||null);cur._base=JSON.parse(JSON.stringify(sv));saveDraft();buildExamCards()}
+  }
   if(btn.dataset.pg==='pgHi'){refreshSel();drawHist()}
   if(btn.dataset.pg==='pgCh'){refreshSel();drawCharts()}
   if(btn.dataset.pg==='pgCfg'){buildCfgUI();const s=getStt();document.getElementById('sttEndpoint').value=s.endpoint||'';document.getElementById('sttModel').value=s.model||'';document.getElementById('sttKey').value=s.key||'';const g=getGoogleCfg();document.getElementById('gUrl').value=g.url||'';document.getElementById('gToken').value=g.token||'';document.getElementById('gFolder').value=g.folder||'';document.getElementById('gAuto').checked=!!g.auto;updateGoogleStatus()}

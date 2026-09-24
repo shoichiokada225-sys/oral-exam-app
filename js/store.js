@@ -69,7 +69,8 @@ function openDB(){
 /* liveKey を渡すと、正式キーへの保存と同じトランザクションで一時保存の見出しに「正式キーへ保存済み（done）」の印を付ける。
    一時保存を消すのは、呼び出し側が試問の記録（hasAudio）を保存した後（delLive）。
    ＝その間に落ちても録音は失われず（見出しが残る）、次の起動の復元は印を見て「もう一度つなぐ」をしない */
-async function putAudio(key,blob,liveKey){const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite'),os=tx.objectStore(STORE);os.put(blob,key);
+async function putAudio(key,blob,liveKey){if(typeof resumeBackup==='function')await resumeBackup(key); // 「続き」で保存済みの録音を上書きする前に元を退避（ui-ops.js）
+  const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite'),os=tx.objectStore(STORE);os.put(blob,key);
   if(liveKey){const g=os.get(liveKey);g.onsuccess=()=>{const h=g.result;if(h&&typeof h==='object')os.put(Object.assign({},h,{done:true,doneKey:key}),liveKey)}}
   tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);tx.onabort=()=>rej(tx.error)})}
 async function getAudio(key){const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readonly');const rq=tx.objectStore(STORE).get(key);rq.onsuccess=()=>res(rq.result||null);rq.onerror=()=>rej(rq.error)})}

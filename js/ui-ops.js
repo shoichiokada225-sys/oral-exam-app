@@ -34,35 +34,44 @@ function refreshNameLists(){
     if(inp){inp.setAttribute('list',lid);inp.setAttribute('autocomplete','off')}
   });
 }
-/* 同じ比較キーで表記だけ違う既存の名前（最も多い表記）。同じ表記が既にあれば null（そろっている） */
-function findNameVariant(name,field,exceptId){
-  const nm=String(name||'').trim(),k=nameKey(nm);if(!k)return null;
+/* 表記の同一判定（完全一致）：NFC・前後の空白・空白の連続だけをそろえる（声調記号・字形記号・大小文字は区別する）。
+   nameKey は「候補を出す」ためのゆるい比較。同じ日の判定・一括の名前訂正は、この完全一致か利用者が同じ人と認めた名前だけ
+   （例：「Nguyễn Văn Hùng」と「Nguyễn Văn Hưng」は nameKey では同じだが別人） */
+function nameExact(s){return String(s==null?'':s).normalize('NFC').trim().replace(/\s+/g,' ')}
+/* 同じ比較キーで表記だけ違う既存の名前（多い順）。同じ表記が既にあれば []（そろっている） */
+function findNameVariants(name,field,exceptId){
+  const nm=nameExact(name),k=nameKey(nm);if(!k)return[];
   const cnt={};let exact=false;
   getAll().forEach(s=>{
     if(exceptId&&s.id===exceptId)return;
     const n=String(s[field]||'').trim();if(!n||nameKey(n)!==k)return;
-    if(n===nm){exact=true;return}
+    if(nameExact(n)===nm){exact=true;return}
     cnt[n]=(cnt[n]||0)+1;
   });
-  if(exact)return null;
-  const c=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]||a.localeCompare(b));
-  return c[0]||null;
+  if(exact)return[];
+  return Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]||a.localeCompare(b));
 }
-/* 保存の直前：既存の名前と表記だけ違えば「同じ人ですか？」と確認し、既存の表記にそろえる */
+function findNameVariant(name,field,exceptId){return findNameVariants(name,field,exceptId)[0]||null}
+/* 保存の直前：既存の名前と表記だけ違えば「同じ人ですか？」と候補ごとに確認し、OKの表記にそろえる。
+   すべてキャンセル＝別の人（入力した表記のまま。同じ日の判定・一括訂正でも別人として扱う） */
 function alignNames(sess){
   [['examinee','fEe','labelExaminee'],['examiner','fEr','labelExaminer']].forEach(([f,iid,lbl])=>{
-    const v=findNameVariant(sess[f],f,sess.id);if(!v)return;
-    const msg=t2('nameSame').replace(/\{f\}/g,t(lbl)).replace(/\{a\}/g,v).replace(/\{b\}/g,sess[f]);
-    if(!confirm(msg))return;
-    sess[f]=v;
-    const el=document.getElementById(iid);if(el&&sess===cur)el.value=v;
-    if(f==='examinee'&&sess===cur&&typeof eeBefore!=='undefined')eeBefore=v;
+    const vs=findNameVariants(sess[f],f,sess.id);
+    for(const v of vs){
+      const msg=t2('nameSame').replace(/\{f\}/g,t(lbl)).replace(/\{a\}/g,v).replace(/\{b\}/g,sess[f]);
+      if(!confirm(msg))continue;
+      sess[f]=v;
+      const el=document.getElementById(iid);if(el&&sess===cur)el.value=v;
+      if(f==='examinee'&&sess===cur&&typeof eeBefore!=='undefined')eeBefore=v;
+      break;
+    }
   });
 }
-/* 同じ受験者（比較キー）・同じ日の保存済み試問（自分自身を除く） */
+/* 同じ受験者（表記の完全一致）・同じ日の保存済み試問（自分自身を除く）。
+   表記ゆれは alignNames で利用者が「同じ人」と答えた時だけ既存の表記にそろい、ここで一致する */
 function sameDaySessions(sess){
-  const k=nameKey(sess.examinee);if(!k)return[];
-  return getAll().filter(s=>s.id!==sess.id&&s.date===sess.date&&nameKey(s.examinee)===k);
+  const k=nameExact(sess.examinee);if(!k)return[];
+  return getAll().filter(s=>s.id!==sess.id&&s.date===sess.date&&nameExact(s.examinee)===k);
 }
 /* 録音したことのある項目 */
 function recKeys(s){return Object.keys((s&&s.items)||{}).filter(k=>s.items[k]&&s.items[k].hasAudio&&safeKey(k))}
@@ -167,6 +176,9 @@ async function resumeExam(id){
     if(typeof hideUndoBar==='function')hideUndoBar();
     cur=JSON.parse(JSON.stringify(src));
     cur._resume=true;
+    // 開いた時点の保存済みの版（下書きだけの印）。保存時に「続き」で変えた所だけを、その間に採点タブで保存された版へ重ねる
+    cur._base=JSON.parse(JSON.stringify(src));
+    cur._origBak=[]; // 録り直しで上書きした保存済みの録音（破棄したら元に戻す）
     // 採点済みの試問に録音を足す：採点待ちに戻す（保存時に、全問に○×があれば「採点も確定しますか」をもう一度聞く）
     if(cur.status==='scored')cur.status='rec';
     saveDraft();
@@ -183,23 +195,85 @@ async function resumeExam(id){
   if(nx){const c=document.getElementById('q-'+sanitizeId(nx.id));if(c)setTimeout(()=>scrollToBand(c,'smooth'),60)}
 }
 
+/* 「続き」を保存するとき：開いてから今までに、採点タブなどで保存済みの版が変わっていても消さない（3方向マージ）。
+   c＝続きの下書き（cur）・sv＝いま保存されている版・base＝続きを開いた時点の版（旧形式の下書きには無い）。
+   各欄：続きで変えていなければ保存済みの版の値／変えていれば続きの値。base が無ければ、続きで空の欄だけ保存済みの値で埋める。
+   状態：保存済みが採点済みでも、続きで録音を足した・録り直した問があれば採点待ちに戻す（全問に○×があれば保存時に確定を聞く） */
+function mergeResumed(c,sv,base){
+  if(!c||!sv)return;
+  const hb=!!base;
+  const same=(x,y)=>JSON.stringify(x===undefined?null:x)===JSON.stringify(y===undefined?null:y);
+  const pick=(cv,bv,sv_)=>hb?(same(cv,bv)?sv_:cv):((cv==null||cv==='')?sv_:cv);
+  const set=(o,f,v)=>{if(v===undefined)delete o[f];else o[f]=(v&&typeof v==='object')?JSON.parse(JSON.stringify(v)):v};
+  ['overall','examinee','examiner','date','attempt'].forEach(f=>set(c,f,pick(c[f],hb?base[f]:undefined,sv[f])));
+  c.meta=Object.assign({},sv.meta||{},c.meta||{});
+  c.items=c.items||{};
+  const bi=(hb&&base.items)||{},si=sv.items||{};
+  Object.keys(si).forEach(k=>{
+    const a=c.items[k],s=si[k],b=bi[k];
+    if(!s)return;
+    if(!a){c.items[k]=JSON.parse(JSON.stringify(s));return}
+    const out={};
+    new Set([...Object.keys(a),...Object.keys(s),...Object.keys(b||{})]).forEach(f=>set(out,f,pick(a[f],b?b[f]:undefined,s[f])));
+    c.items[k]=out;
+  });
+  const bak=Array.isArray(c._origBak)?c._origBak:[];
+  const added=Object.keys(c.items).filter(k=>c.items[k]&&c.items[k].hasAudio&&(bak.includes(k)||!((hb?bi[k]:si[k])&&(hb?bi[k]:si[k]).hasAudio)));
+  if(sv.status==='scored')c.status=added.length?'rec':'scored';
+  else c.status=sv.status||c.status||'rec';
+}
+/* 「続き」で保存済みの録音を上書きする直前に、元の録音を別キー（正式キー+'#orig'）へ退避する（putAudio から呼ぶ）。
+   '#' は項目ID・試問IDに現れないので正式キーと重ならない。下書きの間は起動時の孤児整理でも消えない（試問IDで始まるため）。
+   保存したら退避を消す／破棄したら元へ戻す（resetExam） */
+async function resumeBackup(key){
+  if(!cur||!cur._resume||typeof key!=='string'||key.indexOf('#')>=0||!key.startsWith(cur.id+'_'))return;
+  const k=key.slice(cur.id.length+1);
+  if(!safeKey(k))return;
+  const bak=Array.isArray(cur._origBak)?cur._origBak:(cur._origBak=[]);
+  if(bak.includes(k))return;
+  const sv=getAll().find(s=>s.id===cur.id);
+  if(!(sv&&sv.items&&sv.items[k]&&sv.items[k].hasAudio))return;
+  const b=await getAudio(key);if(!b)return;
+  await putAudio(key+'#orig',b);
+  if(!bak.includes(k))bak.push(k);
+  saveDraft();
+}
+/* 退避した元の録音を正式キーへ戻す（restore=true）／退避を片付ける。対象は sess._origBak の問 */
+async function settleResumeBackups(sess,restore){
+  const bak=sess&&Array.isArray(sess._origBak)?sess._origBak.slice():[];
+  for(const k of bak){
+    const key=sess.id+'_'+k;
+    if(restore){const b=await getAudio(key+'#orig').catch(()=>null);if(b){try{await putAudio(key,b)}catch(e){toast(t2('storeFail'),1);continue}}}
+    await delAudio(key+'#orig');
+  }
+}
+
 /* ==============================================================
    履歴：名前を直す（1件だけ／同じ人の全件）
    ============================================================== */
 function renameForm(id){
   const r=getAll().find(s=>s.id===id);if(!r)return;
   refreshNameLists();
-  const k=nameKey(r.examinee);
-  const grp=getAll().filter(s=>nameKey(s.examinee)===k);
-  const vars=[...new Set(grp.map(s=>s.examinee))];
+  // 「同じ人の全件」＝表記が完全一致する試問だけ。表記ゆれ（声調記号・大小文字などが違う名前）は別の人のこともあるので、
+  // 利用者が選んだものだけ含める（既定は選ばない）
+  const ex=nameExact(r.examinee),k=nameKey(r.examinee);
+  const grp=getAll().filter(s=>nameExact(s.examinee)===ex);
+  const vcnt={};getAll().forEach(s=>{const n=String(s.examinee||'').trim();if(n&&nameExact(n)!==ex&&nameKey(n)===k)vcnt[n]=(vcnt[n]||0)+1});
+  const vars=Object.keys(vcnt).sort((a,b)=>vcnt[b]-vcnt[a]||a.localeCompare(b));
   let h=`<div class="mh"><h2 id="moTitle">${esc(t2('rnTitle'))}</h2><button class="mx" aria-label="${esc(t('btnClose'))}" onclick="closeMo()">&times;</button></div>`;
   // 入力欄は試問タブと同じ見た目（.meta）。名前は利用者の入力＝ value も esc() して出す
   h+=`<div class="meta"><label for="rnEe">${esc(t('labelExaminee'))}</label><input type="text" id="rnEe" list="dlEe" autocomplete="off" value="${esc(r.examinee)}">`;
   h+=`<label for="rnEr">${esc(t('labelExaminer'))}</label><input type="text" id="rnEr" list="dlEr" autocomplete="off" value="${esc(r.examiner)}"></div>`;
-  if(grp.length>1){
+  if(grp.length>1||vars.length){
     h+=`<fieldset style="border:1px solid var(--line,#ccc);border-radius:8px;margin-top:12px;padding:8px 10px;font-size:.85rem"><legend style="font-weight:700;padding:0 4px">${esc(t2('rnScope'))}</legend>
       <label style="display:block;padding:4px 0"><input type="radio" name="rnScope" value="one" checked> ${esc(t2('rnOne'))}</label>
-      <label style="display:block;padding:4px 0"><input type="radio" name="rnScope" value="all"> ${esc(t2('rnAll').replace('{n}',grp.length).replace('{v}',vars.join(' / ')))}</label></fieldset>`;
+      <label style="display:block;padding:4px 0"><input type="radio" name="rnScope" value="all"> ${esc(t2('rnAll').replace('{n}',grp.length).replace('{v}',nameExact(r.examinee)))}</label>`;
+    if(vars.length){
+      // 名前は利用者の入力＝ value も表示も esc() して出す。選んだら範囲は「全件」に切り替える
+      h+=`<div style="margin:6px 0 0 22px;font-size:.8rem"><div style="color:var(--sub);line-height:1.5">${esc(t2('rnVars'))}</div>`
+        +vars.map(v=>`<label style="display:block;padding:4px 0"><input type="checkbox" name="rnVar" value="${esc(v)}" onchange="if(this.checked){const a=document.querySelector('input[name=rnScope][value=all]');if(a)a.checked=true}"> ${esc(v)} (${vcnt[v]})</label>`).join('')+`</div>`;
+    }
+    h+=`</fieldset>`;
   }
   h+=`<div style="font-size:.75rem;color:var(--sub);margin-top:8px;line-height:1.6">${esc(t2('rnNote'))}</div>`;
   h+=`<div class="ma"><button type="button" class="b b1" id="rnOk" style="flex:1" onclick="applyRename('${sanitizeId(r.id)}')">${esc(t2('rnSave'))}</button><button type="button" class="b b3" style="flex:1" onclick="showDet('${sanitizeId(r.id)}')">${esc(t2('rnCancel'))}</button></div>`;
@@ -212,8 +286,10 @@ function applyRename(id){
   if(!ee||!er){toast(t('eNm'),1);return}
   const sc=document.querySelector('input[name="rnScope"]:checked');
   const all=getAll();const r=all.find(s=>s.id===id);if(!r)return;
-  const k=nameKey(r.examinee);
-  const tg=(sc&&sc.value==='all')?all.filter(s=>nameKey(s.examinee)===k):[r];
+  // 全件＝表記が完全一致する試問＋利用者が「同じ人」として選んだ表記の試問だけ
+  const same=new Set([nameExact(r.examinee)]);
+  document.querySelectorAll('input[name="rnVar"]:checked').forEach(c=>same.add(nameExact(c.value)));
+  const tg=(sc&&sc.value==='all')?all.filter(s=>same.has(nameExact(s.examinee))):[r];
   const changed=[];
   tg.forEach(s=>{if(s.examinee!==ee){s.examinee=ee;changed.push(s)}});
   if(r.examiner!==er){r.examiner=er;if(!changed.includes(r))changed.push(r)}
