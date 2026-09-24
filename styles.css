@@ -40,6 +40,9 @@
   /* ヒーロー面（進捗コックピット）: 白文字4.5:1以上を両端色で担保 */
   --hero-grad:linear-gradient(135deg,#16354a,#2e5d7d 55%,#3a729a);
   --hero-grad-ok:linear-gradient(135deg,#0e5420,#17802a 60%,#2e7d32);
+  /* 入力完了（合否とは無関係）＝濃紺。全問合格=緑(ok)・全問不合格=赤(ng)は res-a5/res-a1 で上書き */
+  --hero-grad-done:linear-gradient(135deg,#101c3a,#23336b 60%,#2f428a);
+  --hero-grad-ng:linear-gradient(135deg,#5c1010,#8e1c1c 60%,#a82424);
   --hero-tx:#fff;--hero-dim:rgba(255,255,255,.78);
   --pill-bg:rgba(255,255,255,.94);
 }
@@ -63,6 +66,8 @@
     --toast-bg:#e7edf2;--toast-tx:#141d25;
     --hero-grad:linear-gradient(135deg,#0d2330,#1b3e57 55%,#2e6a92);
     --hero-grad-ok:linear-gradient(135deg,#0d3a17,#1e6b2d 60%,#2e7d32);
+    --hero-grad-done:linear-gradient(135deg,#0a1328,#1a2752 60%,#26377a);
+    --hero-grad-ng:linear-gradient(135deg,#420b0b,#701616 60%,#8a1d1d);
     --hero-dim:rgba(255,255,255,.72);
     --pill-bg:rgba(5,13,20,.78); /* ヒーローグラデ上でも --s1/--s2 文字がAA(4.5:1)を満たす濃度 */
   }
@@ -87,6 +92,8 @@
   --toast-bg:#e7edf2;--toast-tx:#141d25;
   --hero-grad:linear-gradient(135deg,#0d2330,#1b3e57 55%,#2e6a92);
   --hero-grad-ok:linear-gradient(135deg,#0d3a17,#1e6b2d 60%,#2e7d32);
+  --hero-grad-done:linear-gradient(135deg,#0a1328,#1a2752 60%,#26377a);
+  --hero-grad-ng:linear-gradient(135deg,#420b0b,#701616 60%,#8a1d1d);
   --hero-dim:rgba(255,255,255,.72);
   --pill-bg:rgba(5,13,20,.78); /* ヒーローグラデ上でも --s1/--s2 文字がAA(4.5:1)を満たす濃度 */
 }
@@ -233,14 +240,16 @@ button.cd{font-family:inherit;font-size:inherit;color:var(--txt);line-height:inh
 /* ---- 試問カード ---- */
 .qc{border-left:4px solid var(--bdr-s);transition:border-color .3s,box-shadow .3s;position:relative}
 .qc.done{border-left-color:var(--pri)}
-.qc.scored{border-left-color:var(--s5)}
+.qc.scored{border-left-color:var(--pri)}
+/* 左帯は合否の色（○=緑・×=赤）。右上の✓は入力完了の印なので合否に関係なく中立色 */
+.qc.v-pass{border-left-color:var(--s5)}.qc.v-fail{border-left-color:var(--s1)}
 /* 録音済み/採点済みが流し見で分かる右上ステータスアイコン */
 .qc.done::after,.qc.scored::after{
   content:'✓';position:absolute;top:12px;right:14px;width:22px;height:22px;border-radius:50%;
   line-height:22px;text-align:center;font-size:.76rem;font-weight:900;
 }
 .qc.done::after{background:var(--pri-l);color:var(--pri)}
-.qc.scored::after{background:var(--s5-l);color:var(--s5)}
+.qc.scored::after{background:var(--pri-l);color:var(--pri)}
 .qc .en{
   display:inline-block;font-size:.72rem;font-weight:700;color:var(--pri);letter-spacing:.06em;
   background:var(--pri-l);border:1px solid color-mix(in srgb,var(--pri) 25%,transparent);
@@ -298,10 +307,11 @@ button.cd{font-family:inherit;font-size:inherit;color:var(--txt);line-height:inh
 .recstat.ok{color:var(--pri);font-weight:700}
 /* 合否タブ（録音の横）。同じボタンを再押下で解除 */
 .verd{display:inline-flex;border:1.5px solid var(--bdr);border-radius:999px;overflow:hidden;flex:0 0 auto}
-.verd .vb{border:0;background:transparent;color:var(--sub);font-weight:700;font-size:.8rem;padding:7px 14px;min-height:36px;cursor:pointer;font-family:inherit}
+.verd .vb{border:0;background:transparent;color:var(--sub);font-weight:700;font-size:.95rem;padding:10px 18px;min-height:44px;cursor:pointer;font-family:inherit;white-space:nowrap}
 .verd .vb+.vb{border-left:1.5px solid var(--bdr)}
-.verd .vpass.on{background:var(--pri);color:#fff}
-.verd .vfail.on{background:var(--s1);color:#fff}
+/* 合格=緑・不合格=赤（採点画面の .sb.sel・履歴の .dis と同じトークン） */
+.verd .vpass.on{background:var(--s5);color:var(--sel-tx)}
+.verd .vfail.on{background:var(--s1);color:var(--sel-tx)}
 audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
 .live{
   font-size:.84rem;color:var(--sub);background:var(--card-2);border:1px dashed var(--bdr-s);
@@ -453,7 +463,7 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
 .spavg{margin-right:10px;font-variant-numeric:tabular-nums}
 .spavg.a5{color:var(--s5)}.spavg.a4{color:var(--s4)}.spavg.a3{color:var(--s3)}.spavg.a2{color:var(--s2)}.spavg.a1{color:var(--s1)}
 .badge{
-  display:inline-flex;align-items:center;gap:5px;font-size:.66rem;font-weight:700;
+  display:inline-flex;align-items:center;gap:5px;font-size:.75rem;font-weight:700;
   padding:2.5px 10px 2.5px 8px;border-radius:10px;margin-top:4px;letter-spacing:.02em;
 }
 .badge::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
@@ -579,7 +589,9 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
   background:radial-gradient(130% 170% at 10% -35%,rgba(255,255,255,.18),transparent 55%);
 }
 .prog>*{position:relative}
-.prog.complete{background:var(--hero-grad-ok)}
+.prog.complete{background:var(--hero-grad-done)}
+.prog.complete.res-a5{background:var(--hero-grad-ok)}
+.prog.complete.res-a1{background:var(--hero-grad-ng)}
 .pmeta{display:flex;justify-content:space-between;align-items:center;font-size:.8rem;font-weight:700;color:var(--pri-d);margin-bottom:5px}
 .pmeta span:last-child{font-variant-numeric:tabular-nums}
 .pbar{height:8px;background:var(--bdr);border-radius:5px;overflow:hidden;box-shadow:inset 0 1px 2px rgba(16,32,46,.08)}
@@ -624,7 +636,7 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
 .prog .pbar>i,#scDetail .cd.meta .pbar>i{border-radius:7px;background:linear-gradient(90deg,#d9eaf6,#fff)}
 .prog .pbar>i::after,#scDetail .cd.meta .pbar>i::after{background:linear-gradient(105deg,transparent 30%,rgba(27,62,87,.18) 50%,transparent 70%);background-size:200% 100%}
 /* 完了時もヒーロー内は白バー＋白文字を維持（面全体が緑に遷移して達成を演出） */
-.prog.complete .pbar>i,#scDetail .cd.meta.complete .pbar>i{background:linear-gradient(90deg,#e7f5ea,#fff)}
+.prog.complete .pbar>i,#scDetail .cd.meta.complete .pbar>i{background:linear-gradient(90deg,#e3e9f5,#fff)}
 .prog.complete .pmeta,#scDetail .cd.meta.complete .pmeta{color:var(--hero-tx)}
 .prog.complete .pmeta span:first-child{color:var(--hero-dim)}
 /* セクションジャンプchip: 濃色ガラス面／done=白面+濃紺文字。
@@ -648,7 +660,9 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
   background:radial-gradient(130% 170% at 10% -35%,rgba(255,255,255,.18),transparent 55%);
 }
 #scDetail .cd.meta>*{position:relative}
-#scDetail .cd.meta.complete{background:var(--hero-grad-ok)}
+#scDetail .cd.meta.complete{background:var(--hero-grad-done)}
+#scDetail .cd.meta.complete.res-a5{background:var(--hero-grad-ok)}
+#scDetail .cd.meta.complete.res-a1{background:var(--hero-grad-ng)}
 #scDetail .cd.meta .pmeta{color:var(--hero-tx);align-items:baseline}
 #scDetail .cd.meta .pmeta>span:first-child{font-size:var(--fs-xs);font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--hero-dim)}
 #scDetail #spCnt{font-size:1.55rem;font-weight:900;line-height:1.05;letter-spacing:-.01em;vertical-align:middle;text-shadow:0 1px 2px rgba(0,0,0,.15)}
@@ -666,7 +680,23 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
 /* ---- 採点：常時表示の保存バー＋自動保存表示 ---- */
 .savebar{
   position:sticky;bottom:calc(var(--tabs-h) + env(safe-area-inset-bottom,0px));z-index:80;
-  padding-top:6px;background:linear-gradient(to bottom,transparent,var(--bg) 40%);
+  padding-top:6px;background:var(--bg); /* 進捗(sbCnt)の行は不透明の帯（下の本文と重ねない） */
+}
+.savebar::before{content:'';position:absolute;left:0;right:0;top:-14px;height:14px;pointer-events:none;background:linear-gradient(to bottom,transparent,var(--bg))}
+.savebar .sbhead{display:flex;justify-content:space-between;align-items:flex-end;gap:8px;min-height:18px}
+#sbCnt{font-size:.8rem;font-weight:700;color:var(--sub);font-variant-numeric:tabular-nums;white-space:nowrap}
+#sbCnt .sbres{margin-left:.8em}
+/* ボタン文字は1語が縦に折れないよう1行固定＋省略表示 */
+.savebar .b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.savebar .lbl-s{display:none}
+@media (max-width:600px){
+  /* 狭い画面は2段：上段＝採点を保存（全幅・主ボタン）、下段＝⏸／速度／次へ／一覧 */
+  .savebar .bg{flex-wrap:wrap;gap:6px 8px}
+  .savebar .sbsave{order:-1;flex:1 1 100%;min-height:48px;padding:10px 13px}
+  .savebar .sbsub{flex:1 1 0;min-height:44px;padding:10px 8px;font-size:.92rem}
+  .savebar .bg .sbico{min-height:44px;padding:10px 8px}
+  .savebar .lbl-l{display:none}.savebar .lbl-s{display:inline}
+  .toast{bottom:calc(var(--tabs-h) + 138px + env(safe-area-inset-bottom,0px))} /* 2段の保存バー（約128px）より上 */
 }
 .autost{display:block;text-align:right;font-size:.74rem;font-weight:700;color:var(--s5);min-height:16px;opacity:0;transition:opacity .3s;margin-bottom:2px}
 /* savebar内のアイコンボタン（⏸/速度）: 幅を取らず主要3ボタンを圧迫しない */
@@ -824,7 +854,7 @@ details.ans .ansb{padding:0 13px 11px;font-size:.84rem;line-height:1.75;white-sp
 /* 合否2択化の波及（R1）：旧5段階・確定待ちの表示 */
 .old,.hia.old,.spavg.old,#scDetail .spavg.old{color:var(--sub)}
 .hi .hia.lng{font-size:var(--fs-sm);line-height:1.3;max-width:48%;min-width:0;overflow-wrap:anywhere}
-.badge.pend{background:var(--s2-l);color:var(--pri)}
+.badge.pend{background:var(--pri-l);color:var(--pri-d)}
 .badge.part{background:var(--s2-l);color:var(--s2)}
 .pjudge{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:7px;font-size:var(--fs-sm,.8rem);font-weight:800;color:var(--hero-tx,#fff)}
 .pjudge .pj-warn{color:#ffe08a}

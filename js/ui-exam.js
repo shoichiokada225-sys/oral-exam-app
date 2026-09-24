@@ -114,11 +114,16 @@ function updateExamProg(){
   // 録音完了直後（media.jsのonstopから呼ばれる）に「次の未録音へ」ボタンを出す
   items.forEach(it=>{const b=document.getElementById('nx-'+sanitizeId(it.id));if(b)b.style.display=examRecd(it)?'inline-block':'none'});
   // カード右上の✓も進捗バー・チップと同じ基準（録音と○×の両方）で付け外しする
-  items.forEach(it=>{const c=document.getElementById('q-'+sanitizeId(it.id));if(c)c.classList.toggle('done',done(it))});
+  items.forEach(it=>{const c=document.getElementById('q-'+sanitizeId(it.id));if(c){c.classList.toggle('done',done(it));const sc=cur&&cur.items[it.id]?cur.items[it.id].score:null;c.classList.toggle('v-pass',done(it)&&sc==='pass');c.classList.toggle('v-fail',done(it)&&sc==='fail')}});
   document.getElementById('epLbl').textContent=t('progRec');
   document.getElementById('epCnt').textContent=n+' / '+m;
   document.getElementById('epBar').style.width=Math.round(n/m*100)+'%';
-  box.classList.toggle('complete',items.every(done)); // 全問の録音と合否がそろったら完了色
+  const allDone=items.every(done);
+  box.classList.toggle('complete',allDone); // 全問の録音と合否がそろったら完了色（中立の濃紺）
+  // 完了時の色は合否に連動：全問合格=緑・全問不合格=赤・混在=中立。「完了=緑」で全員合格に見せない
+  const np=allDone?items.filter(it=>cur.items[it.id].score==='pass').length:-1;
+  const rc=!allDone?'':np===items.length?'res-a5':np===0?'res-a1':'res-a3';
+  ['res-a5','res-a1','res-a3'].forEach(k=>box.classList.toggle(k,k===rc));
   // 合否の進捗「合否 j / 録音 n」＋○×が未入力の録音があれば「次の未判定へ」
   const pf=document.getElementById('epPf');
   if(pf){

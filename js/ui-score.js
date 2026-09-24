@@ -74,7 +74,8 @@ function updateScoreProg(){
   const nOld=ids.filter(id=>!document.querySelector('.sb[data-id="'+id+'"].sel')&&isOld(curScore.items[id].score)).length;
   const c=document.getElementById('spCnt'),b=document.getElementById('spBar');
   if(c)c.textContent=n+' / '+scorable;
-  if(b){b.style.width=(scorable?Math.round(n/scorable*100):0)+'%';const card=b.closest('.cd');if(card)card.classList.toggle('complete',scorable>0&&n===scorable)}
+  const card=b?b.closest('.cd'):null;
+  if(b){b.style.width=(scorable?Math.round(n/scorable*100):0)+'%';if(card)card.classList.toggle('complete',scorable>0&&n===scorable)}
   // 採点中のリアルタイム平均（1つ以上採点したら表示・評価色つき）
   const av=document.getElementById('spAvg');
   if(av){
@@ -86,9 +87,15 @@ function updateScoreProg(){
     }else if(nOld){av.textContent=t2('oldN').replace('{n}',nOld);av.className='spavg old'}
     else{av.textContent='';av.className='spavg'}
   }
-  // savebar常時表示の進捗+平均（表示のみの複製・保存形式に影響なし）
+  // 完了ヒーローの色は合否に連動（全問合格=緑・全問不合格=赤・混在/旧評価=中立の濃紺）。「完了」だけで緑にしない
+  const rc=av?(av.className.match(/\b(a5|a1|a3)\b/)||[])[1]||'':'';
+  if(card)['res-a5','res-a1','res-a3'].forEach(k=>card.classList.toggle(k,k==='res-'+rc));
+  // savebar常時表示の進捗+合否（表示のみの複製・保存形式に影響なし）。合否の数は評価色（spavgと同じ a5/a1/a3）
   const sb2=document.getElementById('sbCnt');
-  if(sb2){let txt=n+' / '+scorable;if(av&&av.textContent)txt+='　'+av.textContent;sb2.textContent=txt}
+  if(sb2){
+    sb2.textContent=n+' / '+scorable;
+    if(av&&av.textContent){const r=document.createElement('span');r.className='sbres '+av.className.replace(/\bspavg\b/,'').trim();r.textContent=av.textContent;sb2.appendChild(r)}
+  }
 }
 /* 採点カード1枚分のHTML（通常項目・過去項目で共用）。ansJa=表示中の模範解答が日本語フォールバックのとき言語注記を付ける */
 function scoreCardHtml(r,id,en,name,desc,ans,ansJa){
@@ -96,7 +103,7 @@ function scoreCardHtml(r,id,en,name,desc,ans,ansJa){
   const stt=getStt();const sttReady=!!(stt.key&&stt.endpoint); // STT未設定なら文字起こしボタン自体を出さない（押しても行き止まりのため）
   id=sanitizeId(id); // 多層防御: onclick/DOM id/data-id への埋め込みを描画側でも無害化（sessItemIdsのsafeKey・cfg無害化と同水準）
   const sc=rec.score;
-  return `<div class="cd qc${sc?' scored':''}" id="sc-${id}">
+  return `<div class="cd qc${sc?' scored':''}${isPF(sc)?' v-'+sc:''}" id="sc-${id}">
     <div class="en">${esc(en)}</div>
     <div class="enm">${esc(name)}</div>
     ${desc?`<div class="ed">${esc(desc)}</div>`:''}
@@ -153,7 +160,7 @@ async function renderScoreDetail(r){
   }
   h+=`<div class="cd oasec"><h2>${t('overall')}</h2><textarea id="scOv" class="oata" rows="4" placeholder="${t('phOv')}">${esc(r.overall||'')}</textarea></div>`;
   // savebar: 進捗+平均の常時表示（sbCnt）と再生停止/速度（sbPause/sbSpd）— 長い採点画面のどこにいても操作・確認できる
-  h+=`<div class="savebar"><div style="display:flex;justify-content:space-between;align-items:flex-end;gap:8px"><span id="sbCnt" style="font-size:.78rem;font-weight:700;color:var(--sub)"></span><span class="autost" id="scAutoSt" role="status" style="flex:1"></span></div><div class="bg" style="margin:0"><button type="button" class="b b3 sbico" id="sbPause" onclick="pauseAllAudio()" aria-label="${esc(t2('pauseAll'))}" title="${esc(t2('pauseAll'))}">⏸</button><button type="button" class="b b3 sbico" id="sbSpd" onclick="cycleSpeed()" aria-label="${esc(t2('spd'))}" title="${esc(t2('spd'))}">${playRate}x</button><button class="b b4" onclick="nextUnscored()">${esc(t2('nextUnscored'))}</button><button class="b b1" onclick="saveScore()">${t('btnSaveScore')}</button><button class="b b3" onclick="backToScoreList()">${t('btnBack')}</button></div></div>`;
+  h+=`<div class="savebar"><div class="sbhead"><span id="sbCnt"></span><span class="autost" id="scAutoSt" role="status" style="flex:1"></span></div><div class="bg" style="margin:0"><button type="button" class="b b3 sbico" id="sbPause" onclick="pauseAllAudio()" aria-label="${esc(t2('pauseAll'))}" title="${esc(t2('pauseAll'))}">⏸</button><button type="button" class="b b3 sbico" id="sbSpd" onclick="cycleSpeed()" aria-label="${esc(t2('spd'))}" title="${esc(t2('spd'))}">${playRate}x</button><button class="b b4 sbsub" onclick="nextUnscored()" title="${esc(t2('nextUnscored'))}"><span class="lbl-l">${esc(t2('nextUnscored'))}</span><span class="lbl-s" aria-hidden="true">${esc(t2('nextUnscoredS'))}</span></button><button class="b b1 sbsave" onclick="saveScore()">${t('btnSaveScore')}</button><button class="b b3 sbsub" onclick="backToScoreList()" title="${esc(t('btnBack'))}"><span class="lbl-l">${t('btnBack')}</span><span class="lbl-s" aria-hidden="true">${esc(t2('backS'))}</span></button></div></div>`;
   det.innerHTML=h;
   det.querySelectorAll('textarea').forEach(el=>el.addEventListener('input',queueScoreDraft));
   // ドライブへ届いていない録音に「☁未送信（タップで再送）」を出す
@@ -193,7 +200,7 @@ function pickNA(id,checked){
     document.querySelectorAll('.sb[data-id="'+id+'"]').forEach(b=>{b.classList.remove('sel');b.setAttribute('aria-checked','false')});
     curScore.items[id].score=null;
     const sp=document.getElementById('sp-'+id);if(sp)sp.textContent='';
-    const c=document.getElementById('sc-'+id);if(c)c.classList.remove('scored');
+    const c=document.getElementById('sc-'+id);if(c)c.classList.remove('scored','v-pass','v-fail');
     // ドライブ上の名前（合格/不合格）も「未判定」に付け直す（合否があった時だけ）
     if(prevSc!=null&&typeof resyncDriveName==='function')resyncDriveName(curScore,id);
   }
@@ -238,7 +245,7 @@ function pickScore(id,s,btn){
   // 押した瞬間にcurScoreへ反映（進捗カウンタの分母・分子がDOM選択と一致する）
   if(curScore){curScore.items[id]=curScore.items[id]||{};curScore.items[id].score=s}
   if(curScore&&typeof resyncDriveName==='function')resyncDriveName(curScore,id); // ドライブのファイル名の合否も付け直す
-  btn.parentElement.querySelectorAll('.sb').forEach(b=>{b.classList.remove('sel');b.setAttribute('aria-checked','false')});btn.classList.add('sel');btn.setAttribute('aria-checked','true');const sp=document.getElementById('sp-'+id);if(sp)sp.textContent=pfLabel(s);const c=document.getElementById('sc-'+id);if(c)c.classList.add('scored');const na=document.querySelector('.nachk[data-id="'+id+'"]');if(na&&na.checked){na.checked=false;if(curScore&&curScore.items[id])curScore.items[id].na=false}updateScoreProg();queueScoreDraft();queueAutoNext()}
+  btn.parentElement.querySelectorAll('.sb').forEach(b=>{b.classList.remove('sel');b.setAttribute('aria-checked','false')});btn.classList.add('sel');btn.setAttribute('aria-checked','true');const sp=document.getElementById('sp-'+id);if(sp)sp.textContent=pfLabel(s);const c=document.getElementById('sc-'+id);if(c){c.classList.add('scored');c.classList.toggle('v-pass',s==='pass');c.classList.toggle('v-fail',s==='fail')}const na=document.querySelector('.nachk[data-id="'+id+'"]');if(na&&na.checked){na.checked=false;if(curScore&&curScore.items[id])curScore.items[id].na=false}updateScoreProg();queueScoreDraft();queueAutoNext()}
 function backToScoreList(){clearTimeout(autoNextTimer);persistScoreDraft(false);curScore=null;releaseScoreUrls();document.getElementById('scDetail').style.display='none';drawScoreList()}
 function releaseScoreUrls(){curScoreUrls.forEach(u=>{try{URL.revokeObjectURL(u)}catch(e){}});curScoreUrls=[]}
 
