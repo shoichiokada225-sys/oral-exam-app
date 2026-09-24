@@ -850,6 +850,8 @@ function setVerdict(itemId,v){
   if(!cur)return;
   cur.items[itemId]=cur.items[itemId]||{};
   const rec=cur.items[itemId];
+  // 「続ける」で開いた旧5段階の試問：旧点数を黙って合否で上書きしない（採点画面の pickScore と同じ確認）
+  if(isOld(rec.score)&&!confirm(t2('oldReplace').replace('{v}',pfLabel(rec.score))))return;
   // 手袋のチャタリング・二度押し：同じボタンを500ms以内に続けて押したら2回目は無視（黙って合否が消えるのを防ぐ）
   const now=Date.now(),lp=vdLast[itemId];
   vdLast[itemId]={v,t:now};
@@ -861,6 +863,7 @@ function setVerdict(itemId,v){
   const vp=document.getElementById('vp-'+itemId),vf=document.getElementById('vf-'+itemId);
   if(vp){vp.classList.toggle('on',rec.score==='pass');vp.setAttribute('aria-pressed',rec.score==='pass'?'true':'false')}
   if(vf){vf.classList.toggle('on',rec.score==='fail');vf.setAttribute('aria-pressed',rec.score==='fail'?'true':'false')}
+  const vo=document.getElementById('vo-'+itemId);if(vo)vo.remove(); // 旧点数は置き換え済み
   if(typeof updateExamProg==='function')updateExamProg(); // 合否の進捗・完了色を即時に反映
   if(!rec.hasAudio)return; // 録音前に判定した場合は、録音停止時のアップロードで名前に入る
   resyncDriveName(cur,itemId);

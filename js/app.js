@@ -306,14 +306,16 @@ async function saveSession(opt){
     }
   }else if(isNew)delete cur.attempt;
   // 試問中に録音した全問へ○×が付いていれば、採点の確定も選べる（キャンセル＝従来どおり録音のみで保存）
+  // 旧5段階の点が残る問も「判定済み」（「続ける」で開いた旧データの試問を、保存のたびに確定待ちへ落とさない）
+  const judgedSc=v=>isPF(v)||isOld(v);
   const recIds=Object.keys(tgt.items).filter(k=>tgt.items[k]&&tgt.items[k].hasAudio);
   const prevStatus=tgt.status,prevUpd=tgt.updatedAt,wasResume=!!cur._resume;
   // 採点済みの試問に○×の無い録音を足した（まとめた）：採点待ちに戻す
-  if(merged&&tgt.status==='scored'&&!recIds.every(k=>isPF(tgt.items[k].score)))tgt.status='rec';
+  if(merged&&tgt.status==='scored'&&!recIds.every(k=>judgedSc(tgt.items[k].score)))tgt.status='rec';
   // 録音していない問に○×が付いている（試問画面は録音前でも押せる）ときは、ここでは確定を勧めない：
   // 確定すると未録音の○まで合格率に入るため。採点タブで全問を見てから確定してもらう
   const unrecPF=Object.keys(tgt.items).some(k=>tgt.items[k]&&!tgt.items[k].hasAudio&&isPF(tgt.items[k].score));
-  if(tgt.status!=='scored'&&recIds.length&&!unrecPF&&recIds.every(k=>isPF(tgt.items[k].score))&&confirm(t2('confirmScored')))tgt.status='scored';
+  if(tgt.status!=='scored'&&recIds.length&&!unrecPF&&recIds.every(k=>judgedSc(tgt.items[k].score))&&confirm(t2('confirmScored')))tgt.status='scored';
   const bakKeep={base:cur._base,bak:cur._origBak};
   delete tgt._resume; // 下書きだけの印（「続ける」で開いた試問）。保存済みの試問には残さない
   delete tgt._base;delete tgt._origBak;
