@@ -52,6 +52,7 @@ function buildCfgUI(){
   });
   area.innerHTML=h;
   updateDirtyBadge();
+  const sh=document.getElementById('cfgSaveHint');if(sh)sh.textContent=t2('saveCfgHint');
   if(typeof renderQsetUI==='function')renderQsetUI(); // 言語切替時にもセットUIを追従
 }
 /* 原文（日本語）を編集したら対応する多言語フィールドを破棄する
@@ -95,15 +96,18 @@ function syncActiveSet(){
 function saveCfg(){
   try{localStorage.setItem(CKEY,JSON.stringify(cfg))}catch(e){toast(t2('storeFail'),1);return}
   const setName=syncActiveSet(); // 「項目を保存」1つで使用中のセットにも残す（切り替えて戻っても消えない）
+  if(cfgDirty)markTplEdited(); // テンプレートの質問を書き換えた＝テンプレートそのままではない（名前に「変更あり」）
   cfgDirty=false;updateDirtyBadge();
   buildExamCards();renderQsetUI();if(typeof renderExamSetSel==='function')renderExamSetSel();
   toast(setName?t2('cfgSavedSet').replace('{n}',setName):t('cfgSaved'));
 }
 /* 初期設定に戻す：使用中のセットは書き換えず、セットに入っていない構成として扱う（セットの中身を黙って失わない） */
-function resetCfg(){
-  if(!confirm(t('cResetCfg')))return;
-  const qs=getQuestionSets();if(qs.activeId){qs.activeId=null;saveQuestionSets(qs)}
+async function resetCfg(){
+  if(!(await guardExamSwitch()))return false; // 出題が変わる＝保存していない試問を先に守る
+  if(!confirm(t('cResetCfg')))return false;
+  const qs=getQuestionSets();if(qs.activeId||qs.activeTpl){qs.activeId=null;delete qs.activeTpl;saveQuestionSets(qs)}
   cfg=defaultCfg();persistCfg();toast(t('cfgReset'));
+  return true;
 }
 
 /* ==============================================================
@@ -149,36 +153,79 @@ function addFromCatalog(){
     cfg.items.push({id:'qa_'+w.id+'_'+q.key+'_'+Date.now(),secId:sec.id,name:q.name,desc:q.desc,ans:q.ans});
     added++;
   });
+  if(added)markTplEdited();
   syncActiveSet();persistCfg();
   closeMo();
   toast(added+t('catAdded'));
 }
 
 /* ==============================================================
-   プリセット試問セット（QBANK）＋ 質問セット管理（保存/切替）
+   試問セット（出題）＝ テンプレート（QBANK）＋ 自分のセット（名前付き保存/切替）
    - QBANK契約: qbankPresets()/qbankPreset(id) のみ使用（js/qbank.js＋data.jsアクセサ）
-   - 質問セット: oral_exam_presets_v1 = {presets:[{id,name,cfg}],activeId}
-     CKEY(oral_exam_items_v1)は常に「アクティブセットの実体」→既存データ・バックアップv1と完全互換
+   - 自分のセット: oral_exam_presets_v1 = {presets:[{id,name,cfg}],activeId}
+     CKEY(oral_exam_items_v1)は常に「使用中のセットの実体」→既存データ・バックアップv1と完全互換
+   - R4: テンプレートを使用中のときは同じオブジェクトに activeTpl={id,name,edited} を足して覚える（追加フィールド＝旧版は無視する）
    ============================================================== */
 function qbankAvailable(){return typeof qbankPresets==='function'&&typeof QBANK!=='undefined'}
+/* 今の構成が初期設定の質問そのままか（ID と原文の名前が一致） */
+function isDefaultCfg(){
+  try{const d=defaultCfg();return cfg.items.length===d.items.length&&cfg.items.every((it,i)=>it.id===d.items[i].id&&it.name===d.items[i].name&&it.secId===d.items[i].secId)}catch(e){return false}
+}
+/* 使用中の出題：自分のセット＞テンプレート＞初期設定＞（セット未保存の構成） */
+function curSetInfo(){
+  const qs=getQuestionSets();
+  const p=qs.activeId&&qs.presets.find(x=>x.id===qs.activeId);
+  if(p)return{kind:'set',id:'set:'+p.id,name:p.name};
+  const tp=qs.activeTpl;
+  if(tp&&tp.id)return{kind:'tpl',id:'tpl:'+tp.id+(tp.edited?'+':''),name:String(tp.name||tp.id),edited:!!tp.edited,tplId:tp.id};
+  if(isDefaultCfg())return{kind:'def',id:'def',name:''};
+  return{kind:null,id:'',name:''};
+}
+function setInfoLbl(s){return setLbl({setId:s.id,setName:s.name})}
+/* テンプレート使用中に質問を足した・書き換えた：名前は残し「（変更あり）」を付ける（別の出題として記録・比較する） */
+function markTplEdited(){const qs=getQuestionSets();if(qs.activeTpl&&!qs.activeTpl.edited){qs.activeTpl.edited=true;saveQuestionSets(qs)}}
+/* 試問の保存時に出題を記録する（追加フィールド setId/setName/setN。既に記録がある試問＝まとめ先・続きは変えない） */
+function stampSet(s){
+  if(!s||s.setId!=null||s.setName!=null)return;
+  const i=curSetInfo();
+  s.setId=i.id;s.setName=i.name;s.setN=getItems().length;
+}
+/* 出題を切り替える前の保護：保存していない試問（録音・合否）があれば、先に保存するか聞く。
+   OK＝保存してから切り替える（保存できなければ切り替えない）／キャンセル＝切り替えない。戻り値=切り替えてよいか */
+async function guardExamSwitch(){
+  if(typeof cur==='undefined'||!cur||!cur.items)return true;
+  if(typeof active!=='undefined'&&active){toast(t2('recBusy'),1);return false}
+  const w=curWork();
+  if(!w.n&&!w.m)return true;
+  if(!w.n){ // 録音のない○×だけ：保存はできない（録音のない試問は保存しない）→見えなくなることを知らせて選んでもらう
+    if(!confirm(t2('swGuardPf').replace('{m}',w.m)))return false;
+    snapMeta(cur);saveDraft();return true;
+  }
+  const el=document.getElementById('fEe');
+  const e=((el&&el.value)||cur.examinee||'').trim()||t2('noName');
+  if(!confirm(t2('swGuard').replace('{e}',e).replace('{n}',w.n).replace('{m}',w.m)))return false;
+  const ok=await saveSession({quiet:true});
+  if(ok!==true){setTimeout(()=>toast(t2('swSaveFail'),1),2600);return false} // 名前が空など：試問タブの該当欄へ案内済み
+  return true;
+}
 function renderQsetUI(){
   const box=document.getElementById('qsetArea');if(!box)return;
   const qs=getQuestionSets();
-  let h='';
-  // --- プリセット（テンプレート）適用 ---
-  h+=`<div class="cd" style="margin-bottom:12px"><div style="font-weight:700;margin-bottom:6px">${esc(t2('qbTitle'))}</div>`;
+  const info=curSetInfo();
+  let h=`<div class="cd" id="qsetCard" style="margin-bottom:12px">`;
+  h+=`<div style="font-weight:800;margin-bottom:4px">${esc(t2('qsTitle'))}</div>`;
+  h+=`<div id="qsCurLine" style="font-size:.85rem;color:var(--sub);margin-bottom:12px">${esc(t2('qsCur'))}: <strong style="color:var(--txt)">${esc(setInfoLbl(info))}</strong> <span style="color:var(--sub)">（${esc(t2('qCnt').replace('{n}',getItems().length))}）</span>${cfgDirty?` <span style="color:var(--s2,#c60)">● ${esc(t2('dirty'))}</span>`:''}</div>`;
+  // --- テンプレートから選ぶ ---
+  h+=`<div style="font-weight:700;font-size:.88rem;margin-bottom:6px">${esc(t2('qbTitle'))}</div>`;
   if(qbankAvailable()){
     h+=`<select id="qbSel" style="width:100%" onchange="qbShowDesc()"><option value="">${t('selPh')}</option>${qbankPresets().map(p=>`<option value="${esc(sanitizeId(p.id))}">${esc(p.name)}</option>`).join('')}</select>`;
     h+=`<div id="qbDesc" style="font-size:.78rem;color:var(--sub);margin-top:6px"></div>`;
-    h+=`<div style="display:flex;gap:8px;margin-top:10px"><button type="button" class="b b1" style="flex:1" onclick="applyQbank(false)">${esc(t2('qbReplace'))}</button><button type="button" class="b b4" style="flex:1" onclick="applyQbank(true)">${esc(t2('qbAppend'))}</button></div>`;
+    h+=`<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button type="button" class="b b1" style="flex:1 1 140px" onclick="applyQbank(false)">${esc(t2('qbReplace'))}</button><button type="button" class="b b4" style="flex:1 1 140px" onclick="applyQbank(true)">${esc(t2('qbAppend'))}</button></div>`;
   }else{
     h+=`<div style="font-size:.78rem;color:var(--sub)">${esc(t2('qbNone'))}</div>`;
   }
-  h+='</div>';
-  // --- 保存済み質問セットの管理 ---
-  h+=`<div class="cd" style="margin-bottom:12px"><div style="font-weight:700;margin-bottom:6px">${esc(t2('qsTitle'))}</div>`;
-  const act=qs.presets.find(p=>p.id===qs.activeId);
-  h+=`<div style="font-size:.8rem;color:var(--sub);margin-bottom:6px">${esc(t2('qsCur'))}: <strong style="color:var(--txt)">${esc(act?act.name:t2('qsNone'))}</strong>${cfgDirty?` <span style="color:var(--s2,#c60)">● ${esc(t2('dirty'))}</span>`:''}</div>`;
+  // --- 自分のセット ---
+  h+=`<div style="font-weight:700;font-size:.88rem;margin:16px 0 6px">${esc(t2('qsMine'))}</div>`;
   if(qs.presets.length){
     h+=`<select id="qsSel" style="width:100%">${qs.presets.map(p=>`<option value="${esc(sanitizeId(p.id))}"${p.id===qs.activeId?' selected':''}>${esc(p.name)}</option>`).join('')}</select>`;
     h+=`<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
@@ -205,16 +252,19 @@ function qbankToCfgItem(p,it){
   if(a)o.ans=a;
   return o;
 }
-function applyQbank(append){
-  if(!qbankAvailable())return;
+/* テンプレートの適用。pid 省略時は設定タブのセレクトから。置き換えは出題の切り替え＝未保存の試問を保護してから */
+async function applyQbank(append,pid){
+  if(!qbankAvailable())return false;
   const sel=document.getElementById('qbSel');
-  const p=sel&&qbankPresets().find(x=>sanitizeId(x.id)===sel.value);
-  if(!p){toast(t('selPh'),1);return}
+  const v=pid!=null?String(pid):(sel?sel.value:'');
+  const p=v&&qbankPresets().find(x=>sanitizeId(x.id)===v);
+  if(!p){toast(t('selPh'),1);return false}
   if(!append){
-    if(!confirm(t2('qbRepConfirm').replace('{n}',p.name)))return;
+    if(!(await guardExamSwitch()))return false;
+    if(!confirm(t2('qbRepConfirm').replace('{n}',p.name)))return false;
     cfg={sections:(p.sections||[]).map(s=>({id:sanitizeId('qb_'+p.id+'_'+s.id),name:String(s.name||'')})),
          items:(p.items||[]).map(it=>qbankToCfgItem(p,it))};
-    const qs=getQuestionSets();qs.activeId=null;saveQuestionSets(qs);
+    const qs=getQuestionSets();qs.activeId=null;qs.activeTpl={id:p.id,name:p.name};saveQuestionSets(qs); // テンプレート名を「使用中」として覚える
     persistCfg();
     toast(t2('qbApplied'));
   }else{
@@ -225,11 +275,13 @@ function applyQbank(append){
       if(cfg.items.some(x=>x.id===o.id))return; // 同一プリセット項目の重複追加を防ぐ
       cfg.items.push(o);added++;
     });
+    if(added)markTplEdited();
     syncActiveSet();persistCfg();
     toast(added+t('catAdded'));
   }
+  return true;
 }
-/* --- 質問セット（名前付き保存/切替） --- */
+/* --- 自分のセット（名前付き保存/切替） --- */
 function qsSelP(){const s=document.getElementById('qsSel');if(!s)return null;return getQuestionSets().presets.find(p=>sanitizeId(p.id)===s.value)||null}
 function qsSaveNew(){
   const name=prompt(t2('qsNamePrompt'),'');if(name==null)return;
@@ -237,24 +289,27 @@ function qsSaveNew(){
   const qs=getQuestionSets();
   const id='set_'+Date.now();
   qs.presets.push({id,name:nm,cfg:JSON.parse(JSON.stringify(cfg))});
-  qs.activeId=id;saveQuestionSets(qs);
+  qs.activeId=id;delete qs.activeTpl;saveQuestionSets(qs);
   renderQsetUI();if(typeof renderExamSetSel==='function')renderExamSetSel();
   toast(t2('qsSaved'));
 }
-function applySet(id){
-  const qs=getQuestionSets();
-  const p=qs.presets.find(x=>sanitizeId(x.id)===String(id));
-  if(!p||!p.cfg)return false;
-  if(!confirm(t2('qsSwConfirm').replace('{n}',p.name)))return false;
+async function applySet(id){
+  const qs0=getQuestionSets();
+  const p0=qs0.presets.find(x=>sanitizeId(x.id)===String(id));
+  if(!p0||!p0.cfg)return false;
+  if(!(await guardExamSwitch()))return false;
+  if(!confirm(t2('qsSwConfirm').replace('{n}',p0.name)))return false;
+  const qs=getQuestionSets(); // 保存（guard）の間に書き換わっていても最新を読む
+  const p=qs.presets.find(x=>x.id===p0.id);if(!p||!p.cfg)return false;
   // 無害化しつつディープコピー（importBackupと同水準。多言語フィールドはcopyLocFieldsで保持）
   cfg={sections:(p.cfg.sections||[]).map(s=>copyLocFields(s,{id:sanitizeId(s.id),name:String(s.name||'')},['name'])),
        items:(p.cfg.items||[]).map(it=>{const o={id:sanitizeId(it.id),secId:sanitizeId(it.secId),name:String(it.name||''),desc:String(it.desc||'')};if(it.ans!=null)o.ans=String(it.ans);return copyLocFields(it,o,['name','desc','ans'])})};
-  qs.activeId=p.id;saveQuestionSets(qs);
+  qs.activeId=p.id;delete qs.activeTpl;saveQuestionSets(qs);
   persistCfg();
   toast(t2('qsApplied'));
   return true;
 }
-function qsApplySel(){const p=qsSelP();if(p)applySet(sanitizeId(p.id))}
+function qsApplySel(){const p=qsSelP();if(p)return applySet(sanitizeId(p.id))}
 function qsRenameSel(){
   const qs=getQuestionSets();const s=document.getElementById('qsSel');if(!s)return;
   const p=qs.presets.find(x=>sanitizeId(x.id)===s.value);if(!p)return;
@@ -273,20 +328,57 @@ function qsDeleteSel(){
   renderQsetUI();if(typeof renderExamSetSel==='function')renderExamSetSel();
   toast(t2('qsDeleted'));
 }
-/* 試問タブ上部のセット切替セレクト（保存済みセットがある時だけ表示） */
+/* 試問タブ：受験者名の下に「出題：〇〇（N問）［変更］」を常に1行で出す（R4）。
+   ［変更］はテンプレート・自分のセット・初期設定を1つのリストにまとめて選べるモーダルを開く */
+const HOWTOKEY='oral_exam_howto_off';
 function renderExamSetSel(){
   const box=document.getElementById('examSetBox');if(!box)return;
-  const qs=getQuestionSets();
-  if(!qs.presets.length){box.style.display='none';box.innerHTML='';return}
-  box.style.display='block';
-  const act=qs.presets.find(p=>p.id===qs.activeId);
-  box.innerHTML=`<label style="display:block;font-size:.78rem;font-weight:600;color:var(--sub);margin-bottom:4px">${esc(t2('qsTitle'))}</label>
-    <select style="width:100%" onchange="examSetChange(this.value)">
-      <option value="">${esc(t2('qsCur'))}: ${esc(act?act.name:t2('qsNone'))}</option>
-      ${qs.presets.filter(p=>p.id!==qs.activeId).map(p=>`<option value="${esc(sanitizeId(p.id))}">${esc(p.name)}</option>`).join('')}
-    </select>`;
+  box.style.display='';
+  const info=curSetInfo();
+  let off=false;try{off=localStorage.getItem(HOWTOKEY)==='1'}catch(e){}
+  box.innerHTML=`<div class="esl"><span class="esl-k">${esc(t2('examSetLbl'))}</span><strong id="examSetName" class="esl-v">${esc(setInfoLbl(info))}</strong><span class="esl-n" id="examSetCnt">${esc(t2('qCnt').replace('{n}',getItems().length))}</span>`
+    +`<button type="button" class="b b3 esl-b" id="examSetBtn" onclick="openSetPicker()" aria-label="${esc(t2('examSetLbl')+': '+t2('setChange'))}">${esc(t2('setChange'))}</button>`
+    +(off?`<button type="button" class="b b4 esl-q" id="howtoBtn" onclick="toggleHowto(true)" aria-label="${esc(t2('howtoShow'))}" title="${esc(t2('howtoShow'))}">?</button>`:'')
+    +`</div>`;
+  renderHowto();
+}
+/* 使い方の案内：初回だけ開いて出す。閉じたら「？」に畳む（DRVHINTKEY と同じ仕組みで覚える） */
+function renderHowto(){
+  const h=document.getElementById('examHowto');if(!h)return;
+  let off=false;try{off=localStorage.getItem(HOWTOKEY)==='1'}catch(e){}
+  h.style.display=off?'none':'';
+}
+function toggleHowto(show){
+  try{if(show)localStorage.removeItem(HOWTOKEY);else localStorage.setItem(HOWTOKEY,'1')}catch(e){}
+  renderExamSetSel();
+  if(show){const h=document.getElementById('examHowto');if(h)h.scrollIntoView({behavior:'smooth',block:'nearest'})}
+  else{const b=document.getElementById('howtoBtn');if(b)b.focus()}
 }
 function examSetChange(v){
-  if(!v){renderExamSetSel();return}
-  if(!applySet(v))renderExamSetSel(); // confirmキャンセル時はセレクトを元に戻す
+  if(!v){renderExamSetSel();return Promise.resolve(false)}
+  return applySet(v).then(ok=>{if(!ok)renderExamSetSel();return ok}); // キャンセル時は表示を元に戻す
+}
+/* 出題の選択モーダル（テンプレート・自分のセット・初期設定を1つのリストに） */
+function openSetPicker(){
+  if(typeof active!=='undefined'&&active){toast(t2('recBusy'),1);return}
+  const qs=getQuestionSets(),info=curSetInfo();
+  const row=(kind,id,name,n,on)=>`<button type="button" class="b ${on?'b1':'b3'} setpick" data-kind="${kind}" data-id="${esc(sanitizeId(id))}" onclick="pickSetFromList('${kind}','${esc(sanitizeId(id))}')"${on?' aria-current="true"':''}><span class="sp-n">${esc(name)}</span><span class="sp-c">${esc(t2('qCnt').replace('{n}',n))}${on?' · '+esc(t2('setPickCur')):''}</span></button>`;
+  let h=`<div class="mh"><h2 id="moTitle">${esc(t2('setPickTitle'))}</h2><button class="mx" aria-label="${t('btnClose')}" onclick="closeMo()">&times;</button></div>`;
+  h+=`<div class="sp-g">${esc(t2('qsMine'))}</div>`;
+  h+=qs.presets.length?qs.presets.map(p=>row('set',p.id,p.name,((p.cfg&&p.cfg.items)||[]).length,info.kind==='set'&&info.id==='set:'+p.id)).join(''):`<div class="sp-none">${esc(t2('setPickNoMine'))}</div>`;
+  h+=`<div class="sp-g">${esc(t2('setPickTpl'))}</div>`;
+  h+=row('def','def',t2('setDefault'),defaultCfg().items.length,info.kind==='def');
+  if(qbankAvailable())h+=qbankPresets().map(p=>row('tpl',p.id,p.name,(p.items||[]).length,info.kind==='tpl'&&!info.edited&&sanitizeId(info.tplId)===sanitizeId(p.id))).join('');
+  h+=`<div class="ma"><button class="b b3" style="flex:1" onclick="closeMo()">${t('btnClose')}</button></div>`;
+  document.getElementById('moBody').innerHTML=h;
+  moShow();
+}
+async function pickSetFromList(kind,id){
+  closeMo();
+  let ok=false;
+  if(kind==='set')ok=await examSetChange(id);
+  else if(kind==='tpl')ok=await applyQbank(false,id);
+  else if(kind==='def')ok=await resetCfg();
+  if(ok){const b=document.getElementById('examSetBox');if(b&&document.getElementById('pgExam').classList.contains('on'))b.scrollIntoView({behavior:'smooth',block:'nearest'})}
+  return ok;
 }

@@ -280,7 +280,7 @@ function importBackup(input){
         localStorage.setItem(CKEY,JSON.stringify(cfg));
         // 取り込んだ構成は使用中セットの中身ではない：activeIdを外す（resetCfg・項目の置き換えと同じ）。
         // 外さないと次の「項目を保存」(syncActiveSet)で保存済みセットが黙って上書きされる。presets自体は触らない
-        const qs=getQuestionSets();if(qs.activeId){qs.activeId=null;saveQuestionSets(qs)}
+        const qs=getQuestionSets();if(qs.activeId||qs.activeTpl){qs.activeId=null;delete qs.activeTpl;saveQuestionSets(qs)} // 使用中テンプレートの記憶も外す（R4）
         if(typeof renderQsetUI==='function')renderQsetUI();if(typeof renderExamSetSel==='function')renderExamSetSel();
       }
       buildExamCards();buildCfgUI();refreshSel();

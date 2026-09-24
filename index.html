@@ -103,6 +103,21 @@ try{var _th=localStorage.getItem('oral_exam_theme');if(_th==='light'||_th==='dar
 
 <!-- 設定 -->
 <div id="pgCfg" class="pg">
+  <div class="stit" data-t="cfgItemsTitle">試問項目</div>
+  <button class="b b4 wfull mb16" id="btnCatAdd" onclick="openCatalog()" data-t="catAdd">📚 作業カタログから質問を追加</button>
+  <div id="cfgArea"></div>
+  <div class="cfg-add">
+    <button onclick="addSection()" data-t="addSec">＋ セクション追加</button>
+  </div>
+  <div class="mt24">
+    <button class="b b1 wfull" onclick="saveCfg()" data-t="saveCfg">項目を保存</button>
+    <div id="cfgSaveHint" class="cfghint"></div>
+  </div>
+  <div class="mt12">
+    <button class="b b2 wfull" onclick="resetCfg()" data-t="resetCfg">初期設定に戻す</button>
+  </div>
+  <!-- 接続とデータ（最初に一度だけ設定するもの。毎回触る出題選びより下に置く） -->
+  <div class="stit mt24" id="cfgConnTitle">接続とデータ</div>
   <details class="acc">
     <summary data-t="gTitle">Googleドライブに自動保存（任意）</summary>
     <div class="accb">
@@ -146,18 +161,6 @@ try{var _th=localStorage.getItem('oral_exam_theme');if(_th==='light'||_th==='dar
     <button class="b b1 wfull mt12" onclick="saveStt()" data-t="sttSave">API設定を保存</button>
     </div>
   </details>
-  <div class="stit" data-t="cfgItemsTitle">試問項目</div>
-  <button class="b b4 wfull mb16" id="btnCatAdd" onclick="openCatalog()" data-t="catAdd">📚 作業カタログから質問を追加</button>
-  <div id="cfgArea"></div>
-  <div class="cfg-add">
-    <button onclick="addSection()" data-t="addSec">＋ セクション追加</button>
-  </div>
-  <div class="mt24">
-    <button class="b b1 wfull" onclick="saveCfg()" data-t="saveCfg">項目を保存</button>
-  </div>
-  <div class="mt12">
-    <button class="b b2 wfull" onclick="resetCfg()" data-t="resetCfg">初期設定に戻す</button>
-  </div>
 </div>
 
 </main>

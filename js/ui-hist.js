@@ -15,8 +15,10 @@ function eeSummary(){
     const pf=arr.filter(x=>!isNaN(passRate(x)));
     // 旧5段階のみの受験者もカードは出す（合格率の対象外と明示）
     if(!pf.length){const lo=arr[arr.length-1];return oldCount(lo)?{name:n,count:arr.length,oldOnly:true,lastLbl:resLbl(lo),lastCls:'old'}:null}
-    const lr=pf[pf.length-1],pr=pf.length>1?pf[pf.length-2]:null;
-    return{name:n,count:arr.length,last:passRate(lr),lastLbl:resLbl(lr),lastCls:resCls(lr),prev:pr?passRate(pr):null,prevLbl:pr?resLbl(pr):'',mixed:!!(oldCount(lr)||(pr&&oldCount(pr)))};
+    // 前回比は同じ出題（試問セット）どうしだけ（R4：問題の違う試問を比べて「下がった」と見せない）
+    const lr=pf[pf.length-1],same=pf.slice(0,-1).filter(x=>setKey(x)===setKey(lr)),pr=same.length?same[same.length-1]:null;
+    const lbl=x=>oldCount(x)?resLbl(x):pfBrief(x); // 「合格 1/2」を全体の合格と読ませない：○×の数と出題数で出す
+    return{name:n,count:arr.length,last:passRate(lr),lastLbl:lbl(lr),lastCls:resCls(lr),prev:pr?passRate(pr):null,prevLbl:pr?lbl(pr):'',mixed:!!(oldCount(lr)||(pr&&oldCount(pr))),setName:setLbl(lr)};
   }).filter(Boolean);
 }
 function eeFilterIdx(i){const s=_eeSums[i];if(!s)return;const hf=document.getElementById('hFil');hf.value=s.name;drawHist()}
@@ -30,8 +32,8 @@ function eeSummaryHtml(filterName){
     const col=arrow==='▲'?'var(--s4)':arrow==='▼'?'var(--s1)':'var(--sub)';
     return `<button type="button" class="cd" style="flex:1 1 150px;min-width:140px;text-align:left;cursor:pointer;padding:10px 12px;margin:0" onclick="eeFilterIdx(${s.idx})">
       <div style="font-weight:700;font-size:.9rem">${esc(s.name)}</div>
-      <div style="font-size:.74rem;color:var(--sub)">${s.count}${esc((s.count===1&&(TX2[lang]||{}).sumTimes1)||t2('sumTimes'))}</div>
-      <div style="font-size:${s.oldOnly?'.9rem':'1.1rem'};font-weight:800;margin-top:2px"><span class="${s.lastCls}">${s.oldOnly?'':esc(t2('passCnt'))+' '}${esc(s.lastLbl)}</span>${arrow?` <span style="font-size:.8rem;font-weight:700;color:${col}">${arrow} ${esc(t2('prevLbl'))} ${esc(s.prevLbl)}</span>`:''}</div>
+      <div style="font-size:.74rem;color:var(--sub)">${s.count}${esc((s.count===1&&(TX2[lang]||{}).sumTimes1)||t2('sumTimes'))}${s.setName?' · '+esc(t2('examSetLbl'))+': '+esc(s.setName):''}</div>
+      <div class="eelast" style="font-size:${s.oldOnly?'.9rem':'1.05rem'};font-weight:800;margin-top:2px"><span class="${s.lastCls}">${esc(s.lastLbl)}</span>${arrow?` <span style="font-size:.8rem;font-weight:700;color:${col}">${arrow} ${esc(t2('prevLbl'))} ${esc(s.prevLbl)}</span>`:''}</div>
       ${s.oldOnly?`<div class="eenote">${esc(t2('oldOnly'))}</div>`:s.mixed?`<div class="eenote">${esc(t2('mixNote'))}</div>`:''}
     </button>`;
   }).join('')+'</div>';
@@ -51,7 +53,7 @@ function drawHist(){
     const ym=(r.date||'').slice(0,7);
     if(ym&&ym!==pm){h+=`<div class="mgrp">${esc(fmtMonth(ym))}</div>`;pm=ym}
     const x=rowRes(r);
-    h+=`<button type="button" class="hi" onclick="showDet('${sanitizeId(r.id)}')"><span class="hii"><span class="hid">${esc(r.date)} · ${t('erLbl')}: ${esc(r.examiner)}</span><span class="hin">${esc(r.examinee)}</span>${x.badge}</span><span class="hia ${x.cls}">${esc(x.lbl)}</span></button>`;
+    h+=`<button type="button" class="hi" onclick="showDet('${sanitizeId(r.id)}')"><span class="hii"><span class="hid">${esc(r.date)} · ${t('erLbl')}: ${esc(r.examiner)} · <span class="hset">${esc(setLbl(r))}</span></span><span class="hin">${esc(r.examinee)}</span>${x.badge}</span><span class="hia ${x.cls}">${esc(x.lbl)}</span></button>`;
   });
   c.innerHTML=h;
 }
@@ -62,7 +64,7 @@ async function showDet(id){
   // cfg変更後も過去項目が消えないよう「cfg ∪ セッション自身のキー」で走査、名前はスナップショット優先
   const ids=sessItemIds(r);
   let h=`<div class="mh"><h2 id="moTitle">${esc(r.examinee)} - ${esc(r.date)}</h2><button class="mx" aria-label="${t('btnClose')}" onclick="closeMo()">&times;</button></div>`;
-  h+=`<div style="font-size:.85rem;color:var(--sub);margin-bottom:12px">${t('erLbl')}: ${esc(r.examiner)} · ${esc(resHead(r))}: ${esc(r.status==='scored'?resLbl(r):pendLbl(r)||'-')}</div>`;
+  h+=`<div style="font-size:.85rem;color:var(--sub);margin-bottom:12px">${t('erLbl')}: ${esc(r.examiner)} · ${esc(t2('examSetLbl'))}: ${esc(setLbl(r))} · ${esc(resHead(r))}: ${esc(r.status==='scored'?resLbl(r):pendLbl(r)||'-')}${unaskedCount(r)?' · '+esc(t2('unaskedN').replace('{u}',unaskedCount(r))):''}</div>`;
   ids.forEach(iid=>{
     const rec=r.items[iid]||{};
     if(!rec.hasAudio&&rec.score==null&&!rec.transcript)return;
@@ -148,12 +150,12 @@ function doCSV(){
     if(!seen.has(id)&&safeKey(id)){seen.add(id);cols.push({id,name:itemMeta(r,id).name})}
   }));
   // ヘッダーはUI言語に追従（CSVは書き出し専用＝再取り込みしないため後方互換の懸念なし）
-  const hd=[t('labelDate'),t('labelExaminer'),t('labelExaminee'),t('csvStatus'),...cols.map(c=>c.name+'('+t2('pfLbl')+')'),...cols.map(c=>c.name+'('+t('trLbl')+')'),...cols.map(c=>c.name+'('+t('csvCmt')+')'),t2('csvPass'),t('overall'),t('csvCreated')];
+  const hd=[t('labelDate'),t('labelExaminer'),t('labelExaminee'),t2('qsTitle'),t('csvStatus'),...cols.map(c=>c.name+'('+t2('pfLbl')+')'),...cols.map(c=>c.name+'('+t('trLbl')+')'),...cols.map(c=>c.name+'('+t('csvCmt')+')'),t2('csvPass'),t('overall'),t('csvCreated')];
   // 数式インジェクション対策：=,+,-,@ 等で始まる値は先頭に ' を付ける
   const cell=s=>{let v=String(s==null?'':s);if(/^[=+\-@\t\r]/.test(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"'};
   let csv='﻿'+hd.map(cell).join(',')+'\n';
   all.forEach(r=>{
-    const row=[r.date,r.examiner,r.examinee,r.status==='scored'?t('stScored'):t('stRec'),
+    const row=[r.date,r.examiner,r.examinee,setLbl(r),r.status==='scored'?t('stScored'):t('stRec'),
       ...cols.map(c=>{const v=r.items[c.id]&&r.items[c.id].score;return v==null?'':scoreTxt(v)}),
       ...cols.map(c=>(r.items[c.id]&&r.items[c.id].transcript)||''),
       ...cols.map(c=>(r.items[c.id]&&r.items[c.id].comment)||''),

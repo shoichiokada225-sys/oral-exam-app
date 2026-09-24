@@ -937,3 +937,41 @@ html.scoring{
   #wakeNote{top:auto;bottom:calc(var(--tabs-h) + 70px + env(safe-area-inset-bottom,0px));left:auto;max-width:60vw}
   html.scoring{scroll-padding-top:12px}
 }
+
+/* ---- R4 情報設計：試問タブの「出題」1行・出題の選択モーダル・メタ入力の詰め ---- */
+#pgExam .cd.meta{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);column-gap:10px;padding:12px 14px}
+#pgExam .meta label[for="fDate"]{grid-column:1;grid-row:1}
+#pgExam .meta label[for="fEr"]{grid-column:2;grid-row:1}
+#pgExam .meta #fDate{grid-column:1;grid-row:2;margin-bottom:10px;min-width:0;padding:10px 8px}
+#pgExam .meta #fEr{grid-column:2;grid-row:2;margin-bottom:10px;min-width:0}
+#pgExam .meta label[for="fEe"]{grid-column:1 / -1;grid-row:3}
+#pgExam .meta #fEe{grid-column:1 / -1;grid-row:4}
+#pgExam .meta .esbox{grid-column:1 / -1;grid-row:5;margin-top:10px;padding-top:8px;border-top:1px solid var(--bdr)}
+#pgExam .meta .esbox .b{min-height:40px}
+@media (max-width:480px){
+  #pgExam .cd.meta{padding:10px 12px;margin-bottom:10px}
+  #pgExam .meta label{font-size:.76rem;margin-bottom:3px}
+  #pgExam .meta input{min-height:44px;padding:8px 11px}
+  #pgExam .meta #fDate,#pgExam .meta #fEr{margin-bottom:8px}
+  .prog.fresh .chips{display:none}
+  #examCards>.stit:first-child{margin-top:0;padding-top:2px;padding-bottom:6px;margin-bottom:10px}
+  #pgExam .meta .esbox{margin-top:8px;padding-top:6px}
+  #examCards .qc{padding:12px 14px}
+  #examCards .qc .en{float:left;margin:4px 8px 0 0}
+  #examCards .qc .enm{margin-top:0}
+  #examCards .qc .ed{clear:left;margin-bottom:10px;padding:8px 11px}
+}
+.esl{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.86rem;min-width:0}
+.esl-k{font-size:.74rem;font-weight:800;color:var(--sub);letter-spacing:.04em}
+.esl-v{font-weight:800;color:var(--txt);min-width:0;overflow-wrap:anywhere}
+.esl-n{font-size:.78rem;color:var(--sub)}
+.esl .b.esl-b{flex:0 0 auto;padding:5px 12px;font-size:.78rem;margin-left:auto}
+.esl .b.esl-q{flex:0 0 auto;padding:5px 11px;font-size:.8rem;font-weight:800}
+.sp-g{font-size:.78rem;font-weight:800;color:var(--sub);margin:14px 0 6px;letter-spacing:.04em}
+.sp-g:first-of-type{margin-top:0}
+.b.setpick{display:flex;width:100%;justify-content:space-between;align-items:center;gap:10px;text-align:left;margin-bottom:6px}
+.setpick .sp-n{flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
+.setpick .sp-c{flex:0 0 auto;font-size:.76rem;opacity:.85}
+.sp-none{font-size:.8rem;color:var(--sub);line-height:1.6}
+.cfghint{font-size:.76rem;color:var(--sub);line-height:1.6;margin-top:6px}
+.hset{font-weight:700}

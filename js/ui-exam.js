@@ -110,6 +110,7 @@ function updateExamProg(){
   box.style.display='block';
   const done=it=>examRecd(it)&&examJudged(it);
   const n=items.filter(examRecd).length;
+  box.classList.toggle('fresh',!n); // まだ1問も録音していない：スマホではセクションのチップを畳んで1問目を最初の画面に出す
   const j=items.filter(it=>examRecd(it)&&examJudged(it)).length;
   // 録音完了直後（media.jsのonstopから呼ばれる）に「次の未録音へ」ボタンを出す
   items.forEach(it=>{const b=document.getElementById('nx-'+sanitizeId(it.id));if(b)b.style.display=examRecd(it)?'inline-block':'none'});

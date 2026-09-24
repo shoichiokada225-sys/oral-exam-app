@@ -21,6 +21,9 @@ function applyT(){
   // 言語に追従するアクセシブルネーム
   const nav=document.getElementById('mainNav');if(nav)nav.setAttribute('aria-label',t('navMain'));
   const bl=document.getElementById('beepLbl');if(bl)bl.textContent=t2('beepOpt');
+  const ct=document.getElementById('cfgConnTitle');if(ct)ct.textContent=t2('cfgConnTitle');
+  const hx=document.getElementById('howtoX');if(hx){hx.textContent=t('btnClose');hx.setAttribute('aria-label',t2('howtoHide'))}
+  const sh=document.getElementById('cfgSaveHint');if(sh)sh.textContent=t2('saveCfgHint');
   const hq=document.getElementById('hQ');if(hq)hq.setAttribute('aria-label',t('searchPh'));
   const sf=document.getElementById('scFil');if(sf)sf.setAttribute('aria-label',t('alFilter'));
   const hf=document.getElementById('hFil');if(hf)hf.setAttribute('aria-label',t('alFilter'));
@@ -63,18 +66,20 @@ function cycleTheme(){
    ============================================================== */
 /* index.htmlはデザイン担当が編集中のため、追加DOMはJSで生成して既存コンテナに挿入する */
 function injectDynamicContainers(){
-  // 試問タブ上部：質問セット切替
+  // 試問タブ：受験者名の下に「出題：〇〇（N問）［変更］」の1行（R4。中身は renderExamSetSel）
   const meta=document.querySelector('#pgExam .cd.meta');
   if(meta&&!document.getElementById('examSetBox')){
     const d=document.createElement('div');
-    d.id='examSetBox';d.className='cd';d.style.display='none';
-    meta.parentElement.insertBefore(d,meta);
+    d.id='examSetBox';d.className='esbox';
+    meta.appendChild(d); // 受験者名の欄と同じ面の最下段（スマホで最初の画面に1問目まで収める）
   }
-  // 試問タブ上部：1行の使い方ガイド（初見の試問者向け。文言はi18n howto・applyTで言語追従）
+  // 試問タブ上部：使い方ガイド（初見の試問者向け。文言はi18n howto・applyTで言語追従）。
+  // 閉じたら出題の行の「？」に畳む（R4：毎回の最初の画面を説明文で埋めない）
   if(meta&&!document.getElementById('examHowto')){
     const d=document.createElement('div');
-    d.id='examHowto';d.className='cd';d.dataset.t='howto';
-    d.style.cssText='font-size:.8rem;color:var(--sub);line-height:1.7';
+    d.id='examHowto';d.className='cd';
+    d.style.cssText='font-size:.8rem;color:var(--sub);line-height:1.7;display:flex;gap:8px;align-items:flex-start';
+    d.innerHTML='<span data-t="howto" style="flex:1 1 auto"></span><button type="button" class="b b4" id="howtoX" style="flex:0 0 auto;padding:4px 10px;font-size:.74rem" onclick="toggleHowto(false)"></button>';
     meta.parentElement.insertBefore(d,meta);
   }
   // 試問タブ：ドライブ未設定の案内（使い方の下・閉じたら出さない。中身は updateDriveUi）
@@ -83,12 +88,13 @@ function injectDynamicContainers(){
     d.id='drvHint';d.className='cd';d.setAttribute('role','note');d.style.display='none';
     meta.parentElement.insertBefore(d,meta);
   }
-  // 設定タブ最上部：録音の合図（開始・停止で短い音。振動は対応端末で常に）
+  // 設定タブ「接続とデータ」の先頭：録音の合図（開始・停止で短い音。振動は対応端末で常に）
   const cfgPg=document.getElementById('pgCfg');
   if(cfgPg&&!document.getElementById('recOptBox')){
     const d=document.createElement('div');d.id='recOptBox';d.className='cd';
     d.innerHTML='<label class="ckrow" style="margin-top:0"><input type="checkbox" id="beepChk"> <span id="beepLbl"></span></label>';
-    cfgPg.insertBefore(d,cfgPg.firstChild);
+    const acc=cfgPg.querySelector('details.acc');
+    cfgPg.insertBefore(d,acc||cfgPg.firstChild);
     const c=d.querySelector('#beepChk');c.checked=typeof beepOn==='function'&&beepOn();
     c.addEventListener('change',()=>{setBeep(c.checked);if(c.checked)recCue('start')});
   }
@@ -266,8 +272,9 @@ async function saveSession(opt){
   // 名前・日付が空：トーストだけでなく、空の欄へスクロールしてフォーカスし赤枠を付ける（欄は画面外のことが多い）
   if(!cur.examiner||!cur.examinee){toast(t('eNm'),1);markInvalid(!cur.examiner?'fEr':'fEe');if(!cur.examiner&&!cur.examinee)setInvalid('fEe',true);return}
   if(!cur.date){toast(t('eDt'),1);markInvalid('fDate');return}
-  if(!getItems().length){toast(t2('noItems'),1);return} // 質問が0件＝録音以前に設定が必要（「録音がありません」では次の手が分からない）
-  const recd=getItems().some(it=>cur.items[it.id]&&cur.items[it.id].hasAudio);
+  // 録音の有無は今の試問の全部の問で見る（出題を切り替えて画面に出ていない問の録音も「無い」と言わない）
+  const recd=Object.keys(cur.items||{}).some(k=>cur.items[k]&&cur.items[k].hasAudio);
+  if(!getItems().length&&!recd){toast(t2('noItems'),1);return} // 質問が0件＝録音以前に設定が必要（「録音がありません」では次の手が分からない）
   if(!recd){toast(t('eNoRec'),1);return}
   // 端末に保存できていない録音（failedTakes＝メモリ上だけの唯一の写し）が残っていれば、黙って捨てない
   const pend=pendingTakes();
@@ -285,6 +292,8 @@ async function saveSession(opt){
     if(sv0){resumeSv=JSON.parse(JSON.stringify(sv0));mergeResumed(cur,sv0,cur._base||null)}
   }
   snapMeta(cur); // 項目名スナップショット（cfg変更後も履歴・CSVで名前が出る）
+  // 出題（試問セット）を記録（R4・追加フィールド）。保存済みの試問の続き（_resume）は元の記録を変えない
+  if(!cur._resume&&!getAll().some(s=>s.id===cur.id)&&typeof stampSet==='function')stampSet(cur);
   // 同じ受験者・同じ日の保存済み試問がほかにある（途中で分けた・その場で追試した・二重に保存しかけた）：
   // OK＝前回の続きにまとめる／キャンセル＝追試として別に保存（ドライブのファイル名に「_2回目」を付ける）
   let tgt=cur,merged=null,copied=[],retakeMsg='';
@@ -317,7 +326,10 @@ async function saveSession(opt){
   // 録音していない問に○×が付いている（試問画面は録音前でも押せる）ときは、ここでは確定を勧めない：
   // 確定すると未録音の○まで合格率に入るため。採点タブで全問を見てから確定してもらう
   const unrecPF=Object.keys(tgt.items).some(k=>tgt.items[k]&&!tgt.items[k].hasAudio&&isPF(tgt.items[k].score));
-  if(tgt.status!=='scored'&&recIds.length&&!unrecPF&&recIds.every(k=>judgedSc(tgt.items[k].score))&&confirm(t2('confirmScored')))tgt.status='scored';
+  // 出題のうち録音しなかった問があれば数を添える（「全問に合否」と言って未実施の問を隠さない）
+  const unasked=getItems().filter(it=>!(tgt.items[it.id]&&tgt.items[it.id].hasAudio)).length;
+  const askScored=()=>confirm(unasked?t2('confirmScoredPart').replace(/\{n\}/g,recIds.length).replace('{t}',recIds.length+unasked).replace('{u}',unasked):t2('confirmScored'));
+  if(tgt.status!=='scored'&&recIds.length&&!unrecPF&&recIds.every(k=>judgedSc(tgt.items[k].score))&&askScored())tgt.status='scored';
   const bakKeep={base:cur._base,bak:cur._origBak};
   delete tgt._resume; // 下書きだけの印（「続ける」で開いた試問）。保存済みの試問には残さない
   delete tgt._base;delete tgt._origBak;
