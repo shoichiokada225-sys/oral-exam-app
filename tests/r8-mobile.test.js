@@ -16,7 +16,7 @@ const VIB = `(()=>{window.__vib=[];try{Object.defineProperty(Navigator.prototype
 const WAKE_OK = `(()=>{window.__wake={req:0,rel:0};const wl={request:async()=>{window.__wake.req++;const s=new EventTarget();s.released=false;s.release=async()=>{if(!s.released){s.released=true;window.__wake.rel++;s.dispatchEvent(new Event('release'))}};return s}};try{Object.defineProperty(Navigator.prototype,'wakeLock',{configurable:true,get:()=>wl})}catch(e){}})();`;
 const WAKE_NONE = `(()=>{try{Object.defineProperty(Navigator.prototype,'wakeLock',{configurable:true,get:()=>undefined})}catch(e){}})();`;
 /* ページ内の検査用ヘルパー（一時キー一覧・録音の長さ） */
-const HELP = `window.__liveKeys=()=>new Promise(res=>{openDB().then(db=>{const rq=db.transaction(STORE,'readonly').objectStore(STORE).getAllKeys();rq.onsuccess=()=>res((rq.result||[]).filter(k=>String(k).startsWith('live__')))})});
+const HELP = `window.__liveKeys=()=>new Promise(res=>{openDB().then(db=>{const rq=db.transaction(STORE,'readonly').objectStore(STORE).getAllKeys();rq.onsuccess=()=>res((rq.result||[]).filter(k=>isLiveHead(k)))})});
 window.__dur=async key=>{const b=await getAudio(key);if(!b)return -1;const ac=new AudioContext();try{const x=await ac.decodeAudioData(await b.arrayBuffer());return x.duration}finally{ac.close()}};`;
 const liveKeysJs = () => window.__liveKeys();
 const dur = (p, id) => p.evaluate(id => window.__dur(cur.id + '_' + id), id);
@@ -31,6 +31,8 @@ async function mkPage(ctx, init) {
   await p.goto(env.URL); await p.waitForTimeout(400);
   return { p, errors };
 }
+/* 端末が落ちた（タブのプロセスが死んだ）を再現：pagehide/visibilitychange は走らない */
+async function crash(p) { const c = await p.context().newCDPSession(p); c.send('Page.crash').catch(() => {}); await new Promise(r => setTimeout(r, 800)); }
 const setHidden = (p, hidden) => p.evaluate(h => {
   Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => h ? 'hidden' : 'visible' });
   Object.defineProperty(document, 'hidden', { configurable: true, get: () => h });
@@ -48,7 +50,7 @@ const setHidden = (p, hidden) => p.evaluate(h => {
 
   console.log('[1] 1秒ごとの一時保存');
   await p.click('#rb-' + A); await p.waitForTimeout(3500);
-  const live1 = await p.evaluate(async () => { const ks = await window.__liveKeys(); if (!ks.length) return null; const r = await getAudio(ks[0]); return { n: ks.length, size: r && r.blob ? r.blob.size : 0, chunks: active.chunks.length, sid: r.sid, item: r.itemId }; });
+  const live1 = await p.evaluate(async () => { const ks = await window.__liveKeys(); if (!ks.length) return null; const r = await getLive(ks[0]); return { n: ks.length, size: r && r.blob ? r.blob.size : 0, chunks: active.chunks.length, sid: r.sid, item: r.itemId }; });
   T.ok('録音中に chunk が届いている: ' + JSON.stringify(live1), live1 && live1.chunks >= 2);
   T.ok('一時キーに録音が書かれている（停止前・0バイトでない）', live1 && live1.n === 1 && live1.size > 0 && live1.item === A);
   T.ok('振動：開始 60ms', await p.evaluate(() => window.__vib.includes('60')));
@@ -135,7 +137,7 @@ const setHidden = (p, hidden) => p.evaluate(h => {
   await p.click('#rc-' + C); await p.waitForTimeout(2600);
   const sid = await p.evaluate(() => cur.id);
   const dC0 = await dur(p, C);
-  await p.close(); // 停止しないまま閉じる（beforeunload は走らない＝強制終了と同じ）
+  await crash(p); // 停止しないまま端末が落ちた（CDP Page.crash＝pagehide も走らない）
   ({ p, errors: errors2 } = await mkPage(ctx, [VIB, WAKE_OK]));
   await p.waitForTimeout(900);
   T.ok('起動時に「中断された録音を復元」', await p.locator('#liveRec #lrRestore').count() === 1);
@@ -166,7 +168,7 @@ const setHidden = (p, hidden) => p.evaluate(h => {
   T.ok('Wake Lock の無い端末は「画面を消さないで」を録音中ずっと表示', await q.p.locator('#wakeNote').isVisible() && /画面を消さない/.test(await q.p.locator('#wakeNote').textContent()));
   await q.p.waitForTimeout(1300);
   const sid2 = await q.p.evaluate(() => cur.id);
-  await q.p.close();
+  await crash(q.p); // p.close() だと pagehide で停止・保存が走り「落ちた」再現にならない（保存が間に合うかは運次第＝不安定）
   q = await mkPage(ctx2, []);
   await q.p.waitForTimeout(900);
   T.ok('新しい試問（下書きなし）でも復元の案内', await q.p.locator('#lrRestore').count() === 1);

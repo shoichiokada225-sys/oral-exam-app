@@ -58,10 +58,11 @@ function liveSave(a){
     a._liveQueued=false;
     if(a._liveDone||!a.chunks.length)return;
     const type=a.mr.mimeType||'audio/webm';
+    const from=a._liveN||0,parts=a.chunks.slice(from); // まだ書いていない塊だけ（書き込み量は録音時間に比例）
     const rec={sid:a.sid,itemId:a.itemId,mime:type,t0:a.t0,ts:Date.now(),dur:recElapsed(a),draft:a.draft||'',append:!!a._append,
       examinee:cur?String(cur.examinee||''):'',examiner:cur?String(cur.examiner||''):'',date:cur?String(cur.date||''):'',
-      blob:new Blob(a.chunks,{type})};
-    return putAudio(a._liveKey,rec);
+      n:from+parts.length};
+    return putLiveParts(a._liveKey,rec,parts,from).then(()=>{a._liveN=from+parts.length});
   }).catch(()=>{});
 }
 
@@ -125,7 +126,7 @@ async function toggleRec(itemId,opt){
         }
         const rs=document.getElementById('rs-'+itemId);
         if(rs&&!(cur&&cur.items[itemId]&&cur.items[itemId].hasAudio)){rs.textContent='⚠ '+t('recFailStat');rs.classList.remove('ok')}
-        delAudio(a._liveKey);
+        delLive(a._liveKey);
         return;
       }
       const sess=cur,newDraft=(cur.items[itemId]&&cur.items[itemId].draft)||'';
@@ -136,15 +137,18 @@ async function toggleRec(itemId,opt){
           toast(t2('mergeFail'),1);
           if(sess.items[itemId])sess.items[itemId].draft=a._old.draft;
           if(cur===sess)saveDraft();
-          failedTakes[sess.id+'_'+itemId]={sess,blob,draft:newDraft,old:a._old,dlOnly:true};
+          // 一時保存は残す＝続きの部分の唯一の写し（この画面が落ちても次の起動で取り戻せる）
+          failedTakes[sess.id+'_'+itemId]={sess,blob,draft:newDraft,old:a._old,dlOnly:true,liveKey:a._liveKey};
           renderRecFail(itemId);
           return;
         }
       }
-      try{await putAudio(sess.id+'_'+itemId,blob)}
-      catch(err){recStoreFailed(sess,itemId,blob,newDraft,a._old);return}
-      delAudio(a._liveKey); // 正式キーに書けた＝一時保存は不要
-      commitTake(sess,itemId,blob,a._old,a._append?t2('recAppended'):null);
+      // 正式キーへの保存と同じトランザクションで一時保存に「保存済み」の印（その後に落ちても復元で二重につながない）
+      // 書けなかったら一時保存は残す＝この画面が落ちても次の起動で取り戻せる唯一の写し（保存し直せたら片付ける）
+      try{await putAudio(sess.id+'_'+itemId,blob,a._liveKey)}
+      catch(err){recStoreFailed(sess,itemId,blob,newDraft,a._old,a._liveKey);return}
+      commitTake(sess,itemId,blob,a._old,a._append?t2('recAppended'):null); // 試問の記録（hasAudio）を先に保存
+      delLive(a._liveKey); // その後で一時保存を片付ける
       if(a._cut!=null){const rs=document.getElementById('rs-'+itemId);if(rs){rs.textContent='⚠ '+t2('recCutStat').replace('{s}',a._cut);rs.classList.remove('ok')}}
     }catch(e){toast(t2('storeFail'),1)} // 想定外の失敗でも「未録音」に黙って戻さない
     finally{a._stopDone=true;if(a._resolve)a._resolve()}
@@ -332,14 +336,20 @@ function wavBlob(f32,sr){
 async function liveKeys(){
   const db=await openDB();
   const keys=await new Promise((res,rej)=>{const rq=db.transaction(STORE,'readonly').objectStore(STORE).getAllKeys();rq.onsuccess=()=>res(rq.result||[]);rq.onerror=()=>rej(rq.error)});
-  return keys.filter(k=>String(k).startsWith(LIVEPFX)&&!(active&&active._liveKey===k));
+  // 見出しだけ（塊は除く）。録音中のもの・この画面で保存に失敗して取り戻し待ちのもの（failedTakes）は出さない
+  const busy=new Set(Object.values(failedTakes).map(f=>f.liveKey).filter(Boolean));
+  return keys.filter(k=>isLiveHead(k)&&!(active&&active._liveKey===k)&&!busy.has(k));
 }
 async function checkLiveTakes(){
   let keys=[];try{keys=await liveKeys()}catch(e){return}
   let box=document.getElementById('liveRec');
   if(!keys.length){if(box)box.remove();return}
-  const k=keys[0];let r=null;try{r=await getAudio(k)}catch(e){}
-  if(!r||!r.blob||!r.blob.size||!safeKey(r.itemId)){await delAudio(k);return checkLiveTakes()} // 中身のない一時保存は片付ける
+  const k=keys[0];let r=null;try{r=await getLive(k)}catch(e){}
+  if(!r||!r.blob||!r.blob.size||!safeKey(r.itemId)){await delLive(k);return checkLiveTakes()} // 中身のない一時保存は片付ける
+  if(r.done){ // 正式キーへ保存済みで、試問の記録にも録音が載っている＝片付けだけが残っていた
+    const ss=cur&&cur.id===r.sid?cur:getAll().find(x=>x.id===r.sid);
+    if(ss&&ss.items&&ss.items[r.itemId]&&ss.items[r.itemId].hasAudio){await delLive(k);return checkLiveTakes()}
+  }
   if(!box){
     box=document.createElement('div');box.id='liveRec';box.className='cd';box.setAttribute('role','alert');
     const cards=document.getElementById('examCards');if(!cards)return;
@@ -356,11 +366,11 @@ async function checkLiveTakes(){
   box.innerHTML=`<div class="lrmsg">⚠ ${esc(msg)}${keys.length>1?' '+esc(t2('liveMore').replace('{n}',keys.length-1)):''}</div>
     <div class="lrbtns"><button type="button" class="b b1" id="lrRestore">${esc(t2('liveRestore'))}</button><a class="b b3" id="lrDl" download="${esc(fn)}" href="${u}">⬇ ${esc(t2('recDl'))}</a><button type="button" class="b b4" id="lrDiscard">${esc(t2('liveDiscard'))}</button></div>`;
   document.getElementById('lrRestore').onclick=()=>restoreLive(k);
-  document.getElementById('lrDiscard').onclick=async()=>{if(!confirm(t2('liveDiscardQ')))return;await delAudio(k);checkLiveTakes()};
+  document.getElementById('lrDiscard').onclick=async()=>{if(!confirm(t2('liveDiscardQ')))return;await delLive(k);checkLiveTakes()};
 }
 async function restoreLive(k){
   if(active){toast(t2('recBusy'),1);return}
-  let r=null;try{r=await getAudio(k)}catch(e){}
+  let r=null;try{r=await getLive(k)}catch(e){}
   if(!r||!r.blob){checkLiveTakes();return}
   const iid=r.itemId;if(!safeKey(iid))return;
   // 戻し先：試問中の同じ試問 → 保存済みの同じ試問 → まだ何も録音していない今の試問（受験者名などを引き継ぐ）
@@ -368,6 +378,15 @@ async function restoreLive(k){
   if(cur&&cur.id===r.sid)sess=cur;
   else{const x=getAll().find(s=>s.id===r.sid);if(x){sess=x;saved=true}}
   if(!sess&&cur&&!Object.values(cur.items||{}).some(x=>x&&x.hasAudio)){
+    // 今の試問が別の受験者のものなら入れない（録音を取り違えない。自動保存ONなら別人のドライブフォルダへ送られてしまう）
+    const nm=x=>String(x||'').trim().replace(/\s+/g,' ');
+    const fe=document.getElementById('fEe');
+    const now=nm(fe?fe.value:cur.examinee),was=nm(r.examinee);
+    if(now&&was&&now!==was){toast(t2('liveOtherEe').replace('{a}',was).replace('{b}',now),1);return}
+    // 受験者名のない録音を名前の入った試問へ／名前のない試問に合否・下書きがある：どちらの人か画面からは分からない→確かめる
+    if(now&&!was&&!confirm(t2('liveNoNameQ').replace('{b}',now)))return;
+    if(!now&&Object.values(cur.items||{}).some(x=>x&&(x.score!=null&&x.score!==''||String(x.draft||'').trim()))&&
+       !confirm(t2('liveMixQ').replace('{a}',was||'—')))return;
     cur.id=r.sid;
     [['examinee','fEe'],['examiner','fEr'],['date','fDate']].forEach(([f,id])=>{if(!String(cur[f]||'').trim()&&r[f]){cur[f]=r[f];const el=document.getElementById(id);if(el)el.value=r[f]}});
     sess=cur;
@@ -377,16 +396,21 @@ async function restoreLive(k){
   const rec0=sess.items[iid];
   let base=null;if(rec0&&rec0.hasAudio){try{base=await getAudio(key)}catch(e){}}
   let blob=r.blob;
-  if(r.append&&base){try{blob=await mergeAudio(base,blob)}catch(e){toast(t2('mergeFail'),1);return}}
-  else if(base&&!confirm(t2('liveReplace')))return;
-  try{await putAudio(key,blob)}catch(e){toast(t2('storeFail'),1);return}
+  // 「正式キーへ保存済み」の印：保存の直後（試問の記録を書く前）に落ちた＝録音は正式キーにある。つなぎ直さず記録だけ戻す
+  const doneBase=r.done&&!base&&r.doneKey===key?await getAudio(key).catch(()=>null):null;
+  if(r.done&&(base||doneBase))blob=base||doneBase;
+  else{
+    if(r.append&&base){try{blob=await mergeAudio(base,blob)}catch(e){toast(t2('mergeFail'),1);return}}
+    else if(base&&!confirm(t2('liveReplace')))return;
+    try{await putAudio(key,blob,k)}catch(e){toast(t2('storeFail'),1);return}
+  }
   sess.items[iid]=sess.items[iid]||{};
   const it=sess.items[iid],d=String(r.draft||'').trim();
   it.hasAudio=true;it.mime=blob.type;
   it.draft=r.append?[it.draft||'',d].filter(Boolean).join(' '):(d||it.draft||'');
   if(saved){const all=getAll();const i=all.findIndex(s=>s.id===sess.id);if(i>=0){all[i]=sess;saveAll(all)}}
   else{saveDraft();buildExamCards()}
-  await delAudio(k);
+  await delLive(k); // 試問の記録を保存した後で一時保存を片付ける
   toast(t2('liveRestored'));
   if(getGoogleCfg().auto)maybeAutoUpload(iid,it.driveFileId?{replace:true}:undefined,saved?sess:undefined);
   checkLiveTakes();
@@ -415,12 +439,12 @@ function commitTake(sess,itemId,blob,old,undoLbl){
 /* 録音を端末に書き込めなかった（容量不足等）：黙って「未録音」に戻さず、失敗を常設表示し、
    その録音を「保存し直す／ダウンロード」で取り戻せるようにする（録り直しなら前のテイクが残っていると明示） */
 const failedTakes={};
-function recStoreFailed(sess,itemId,blob,newDraft,old){
+function recStoreFailed(sess,itemId,blob,newDraft,old,liveKey){
   toast(t2('storeFail'),1);
   const rec=sess.items[itemId];
   if(rec){rec.draft=old?old.draft:(rec.hasAudio?rec.draft:newDraft)} // 下書きは実際に残っている録音に合わせる
   if(cur===sess)saveDraft();
-  failedTakes[sess.id+'_'+itemId]={sess,blob,draft:newDraft,old};
+  failedTakes[sess.id+'_'+itemId]={sess,blob,draft:newDraft,old,liveKey:liveKey||null};
   renderRecFail(itemId);
 }
 /* 保存失敗の常設表示（カード再描画＝buildExamCardsの後にも呼ばれる） */
@@ -446,10 +470,11 @@ function renderRecFail(itemId){
 async function retryStoreTake(sid,itemId){
   const f=failedTakes[sid+'_'+itemId];if(!f||f.dlOnly)return;
   if(active){toast(t2('recBusy'),1);return}
-  try{await putAudio(sid+'_'+itemId,f.blob)}catch(e){toast(t2('storeFail'),1);return}
+  try{await putAudio(sid+'_'+itemId,f.blob,f.liveKey)}catch(e){toast(t2('storeFail'),1);return}
   delete failedTakes[sid+'_'+itemId];
   if(f.sess.items[itemId])f.sess.items[itemId].draft=f.draft;else f.sess.items[itemId]={draft:f.draft};
   commitTake(f.sess,itemId,f.blob,f.old);
+  if(f.liveKey)delLive(f.liveKey); // 保存し直せた＝取り戻し用の一時保存は不要
 }
 function clearRecFail(itemId){
   const b=document.getElementById('rf-'+itemId);if(b)b.remove();
@@ -492,11 +517,29 @@ function showUndoBar(sessId,itemId,old,label){
   const x=document.createElement('button');x.type='button';x.className='ubx';x.textContent='✕';x.setAttribute('aria-label',t2('undoClose'));x.onclick=hideUndoBar;
   bar.appendChild(sp);bar.appendChild(b);bar.appendChild(x);
   document.body.appendChild(bar);
+  fitUndoBar();
+  // 今録った問の操作（×不合格・録り直し・続き）がバーの裏に入っていたら、バーの上へ出す
+  requestAnimationFrame(()=>{
+    const el=document.getElementById('undoBar');if(!el)return;
+    const top=el.getBoundingClientRect().top;
+    const q=['vf-','vp-','rb-','rc-'].map(p=>document.getElementById(p+itemId)).filter(Boolean);
+    const low=Math.max(0,...q.map(n=>n.getBoundingClientRect().bottom));
+    if(low>top-8)window.scrollBy(0,low-(top-8));
+  });
 }
+/* バーの実際の高さをページ下の余白（html.undo-on）へ反映＝バーは最下部の操作を覆わない */
+function fitUndoBar(){
+  const el=document.getElementById('undoBar'),de=document.documentElement;
+  if(!el){de.classList.remove('undo-on');de.style.removeProperty('--undo-h');return}
+  de.style.setProperty('--undo-h',Math.ceil(el.getBoundingClientRect().height+10)+'px');
+  de.classList.add('undo-on');
+}
+window.addEventListener('resize',fitUndoBar);
 function hideUndoBar(){
   lastReplaced=null;
   if(undoTimer){clearTimeout(undoTimer);undoTimer=null}
   const el=document.getElementById('undoBar');if(el)el.remove();
+  fitUndoBar();
 }
 function updateLive(itemId,txt){const lv=document.getElementById('lv-'+itemId);if(lv)lv.querySelector('.lvtxt').textContent=txt}
 function stopRec(){

@@ -286,17 +286,24 @@ button.cd{font-family:inherit;font-size:inherit;color:var(--txt);line-height:inh
 }
 /* 録音中の簡易VUメーター（音を拾えているかの可視化。media.jsが録音中のみ生成） */
 .vu{display:inline-block;width:0;max-width:48px;height:6px;background:var(--rec);border-radius:3px;transition:width .15s;flex:0 0 auto}
-/* 録り直し直後の「元に戻す」バー（10秒で自動消滅。トーストと同系の配色で両テーマ可読） */
+/* 録り直し直後の「元に戻す」バー（次の操作か✕まで残す。トーストと同系の配色で両テーマ可読）
+   left:50%+translateX は「残り幅」で縮み、狭い画面で文言が1文字ずつ折れて縦の柱になる（R8回帰）
+   → 左右を画面端から固定し（広い画面は中央寄せで最大560px）、文言は残りの幅を使って2行までに収める */
 #undoBar{
-  position:fixed;left:50%;transform:translateX(-50%);
-  bottom:calc(var(--tabs-h) + 64px + env(safe-area-inset-bottom,0px));z-index:210;
-  display:flex;align-items:center;gap:12px;padding:10px 16px;border-radius:26px;
-  background:var(--toast-bg);color:var(--toast-tx);font-size:.85rem;font-weight:700;
-  box-shadow:var(--sh-lg);border:1px solid rgba(255,255,255,.08);max-width:92vw;
+  position:fixed;left:12px;right:12px;margin:0 auto;width:auto;max-width:560px;box-sizing:border-box;
+  bottom:calc(var(--tabs-h) + 10px + env(safe-area-inset-bottom,0px));z-index:210;
+  display:flex;align-items:center;gap:8px;padding:6px 6px 6px 14px;border-radius:22px;
+  background:var(--toast-bg);color:var(--toast-tx);font-size:.85rem;font-weight:700;line-height:1.35;
+  box-shadow:var(--sh-lg);border:1px solid rgba(255,255,255,.08);
 }
+#undoBar span{flex:1 1 auto;min-width:0;overflow-wrap:anywhere;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* バーが出ている間は、その高さ分だけページ下の余白を足す＝最下部までスクロールすれば全部の操作がバーの上に出る */
+html.undo-on body{padding-bottom:calc(var(--tabs-h) + 28px + var(--undo-h,64px) + env(safe-area-inset-bottom,0px))}
+html.undo-on{scroll-padding-bottom:calc(var(--tabs-h) + 20px + var(--undo-h,64px) + env(safe-area-inset-bottom,0px))}
 #undoBar button{
-  min-height:38px;padding:7px 16px;border:none;border-radius:19px;cursor:pointer;
-  background:var(--pri);color:#fff;font-weight:700;font-family:inherit;font-size:.85rem;flex:0 0 auto;
+  min-height:40px;padding:7px 14px;border:none;border-radius:19px;cursor:pointer;
+  background:var(--pri);color:#fff;font-weight:700;font-family:inherit;font-size:.85rem;flex:0 0 auto;white-space:nowrap;
 }
 /* ピルから録音中カードへ誘導した直後の停止ボタン強調（「ここで停止」を明示） */
 .recbtn.attn{animation:attnBtn .55s ease 4}

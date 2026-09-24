@@ -66,9 +66,45 @@ function openDB(){
     r.onerror=()=>rej(r.error);
   });
 }
-async function putAudio(key,blob){const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(blob,key);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error)})}
+/* liveKey を渡すと、正式キーへの保存と同じトランザクションで一時保存の見出しに「正式キーへ保存済み（done）」の印を付ける。
+   一時保存を消すのは、呼び出し側が試問の記録（hasAudio）を保存した後（delLive）。
+   ＝その間に落ちても録音は失われず（見出しが残る）、次の起動の復元は印を見て「もう一度つなぐ」をしない */
+async function putAudio(key,blob,liveKey){const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite'),os=tx.objectStore(STORE);os.put(blob,key);
+  if(liveKey){const g=os.get(liveKey);g.onsuccess=()=>{const h=g.result;if(h&&typeof h==='object')os.put(Object.assign({},h,{done:true,doneKey:key}),liveKey)}}
+  tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);tx.onabort=()=>rej(tx.error)})}
 async function getAudio(key){const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readonly');const rq=tx.objectStore(STORE).get(key);rq.onsuccess=()=>res(rq.result||null);rq.onerror=()=>rej(rq.error)})}
 async function delAudio(key){const db=await openDB();return new Promise((res)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).delete(key);tx.oncomplete=()=>res();tx.onerror=()=>res()})}
+/* 録音中の一時保存（分割形式）：見出し LIVEPFX… ＝小さな記録（blobなし・n=塊の数）＋ 塊 見出し+'~c'+6桁（1回ずつ書き足すだけ）
+   ＝書き込み量は録音時間に比例（毎秒の丸ごと書き直しをしない）。旧形式（見出しに blob を丸ごと持つ）もそのまま読める。
+   '~' は試問ID(UUID)・項目ID(英数_-)に現れないので見出しと塊を取り違えない */
+const LIVECH='~c';
+function isLiveHead(k){k=String(k);return k.startsWith(LIVEPFX)&&k.indexOf(LIVECH)<0}
+function liveChunkRange(k){return IDBKeyRange.bound(k+LIVECH,k+LIVECH+'\uffff')}
+/* 見出しの更新と新しい塊の追記を1つのトランザクションで */
+async function putLiveParts(k,head,parts,from){
+  const db=await openDB();
+  return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite'),os=tx.objectStore(STORE);
+    parts.forEach((b,i)=>os.put(b,k+LIVECH+String(from+i).padStart(6,'0')));os.put(head,k);
+    tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);tx.onabort=()=>rej(tx.error)});
+}
+/* 一時保存を1本の録音として読む（{...見出し, blob}）。無ければ null */
+async function getLive(k){
+  const db=await openDB();
+  return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readonly'),os=tx.objectStore(STORE);
+    const rq=os.get(k);
+    rq.onsuccess=()=>{const r=rq.result||null;
+      if(!r||typeof r!=='object'||r.blob){res(r);return} // 旧形式
+      const rc=os.getAll(liveChunkRange(k));
+      rc.onsuccess=()=>{const parts=rc.result||[];res(Object.assign({},r,{blob:parts.length?new Blob(parts,{type:r.mime||'audio/webm'}):null}))};
+      rc.onerror=()=>rej(rc.error)};
+    rq.onerror=()=>rej(rq.error)});
+}
+/* 一時保存（見出し＋塊）を消す */
+async function delLive(k){
+  const db=await openDB();
+  return new Promise(res=>{const tx=db.transaction(STORE,'readwrite'),os=tx.objectStore(STORE);
+    os.delete(k);os.delete(liveChunkRange(k));tx.oncomplete=()=>res();tx.onerror=()=>res();tx.onabort=()=>res()});
+}
 
 /* ==============================================================
    集計・セッション項目の走査
