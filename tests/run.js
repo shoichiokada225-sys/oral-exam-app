@@ -35,18 +35,33 @@ function listTests(root, all) {
   return main.concat(wipTop, wip);
 }
 
+/* 実行中の子（detached＝別グループなので端末の Ctrl+C が届かない）→ 入口が受けたら各グループへ転送して終わる */
+const live = new Set();
+for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => {
+  for (const c of live) { try { process.kill(-c.pid, 'SIGKILL'); } catch (e) { try { c.kill('SIGKILL'); } catch (e2) { /* 済 */ } } }
+  process.exit(130);
+});
+
 function runOne(f, timeoutMs) {
   return new Promise(resolve => {
     const t0 = Date.now();
-    const ch = spawn(process.execPath, [path.join(dir, f)], { cwd: path.resolve(dir, '..'), env: process.env });
+    // Mac/Linux では子を新しいプロセスグループにして、タイムアウト時はグループごと止める
+    //（子の node だけ SIGKILL すると Playwright が起動した Chrome が残るため）。Windows は従来どおり子だけ
+    const grp = process.platform !== 'win32';
+    const ch = spawn(process.execPath, [path.join(dir, f)], { cwd: path.resolve(dir, '..'), env: process.env, detached: grp });
+    if (grp) live.add(ch);
     const chunks = [];
     ch.stdout.on('data', d => chunks.push(d));
     ch.stderr.on('data', d => chunks.push(d));
     let timedOut = false, err = null;
-    const tm = setTimeout(() => { timedOut = true; ch.kill('SIGKILL'); }, timeoutMs);
+    const tm = setTimeout(() => {
+      timedOut = true;
+      if (grp && ch.pid) { try { process.kill(-ch.pid, 'SIGKILL'); return; } catch (e) { /* グループが無ければ子だけ */ } }
+      ch.kill('SIGKILL');
+    }, timeoutMs);
     ch.on('error', e => { err = e; });
     ch.on('close', (code, signal) => {
-      clearTimeout(tm);
+      clearTimeout(tm); live.delete(ch);
       resolve({ f, out: Buffer.concat(chunks).toString('utf8'), code, signal, err, timedOut, sec: ((Date.now() - t0) / 1000).toFixed(1) });
     });
   });

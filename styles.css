@@ -428,6 +428,7 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
   background-repeat:no-repeat;background-position:right 12px center;background-size:16px;
   padding-right:38px;cursor:pointer;
   transition:border-color .15s,box-shadow .15s;
+  max-width:100%;min-width:0;text-overflow:ellipsis; /* 長い受験者名の選択肢で幅が広がり375px幅で横スクロールしないように */
 }
 @media(prefers-color-scheme:dark){
   :root:not([data-theme=light]) .hctrl select,:root:not([data-theme=light]) .chc select,:root:not([data-theme=light]) .catrow select,:root:not([data-theme=light]) #qsetArea select,:root:not([data-theme=light]) #examSetBox select{
@@ -530,7 +531,7 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
 .cfg-sec{margin-bottom:26px}
 .cfg-sec-hdr{display:flex;align-items:center;gap:8px;margin-bottom:9px}
 .cfg-sec-hdr input{
-  flex:1;font-size:.95rem;font-weight:700;min-height:44px;padding:8px 12px;
+  flex:1;min-width:0; /* 既定の最小幅(約20字)のまま縮まず ▲▼✕ を押し出していた（375px幅で+20px） */font-size:.95rem;font-weight:700;min-height:44px;padding:8px 12px;
   border:1.5px solid var(--bdr-s);border-radius:var(--r-s);outline:0;color:var(--pri-d);
   background:var(--card);font-family:inherit;transition:border-color .15s;
 }
@@ -541,7 +542,7 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
 }
 .cfg-item .ci-row{display:flex;gap:6px;align-items:center;margin-bottom:7px}
 .cfg-item input{
-  flex:1;min-height:40px;padding:8px 11px;border:1.5px solid var(--bdr-s);border-radius:8px;
+  flex:1;min-width:0;min-height:40px;padding:8px 11px;border:1.5px solid var(--bdr-s);border-radius:8px;
   font-size:.9rem;outline:0;background:var(--card);color:var(--txt);font-family:inherit;transition:border-color .15s;
 }
 .cfg-item input:focus{border-color:var(--pri)}

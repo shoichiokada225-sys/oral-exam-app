@@ -2,6 +2,7 @@
    file:// では SW が動かないため、ブラウザを使わず fs と git だけで確認する。
    (1) ASSETS のローカルパスが実在する
    (2) index.html が読み込む js/・styles.css・manifest・アイコンがすべて ASSETS にある（外部CDNのscriptも）
+   (2b) 逆向き：ASSETS の js/・css・外部scriptが index.html から読み込まれている（script タグを消し忘れ/付け忘れの検出）
    (3) origin/main（無ければ最後に VER が変わったコミット）以降、コミット済み・作業ツリーを問わずアセットが変わっているのに
        VER の値が基準と同じなら NG（旧版は作業ツリー vs HEAD だけ見ていて、コミットした瞬間に見逃していた） */
 'use strict';
@@ -33,6 +34,11 @@ const refs = [
 ].filter(u => !/fonts\.googleapis\.com/.test(u)); // Webフォントはfetch時にキャッシュ（ASSETSに入れない方針）
 ok('参照を検出できている（script 9本以上）', refs.filter(r => /^js\//.test(r)).length >= 9);
 for (const r of refs) ok(`ASSETS に含む: ${r}`, set.has(norm(r)));
+// 逆向き：ASSETS にあるのに index.html が読み込んでいない js/css/外部script（キャッシュだけされて動かない）
+{
+  const refSet = new Set(refs.map(norm));
+  for (const a of assets.filter(a => /\.(js|css)$/.test(a))) ok(`index.html が読み込む: ${a}`, refSet.has(norm(a)));
+}
 // manifest のアイコンも
 try {
   const mf = JSON.parse(fs.readFileSync(path.join(ROOT, 'manifest.webmanifest'), 'utf8'));

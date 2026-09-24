@@ -107,13 +107,20 @@ node smoke.js                # 旧来の入口（tests/smoke.test.js の互換�
 | `tests/verdict.test.js` | 合否トグルとドライブ送信名・付け直し（GAS送信はモック） |
 | `tests/pf-ripple.test.js` | 旧5段階データ・合否混在・未確定・未実施 |
 | `tests/i18n.test.js` | TX/TX2 の ja/en/vi/id キー集合の一致 |
-| `tests/sw-assets.test.js` | sw.js の ASSETS 実在・index.html 参照の網羅・VER 上げ忘れ（origin/main 以降のコミット済み変更も含めて NG） |
+| `tests/sw-assets.test.js` | sw.js の ASSETS 実在・index.html 参照の網羅（双方向）・VER 上げ忘れ（origin/main 以降のコミット済み変更も含めて NG） |
+| `tests/mobile-tabs.test.js` | 375px幅で5タブ×4言語の横スクロールなし・設定の ▲▼✕ のはみ出し・長い受験者名 |
 | `tests/verguard.test.js` | VER 上げ忘れ検査そのものの回帰（使い捨て git リポジトリで検証） |
 | `tests/runner.test.js` | run.js の並列・名前順表示・wip 除外・タイムアウト |
 | `tests/globals.test.js` | 分割前（ui.js 分割・media.js 分割）のグローバル関数/変数名がすべて残っているか |
 
 完了判定は `node tests/run.js` が exit 0 であること。リポジトリの外に置いたテストの写しは正本にしない。
-未完成機能のテストは `tests/wip/` に置く（例: R10 聞き返しの書きかけ＝ブランチ `r10-listen`）。
+未完成機能のテストは `tests/wip/` に置く（例: R10 聞き返しの書きかけ `tests/wip/r10-listen.test.js`＝ブランチ `r10-listen`）。
+
+VER 上げ忘れ検査（`tests/_verguard.js`）の基準は **origin/main**（＝最後に push した版）。VER は「push（公開）1回につき1つ上げる」設計なので、
+一度 VER を上げれば、次の push までのローカルコミットでアセットを何度変えても NG にならない（ローカルコミット単位の検査はしない）。
+origin/main が古いまま（例: v15 のまま手元は v32）でも同じで、検査が効くのは「前回 push からまだ VER を上げていない」場合だけ。
+また `run.js` はタイムアウト時にテストのプロセスグループごと止める（Mac/Linux）。Windows では子の node だけを止めるため、
+Playwright の Chrome が残ることがある（結果には影響しない）。
 
 環境（`tests/_env.js`）:
 - Playwright は `PLAYWRIGHT_PATH` → `~/anpi-kakunin` → `~/farm-shift-app` → `C:/Users/so/farm-shift-app` の順に探す（npm install 不要）
