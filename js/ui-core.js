@@ -199,6 +199,11 @@ chSetAll:'Semua set (pertanyaan berbeda, tidak bisa dibandingkan)',setMixNote:'*
 progJudge:'Dinilai',stToConfirm:'Tunggu konfirmasi',btnConfirmScore:'Simpan & konfirmasi nilai',btnSaveConfirmed:'Simpan nilai (sudah final)',
 confirmScoredPart:'{n} dari {t} pertanyaan sudah direkam dan dinilai ({u} tidak ditanya). Konfirmasi penilaian dengan {n} pertanyaan ini?\n(Batal = simpan rekaman saja; bisa dikonfirmasi nanti di tab "Nilai")',
 pfBrief:'○{p} ×{f} (dari {t})',unaskedN:'{u} tidak ditanya'});
+/* その場で出題（空欄3問）＝既定。従来の3問は「標準の3問」 */
+Object.assign(TX2.ja,{setFree:'その場で出題（空欄3問）',setDefault:'標準の3問（母豚の健康観察ほか）',freeQ:'質問{n}',freePh:'問題をその場で入力（例：分娩舎で最初に確認することは？）',qTextLbl:'問題文'});
+Object.assign(TX2.en,{setFree:'Ask on the spot (3 blank questions)',setDefault:'Standard 3 questions (sow health etc.)',freeQ:'Question {n}',freePh:'Type the question you ask on the spot',qTextLbl:'Question text'});
+Object.assign(TX2.vi,{setFree:'Hỏi tại chỗ (3 câu trống)',setDefault:'3 câu tiêu chuẩn (sức khỏe heo nái…)',freeQ:'Câu hỏi {n}',freePh:'Nhập câu hỏi đặt ra tại chỗ',qTextLbl:'Nội dung câu hỏi'});
+Object.assign(TX2.id,{setFree:'Tanya langsung (3 pertanyaan kosong)',setDefault:'3 pertanyaan standar (kesehatan induk dll.)',freeQ:'Pertanyaan {n}',freePh:'Ketik pertanyaan yang diajukan langsung',qTextLbl:'Isi pertanyaan'});
 /* R5b 初回利用の導線：初回カード（手順1行＋ドライブ未設定1行）・他の端末へ設定を渡すリンク・設定手順へのリンク */
 Object.assign(TX2.ja,{howtoS:'質問を読む →「録音」→「停止」→「○/×」を選ぶ → 1人ごとに「試問を保存」',howtoMore:'詳しく',howtoLess:'短く',drvHintS:'録音はこの端末だけに保存されます',
 gShareT:'この設定を他の端末へ',gShareNote:'このリンクを他のスマホ・タブレットで開くと、URLと保存先フォルダが入ります（受け取った端末で確認が出ます）',gShareTok:'合言葉もリンクに含める（リンクを見た人は誰でも送信できるようになります）',gShareNoTok:'受け取った端末では、合言葉を入れて「設定を保存」を押すと接続テストが走ります',gShareCopy:'リンクをコピー',gShareSend:'共有',gShareCopied:'リンクをコピーしました。他の端末で開いてください',gShareCopyFail:'コピーできませんでした。上の欄を長押ししてコピーしてください',gSetupLink:'設定手順（SETUP-GOOGLE-DRIVE）を開く'});
@@ -230,6 +235,7 @@ function setLbl(r){
   if(!r||(r.setId==null&&r.setName==null))return t2('setUnknown');
   const id=String(r.setId||'');
   if(id==='def')return t2('setDefault');
+  if(id==='free')return t2('setFree');
   if(!r.setName)return t2('qsNone');
   return String(r.setName)+(id.startsWith('tpl:')&&id.endsWith('+')?t2('setEdited'):'');
 }

@@ -242,7 +242,8 @@ function restoreDraftOrNew(){
     const d=JSON.parse(localStorage.getItem(DRAFTKEY));
     // 録音済み項目か○×を含む下書きを復元（保存済みセッションと重複しないもの。「続ける」で開いた保存済みの試問は _resume の印で復元）
     //（○×だけの途中経過もリロード・再起動で黙って失わない。形式は今と同じ cur）
-    if(d&&d.id&&d.items&&Object.values(d.items).some(x=>x&&(x.hasAudio||isPF(x.score)))&&(d._resume||!getAll().some(s=>s.id===d.id))){cur=d;draftRestored=true;return}
+    //（その場で出題の問題文だけ書いた段階も失わない）
+    if(d&&d.id&&d.items&&Object.values(d.items).some(x=>x&&(x.hasAudio||isPF(x.score)||String(x.qText||'').trim()))&&(d._resume||!getAll().some(s=>s.id===d.id))){cur=d;draftRestored=true;return}
   }catch(e){}
   newSession();
 }

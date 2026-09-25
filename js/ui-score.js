@@ -150,7 +150,7 @@ async function renderScoreDetail(r,opt){
     const secName=loc(sec,'name');
     secItems.forEach((it,ii)=>{
       const ansTxt=loc(it,'ans');
-      const card=scoreCardHtml(r,it.id,secName.charAt(0)+'-'+(ii+1),loc(it,'name'),loc(it,'desc'),ansTxt,ansTxt===it.ans);
+      const card=scoreCardHtml(r,it.id,secName.charAt(0)+'-'+(ii+1),qName(r,it,ii+1),it.free?'':loc(it,'desc'),ansTxt,ansTxt===it.ans);
       const rec=r.items[it.id];
       if(rec&&(rec.hasAudio||rec.score!=null||rec.transcript))sh+=card;
       else noRec.push(card);

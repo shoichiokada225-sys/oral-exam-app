@@ -359,7 +359,7 @@ async function checkLiveTakes(){
     cards.parentElement.insertBefore(box,cards);
   }
   const it=getItems().find(x=>x.id===r.itemId);
-  const qn=it?loc(it,'name'):r.itemId;
+  const qn=it?(it.free?qName(cur,it,itemNo(it)):loc(it,'name')):r.itemId;
   const secs=Math.max(1,Math.round((r.dur||(r.ts-r.t0)||0)/1000));
   const when=new Date(r.t0||r.ts||Date.now());
   const ts=when.getFullYear()+'-'+String(when.getMonth()+1).padStart(2,'0')+'-'+String(when.getDate()).padStart(2,'0')+' '+String(when.getHours()).padStart(2,'0')+':'+String(when.getMinutes()).padStart(2,'0');

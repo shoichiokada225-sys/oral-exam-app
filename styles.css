@@ -991,3 +991,6 @@ html.scoring{
 .gshare .gsh-ck{font-size:.8rem;margin-top:8px}
 .gshare #gShareUrl{margin-top:8px;margin-bottom:0;font-size:.74rem;width:100%}
 .gshare .btnrow{margin-top:8px}
+
+/* その場で出題：問題文の入力欄（カード見出しの位置） */
+#examCards .qc .qtx{display:block;width:100%;box-sizing:border-box;margin:4px 0 10px;font-size:1rem;font-weight:700;line-height:1.5;min-height:52px;resize:vertical}

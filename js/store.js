@@ -25,6 +25,23 @@ const MIG3KEY='oral_exam_cfg3_migrated';
   const qs=getQuestionSets();if(qs.activeId){qs.activeId=null;localStorage.setItem(PSKEY,JSON.stringify(qs))}
   localStorage.setItem(MIG3KEY,'1');
 }catch(e){}})();
+/* 2026-09-25 既定を「その場で出題（空欄3問）」へ。従来の3問のまま使っている端末だけ一度切り替える
+   （自分のセット・テンプレート・編集した構成は変えない。過去の試問・録音には触らない） */
+const MIGFREEKEY='oral_exam_cfg_free_migrated';
+(function(){try{
+  if(localStorage.getItem(MIGFREEKEY))return;
+  const qs=getQuestionSets();
+  const d=defaultCfg(),same=cfg.items.length===d.items.length&&cfg.items.every((it,i)=>it.id===d.items[i].id&&it.name===d.items[i].name&&it.secId===d.items[i].secId);
+  if(same&&!qs.activeId&&!qs.activeTpl){cfg=freeCfg();localStorage.setItem(CKEY,JSON.stringify(cfg))}
+  localStorage.setItem(MIGFREEKEY,'1');
+}catch(e){}})();
+/* 問の表示名：その場で出題の問は試問ごとに書いた問題文（無ければ「質問N」）、それ以外は設定の名前 */
+function freeLbl(n){return (typeof t2==='function'?t2('freeQ'):'質問{n}').replace('{n}',n)}
+function qName(r,it,n){
+  if(it&&it.free){const q=r&&r.items&&r.items[it.id]&&r.items[it.id].qText;return String(q||'').trim()||freeLbl(n)}
+  return it?(typeof loc==='function'?loc(it,'name'):it.name):'';
+}
+function itemNo(it){const sec=getItems().filter(x=>x.secId===it.secId);return sec.findIndex(x=>x.id===it.id)+1}
 
 /* 多層防御: cfgのid/secIdはonclick属性・DOM idへ埋め込まれるため、読み込み時にも無害化する
    （importBackup/applySet/applyQbankの上流無害化に一点依存しない。正常なIDは全て英数_-のみ＝実質不変） */
@@ -34,7 +51,7 @@ function sanitizeLoadedCfg(c){
   c.items.forEach(it=>{it.id=sanitizeId(it.id);it.secId=sanitizeId(it.secId)});
   return c;
 }
-function loadCfg(){try{const r=localStorage.getItem(CKEY);return r?sanitizeLoadedCfg(JSON.parse(r)):defaultCfg()}catch{return defaultCfg()}}
+function loadCfg(){try{const r=localStorage.getItem(CKEY);return r?sanitizeLoadedCfg(JSON.parse(r)):freeCfg()}catch{return freeCfg()}}
 /* 多言語の任意フィールド（name_en / desc_vi 等）を文字列化して安全にコピー。
    importBackup/applySetの無害化取り込みで翻訳を落とさないための共通ヘルパー（後方互換: 無ければ何もしない） */
 function copyLocFields(src,dst,keys){
@@ -128,7 +145,7 @@ function itemMeta(r,id){
   const m=r&&r.meta&&r.meta[id];
   if(m&&m.name)return{name:m.name,sec:m.sec||''};
   const it=getItems().find(x=>x.id===id);
-  if(it){const sec=getSections().find(s=>s.id===it.secId);return{name:it.name,sec:sec?sec.name:''}}
+  if(it){const sec=getSections().find(s=>s.id===it.secId);return{name:it.free?qName(r,it,itemNo(it)):it.name,sec:sec?sec.name:''}}
   return{name:id,sec:''};
 }
 /* セッション保存時に項目名スナップショットを追記（既存フィールド不変・追記のみ＝後方互換） */
@@ -138,7 +155,7 @@ function snapMeta(s){
   getItems().forEach(it=>{
     if(s.items[it.id]){
       const sec=getSections().find(x=>x.id===it.secId);
-      m[it.id]={name:it.name,sec:sec?sec.name:''};
+      m[it.id]={name:it.free?qName(s,it,itemNo(it)):it.name,sec:sec?sec.name:''};
     }
   });
   s.meta=m;
@@ -273,7 +290,7 @@ function importBackup(input){
       if(bk.cfg&&Array.isArray(bk.cfg.sections)&&Array.isArray(bk.cfg.items)){
         cfg={sections:bk.cfg.sections.map(s=>copyLocFields(s,{id:sanitizeId(s.id),name:String(s.name||'')},['name'])),
              items:bk.cfg.items.map(it=>{
-               const o={id:sanitizeId(it.id),secId:sanitizeId(it.secId),name:String(it.name||''),desc:String(it.desc||'')};
+               const o={id:sanitizeId(it.id),secId:sanitizeId(it.secId),name:String(it.name||''),desc:String(it.desc||'')};if(it.free)o.free=true;
                if(it.ans!=null)o.ans=String(it.ans);
                return copyLocFields(it,o,['name','desc','ans']);
              })};

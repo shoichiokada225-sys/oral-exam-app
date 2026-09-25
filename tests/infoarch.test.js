@@ -64,7 +64,7 @@ const S = (id, ee, date, status, items) => ({ id, date, examiner: '岡田', exam
   const sw = await p.evaluate(() => ['ja', 'en', 'vi', 'id'].map(l => TX2[l].qsSwConfirm));
   T.ok('qsSwConfirm 4言語が「保存済みの内容」の意味に', /保存済みの内容/.test(sw[0]) && /saved contents/.test(sw[1]) && /nội dung đã lưu/.test(sw[2]) && /isi tersimpan/.test(sw[3]));
   // 元の3問に戻して以降の検査へ
-  await p.evaluate(() => { localStorage.removeItem('oral_exam_presets_v1'); localStorage.removeItem('oral_exam_items_v1'); });
+  await p.evaluate(() => { localStorage.removeItem('oral_exam_presets_v1'); localStorage.setItem('oral_exam_items_v1', JSON.stringify(defaultCfg())); }); // 設定なし＝空欄3問（2026-09-25〜）なので標準の3問を明示
   await p.reload(); await p.waitForTimeout(300);
 
   console.log('[2] 保存で採点を確定 → 履歴へ案内');

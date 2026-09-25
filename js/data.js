@@ -36,6 +36,13 @@ function defaultCfg(){return{sections:[
    name_vi:'Phát hiện sớm và báo cáo bất thường',desc_vi:'Khi nhận thấy dấu hiệu bệnh hoặc tai nạn, bạn đánh giá thế nào và báo cáo cho ai?',
    name_id:'Deteksi dini & pelaporan',desc_id:'Bila Anda melihat tanda penyakit atau kecelakaan, bagaimana Anda menilainya dan kepada siapa Anda melapor?'}
 ]}}
+/* その場で出題（2026-09-25 社長判断：問題はその場で考える）。空欄3問・問題文は試問ごとに
+   cur.items[id].qText へ保存（cfg の name/desc は空）。free:true の問はカードに入力欄を出す。
+   従来の3問（defaultCfg＝記録上の setId 'def'）は「変更」から選べる */
+function freeCfg(){return{sections:[
+  {id:'F',name:'出題',name_en:'Questions',name_vi:'Câu hỏi',name_id:'Pertanyaan'}
+],items:[1,2,3].map(n=>({id:'f'+n,secId:'F',name:'',desc:'',free:true}))}}
+function isFreeCfg(c){c=c||cfg;try{const d=freeCfg();return c.items.length===d.items.length&&c.items.every((it,i)=>it.id===d.items[i].id&&!!it.free&&!it.name)}catch(e){return false}}
 
 /* ==============================================================
    質問バンク（qbank.js の QBANK）へのアクセサ【契約・変更禁止】

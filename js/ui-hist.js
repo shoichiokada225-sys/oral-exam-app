@@ -145,17 +145,19 @@ function doCSV(){
   const all=getAll();if(!all.length){toast(t('noData'),1);return}
   // 列=現在のcfg項目 ∪ 全セッションの項目キー（cfg変更後も過去の点・文字起こしが列から消えない）
   const cols=[];const seen=new Set();
-  getItems().forEach(it=>{if(!seen.has(it.id)){seen.add(it.id);cols.push({id:it.id,name:loc(it,'name')})}});
+  getItems().forEach((it,i)=>{if(!seen.has(it.id)){seen.add(it.id);cols.push({id:it.id,name:it.free?freeLbl(itemNo(it)):loc(it,'name'),free:!!it.free})}});
   all.forEach(r=>Object.keys(r.items||{}).forEach(id=>{
     if(!seen.has(id)&&safeKey(id)){seen.add(id);cols.push({id,name:itemMeta(r,id).name})}
   }));
   // ヘッダーはUI言語に追従（CSVは書き出し専用＝再取り込みしないため後方互換の懸念なし）
-  const hd=[t('labelDate'),t('labelExaminee'),t2('qsTitle'),t('csvStatus'),...cols.map(c=>c.name+'('+t2('pfLbl')+')'),...cols.map(c=>c.name+'('+t('trLbl')+')'),...cols.map(c=>c.name+'('+t('csvCmt')+')'),t2('csvPass'),t('overall'),t('csvCreated')];
+  const fcols=cols.filter(c=>c.free);
+  const hd=[t('labelDate'),t('labelExaminee'),t2('qsTitle'),t('csvStatus'),...fcols.map(c=>c.name+'('+t2('qTextLbl')+')'),...cols.map(c=>c.name+'('+t2('pfLbl')+')'),...cols.map(c=>c.name+'('+t('trLbl')+')'),...cols.map(c=>c.name+'('+t('csvCmt')+')'),t2('csvPass'),t('overall'),t('csvCreated')];
   // 数式インジェクション対策：=,+,-,@ 等で始まる値は先頭に ' を付ける
   const cell=s=>{let v=String(s==null?'':s);if(/^[=+\-@\t\r]/.test(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"'};
   let csv='﻿'+hd.map(cell).join(',')+'\n';
   all.forEach(r=>{
     const row=[r.date,r.examinee,setLbl(r),r.status==='scored'?t('stScored'):t('stRec'),
+      ...fcols.map(c=>(r.items[c.id]&&r.items[c.id].qText)||''),
       ...cols.map(c=>{const v=r.items[c.id]&&r.items[c.id].score;return v==null?'':scoreTxt(v)}),
       ...cols.map(c=>(r.items[c.id]&&r.items[c.id].transcript)||''),
       ...cols.map(c=>(r.items[c.id]&&r.items[c.id].comment)||''),

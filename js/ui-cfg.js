@@ -109,6 +109,13 @@ async function resetCfg(){
   cfg=defaultCfg();persistCfg();toast(t('cfgReset'));
   return true;
 }
+/* その場で出題（空欄3問）に切り替える */
+async function useFreeCfg(){
+  if(!(await guardExamSwitch()))return false;
+  const qs=getQuestionSets();if(qs.activeId||qs.activeTpl){qs.activeId=null;delete qs.activeTpl;saveQuestionSets(qs)}
+  cfg=freeCfg();persistCfg();toast(t2('qsApplied'));
+  return true;
+}
 
 /* ==============================================================
    作業カタログから質問を追加（大項目=作業 → 小項目=質問を選択）
@@ -179,6 +186,7 @@ function curSetInfo(){
   const tp=qs.activeTpl;
   if(tp&&tp.id)return{kind:'tpl',id:'tpl:'+tp.id+(tp.edited?'+':''),name:String(tp.name||tp.id),edited:!!tp.edited,tplId:tp.id};
   if(isDefaultCfg())return{kind:'def',id:'def',name:''};
+  if(isFreeCfg())return{kind:'free',id:'free',name:''};
   return{kind:null,id:'',name:''};
 }
 function setInfoLbl(s){return setLbl({setId:s.id,setName:s.name})}
@@ -303,7 +311,7 @@ async function applySet(id){
   const p=qs.presets.find(x=>x.id===p0.id);if(!p||!p.cfg)return false;
   // 無害化しつつディープコピー（importBackupと同水準。多言語フィールドはcopyLocFieldsで保持）
   cfg={sections:(p.cfg.sections||[]).map(s=>copyLocFields(s,{id:sanitizeId(s.id),name:String(s.name||'')},['name'])),
-       items:(p.cfg.items||[]).map(it=>{const o={id:sanitizeId(it.id),secId:sanitizeId(it.secId),name:String(it.name||''),desc:String(it.desc||'')};if(it.ans!=null)o.ans=String(it.ans);return copyLocFields(it,o,['name','desc','ans'])})};
+       items:(p.cfg.items||[]).map(it=>{const o={id:sanitizeId(it.id),secId:sanitizeId(it.secId),name:String(it.name||''),desc:String(it.desc||'')};if(it.free)o.free=true;if(it.ans!=null)o.ans=String(it.ans);return copyLocFields(it,o,['name','desc','ans'])})};
   qs.activeId=p.id;delete qs.activeTpl;saveQuestionSets(qs);
   persistCfg();
   toast(t2('qsApplied'));
@@ -372,6 +380,7 @@ function openSetPicker(){
   h+=`<div class="sp-g">${esc(t2('qsMine'))}</div>`;
   h+=qs.presets.length?qs.presets.map(p=>row('set',p.id,p.name,((p.cfg&&p.cfg.items)||[]).length,info.kind==='set'&&info.id==='set:'+p.id)).join(''):`<div class="sp-none">${esc(t2('setPickNoMine'))}</div>`;
   h+=`<div class="sp-g">${esc(t2('setPickTpl'))}</div>`;
+  h+=row('free','free',t2('setFree'),freeCfg().items.length,info.kind==='free');
   h+=row('def','def',t2('setDefault'),defaultCfg().items.length,info.kind==='def');
   if(qbankAvailable())h+=qbankPresets().map(p=>row('tpl',p.id,p.name,(p.items||[]).length,info.kind==='tpl'&&!info.edited&&sanitizeId(info.tplId)===sanitizeId(p.id))).join('');
   h+=`<div class="ma"><button class="b b3" style="flex:1" onclick="closeMo()">${t('btnClose')}</button></div>`;
@@ -384,6 +393,7 @@ async function pickSetFromList(kind,id){
   if(kind==='set')ok=await examSetChange(id);
   else if(kind==='tpl')ok=await applyQbank(false,id);
   else if(kind==='def')ok=await resetCfg();
+  else if(kind==='free')ok=await useFreeCfg();
   if(ok){const b=document.getElementById('examSetBox');if(b&&document.getElementById('pgExam').classList.contains('on'))b.scrollIntoView({behavior:'smooth',block:'nearest'})}
   return ok;
 }

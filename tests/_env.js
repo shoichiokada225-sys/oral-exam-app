@@ -34,8 +34,20 @@ const CHANNEL = process.env.PW_CHANNEL !== undefined ? (process.env.PW_CHANNEL |
   : (process.platform === 'darwin' ? 'chrome' : undefined);
 const ARGS = ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', '--autoplay-policy=no-user-gesture-required'];
 
+/* 既存テストは「標準の3問（q1/q4/q5）」の端末を前提に書かれている。2026-09-25 に既定が「その場で出題（空欄3問）」へ
+   変わったため、既定では各ページの読み込み前に「空欄3問への切り替え済み」印だけを立て、従来どおり標準の3問で起動させる
+   （印が無いと store.js の一度きりの切り替えが走る）。空欄3問そのものを試すテストは launch({ freeDefault: true }) */
+const CLASSIC_INIT = `try{if(!localStorage.getItem('oral_exam_cfg_free_migrated'))localStorage.setItem('oral_exam_cfg_free_migrated','1')}catch(e){}`;
 function launch(extra) {
-  return chromium.launch(Object.assign({ channel: CHANNEL, args: ARGS }, extra || {}));
+  const o = Object.assign({}, extra || {});
+  const free = !!o.freeDefault; delete o.freeDefault;
+  return chromium.launch(Object.assign({ channel: CHANNEL, args: ARGS }, o)).then(b => {
+    if (free) return b;
+    const nc = b.newContext.bind(b), np = b.newPage.bind(b);
+    b.newContext = async (opts) => { const c = await nc(opts); await c.addInitScript(CLASSIC_INIT); return c; };
+    b.newPage = async (opts) => { const c = await b.newContext(opts); const pg = await c.newPage(); return pg; };
+    return b;
+  });
 }
 
 /* ---- Chart.js（CDN）をローカルで賄う ---- */

@@ -125,7 +125,7 @@ function driveBaseName(session,itemId){
   const rec=session.items[itemId]||{};
   // 同じ日の追試（2回目以降として別に保存した試問）は末尾に「_2回目」。1回目と旧データは今までと同じ名前
   const nth=+session.attempt>1?'_'+(+session.attempt)+'回目':'';
-  return safeName(tag+'_'+verdictTag(rec.score)+'_'+(it?it.name:itemId)+nth);
+  return safeName(tag+'_'+verdictTag(rec.score)+'_'+(it?(it.free?qName(session,it,ii+1):it.name):itemId)+nth);
 }
 /* 送った時の合否ラベルが今の合否と違うか（driveName が無い旧データは判定しない） */
 function driveNameStale(session,itemId){
