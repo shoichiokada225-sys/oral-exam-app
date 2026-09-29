@@ -38,13 +38,17 @@ const ARGS = ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-str
    変わったため、既定では各ページの読み込み前に「空欄3問への切り替え済み」印だけを立て、従来どおり標準の3問で起動させる
    （印が無いと store.js の一度きりの切り替えが走る）。空欄3問そのものを試すテストは launch({ freeDefault: true }) */
 const CLASSIC_INIT = `try{if(!localStorage.getItem('oral_exam_cfg_free_migrated'))localStorage.setItem('oral_exam_cfg_free_migrated','1')}catch(e){}`;
+/* 既定の保存先（drive.js applyDefaultDrive）はテストで本物のドライブへ送らないよう、全テストで「入れ済み」印を立てて止める。
+   既定の保存先そのものを試すテストは launch({ driveDefault: true }) */
+const NODRIVE_INIT = `try{if(!localStorage.getItem('oral_exam_gdefault_v1'))localStorage.setItem('oral_exam_gdefault_v1','1')}catch(e){}`;
 function launch(extra) {
   const o = Object.assign({}, extra || {});
   const free = !!o.freeDefault; delete o.freeDefault;
+  const drv = !!o.driveDefault; delete o.driveDefault;
   return chromium.launch(Object.assign({ channel: CHANNEL, args: ARGS }, o)).then(b => {
-    if (free) return b;
+    if (free && drv) return b;
     const nc = b.newContext.bind(b), np = b.newPage.bind(b);
-    b.newContext = async (opts) => { const c = await nc(opts); await c.addInitScript(CLASSIC_INIT); return c; };
+    b.newContext = async (opts) => { const c = await nc(opts); if (!free) await c.addInitScript(CLASSIC_INIT); if (!drv) await c.addInitScript(NODRIVE_INIT); return c; };
     b.newPage = async (opts) => { const c = await b.newContext(opts); const pg = await c.newPage(); return pg; };
     return b;
   });

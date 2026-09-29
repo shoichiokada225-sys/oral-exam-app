@@ -161,6 +161,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('sttEndpoint').value=s.endpoint||'';
   document.getElementById('sttModel').value=s.model||'';
   document.getElementById('sttKey').value=s.key||'';
+  applyDefaultDrive(); // 既定の保存先（未設定の端末だけ・一度だけ）
   const gImported=applyUrlConfig();
   setLang(lang);
   if(typeof stoInit==='function')stoInit(); // 端末ストレージの永続化状態・残り容量

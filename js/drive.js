@@ -330,6 +330,20 @@ function syncExamineeOnSave(saved,opt){
   });
   return n;
 }
+// 既定の保存先（社長のドライブ）。端末ごとの設定をしなくても、開いた時点で録音がドライブへ自動保存されるようにする（09-29 社長指示）。
+// 一度だけ入れる（GDEFKEY）＝後から自分で保存先を変えた・消した端末には入れ直さない。すでにURLがある端末は触らない
+const GDEF={url:'https://script.google.com/macros/s/AKfycbxupXbLNCzUGtwr2D2sWQfozP0u4bFitbqyiIk_efuUdpPzE-EaVdCI4nJCOYIbUzBuLA/exec',token:'OOIRI',folder:'口頭試問音声'};
+const GDEFKEY='oral_exam_gdefault_v1';
+function applyDefaultDrive(){
+  try{
+    if(localStorage.getItem(GDEFKEY))return false;
+    localStorage.setItem(GDEFKEY,'1');
+    const g=getGoogleCfg();
+    if(g.url)return false;
+    localStorage.setItem(GKEY,JSON.stringify(Object.assign({},g,GDEF,{auto:true})));
+    return true;
+  }catch(e){return false}
+}
 // URLパラメータ（?gurl=&gtoken=&gfolder=&gauto=1）からGoogle設定を取り込む（他端末のワンタップ設定用）
 // セキュリティ: 保存先はGASのhttpsのみ許可し、保存先変更時はユーザーの明示確認を必須化
 //（悪意あるリンクで録音の送信先を攻撃者サーバに差し替える情報流出を防ぐ）
