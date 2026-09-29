@@ -41,16 +41,15 @@ function updateGoogleStatus(){
 }
 
 // GASにPOST（プリフライト回避のためtext/plainで送る。bodyはJSON文字列）
-// 送信は XMLHttpRequest（アップロードの進み具合が分かる）。応答が無いまま止まる（農場の弱い電波で途中で切れる）と
-// upBusy が残って再送できなくなるので、次の3つで打ち切る:
-//  ・進み具合が届かない環境の上限: 60秒＋1MBあたり10分（≒実効14kbps。遅いが進んでいる送信を切らない）
-//  ・送信中に進み具合が届く環境: 上限の代わりに「90秒間まったく進まない」で打ち切り（遅くても進んでいれば待つ）
-//  ・送り終えた後の応答待ち: GASの実行上限(6分)＋α。ここで切れた時は「届いた可能性あり」(maybe)＝
-//    ドライブに保存済みかもしれないので自動再送はせず、確認してから手で再送してもらう（同名ファイルの二重保存を防ぐ）
+// ⚠️ x.upload に onprogress/onload を付けてはいけない：アップロードの監視があるとブラウザが送信前にCORSの事前確認（OPTIONS）を出し、
+// GASはそれに応答しないため、本物のブラウザでは全送信が「届かない」で失敗する（09-24〜09-29 実害。テストの代役GASが事前確認に応えていて見えなかった）。
+// そのため進み具合は取れない。応答が無いまま止まる（農場の弱い電波で途中で切れる）と upBusy が残って再送できなくなるので、
+// 上限時間（60秒＋1MBあたり10分≒実効14kbps。遅い送信も切らない）で打ち切り「応答なし」(timeout)＝未送信に戻して電波復帰で自動再送。
+// （上限はGASの保存時間より十分長いので、届いたのに打ち切る＝二重保存はまず起きない。maybe は旧版で保存された失敗理由の表示用に残す）
 // 失敗は種類(kind)を付けて投げる。通信自体が失敗した時は、端末が圏外(navigator.onLine=false)なら offline、
 // 電波はある（onLine）のに届かない時は reach＝GASの公開範囲が「全員」でない（ログイン画面へ302・CORSなし）
 // またはURL違い・削除済み。実際のブラウザではどちらも HTML ではなく通信失敗(TypeError)になるため区別する
-var GAS_TO_BASE=60000,GAS_TO_PER_MB=600000,GAS_STALL=90000,GAS_RESP_MAX=390000;
+var GAS_TO_BASE=60000,GAS_TO_PER_MB=600000;
 function gasErr(kind,detail){const e=new Error(detail||kind);e.kind=kind;return e}
 function gasNetKind(){return (typeof navigator!=='undefined'&&navigator.onLine===false)?'offline':'reach'}
 function gasPost(payload){
@@ -59,19 +58,11 @@ function gasPost(payload){
   const cap=GAS_TO_BASE+Math.ceil(body.length/1048576*GAS_TO_PER_MB);
   return new Promise((resolve,reject)=>{
     const x=new XMLHttpRequest();
-    let fin=false,sent=false,tCap=null,tStall=null,tResp=null;
-    const clear=()=>{clearTimeout(tCap);clearTimeout(tStall);clearTimeout(tResp)};
-    const fail=(kind,detail)=>{if(fin)return;fin=true;clear();reject(gasErr(kind,detail))};
+    let fin=false,tCap=null;
+    const fail=(kind,detail)=>{if(fin)return;fin=true;clearTimeout(tCap);reject(gasErr(kind,detail))};
     const cut=(kind,detail)=>{fail(kind,detail);try{x.abort()}catch(e){}};
-    const arm=()=>{clearTimeout(tStall);tStall=setTimeout(()=>cut('timeout','stalled'),GAS_STALL)};
     try{x.open('POST',g.url,true);x.setRequestHeader('Content-Type','text/plain;charset=utf-8')}
     catch(e){fail('http',e&&e.message);return} // URLの形が不正
-    if(x.upload){
-      // 進み具合が届く＝遅くても進んでいる間は上限で切らない（止まったら打ち切り）
-      x.upload.onprogress=()=>{if(fin||sent)return;clearTimeout(tCap);arm()};
-      // 送り終えた→ここからはGASの処理と応答を待つ（GASは届いた時点で保存を始めている）
-      x.upload.onload=()=>{if(fin)return;sent=true;clearTimeout(tCap);clearTimeout(tStall);tResp=setTimeout(()=>cut('maybe','no-response'),GAS_RESP_MAX)};
-    }
     x.onerror=()=>fail(gasNetKind(),'network-error');
     x.onabort=()=>fail('timeout','aborted');
     x.onload=()=>{
@@ -82,9 +73,9 @@ function gasPost(payload){
       try{j=JSON.parse(txt)}
       catch(e){return fail(/html/i.test(ct)||/^\s*</.test(txt)?'html':'gas',e&&e.message)}
       if(!j||!j.ok){const er=(j&&j.error)||'gas-error';return fail(er==='bad-token'?'token':'gas',er)}
-      fin=true;clear();resolve(j);
+      fin=true;clearTimeout(tCap);resolve(j);
     };
-    tCap=setTimeout(()=>cut(sent?'maybe':'timeout',sent?'no-response':'timeout'),cap);
+    tCap=setTimeout(()=>cut('timeout','timeout'),cap);
     try{x.send(body)}catch(e){fail(gasNetKind(),e&&e.message)}
   });
 }

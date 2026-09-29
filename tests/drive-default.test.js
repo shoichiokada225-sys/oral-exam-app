@@ -53,6 +53,13 @@ const st = p => p.evaluate(() => ({ cfg: JSON.parse(localStorage.getItem('oral_e
     await ctx.close();
   }
 
+  console.log('[4] 送信がCORSの事前確認を起こさない（09-24〜09-29 全送信失敗の再発防止）');
+  {
+    const src = require('fs').readFileSync(require('path').join(env.ROOT, 'js', 'drive.js'), 'utf8').replace(/\/\/.*$/gm, '');
+    T.ok('XMLHttpRequest の upload に監視を付けていない', !/\.upload\s*\.\s*(on\w+|addEventListener)/.test(src) && !/x\.upload\s*\)/.test(src));
+    T.ok('Content-Type は text/plain（事前確認の要らない形）', /setRequestHeader\('Content-Type','text\/plain/.test(src));
+  }
+
   await b.close();
   T.done();
 })().catch(e => { console.error(e); process.exit(2); });

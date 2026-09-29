@@ -5,8 +5,10 @@
       → navigator.onLine=true なら「GASに届きません（URL・公開範囲を確認）」。「圏外・自動で再送」とは言わない
    G2 端末が圏外（navigator.onLine=false）の時だけ「圏外」
    G3 保存した失敗理由（詳細なし）から出す文言に空の括弧「（）」「()」を残さない（4言語）
-   G4 遅くても進んでいる送信は上限時間で切らない／まったく進まない送信は打ち切る
-   G5 送り終えた後に応答が切れた＝届いた可能性（maybe）→ 自動再送しない・タップで再送できる
+   G0 GAS の代役は本物の GAS と同じく CORS の事前確認（OPTIONS）に応えない（09-24〜09-29 実害の再現用。ただし 127.0.0.1 では Chrome が
+      upload 監視でも事前確認を出さないことがあるため、再発防止の本体は drive-default.test.js [4] のコード検査と本番での実送信）
+   G4 上限時間内なら遅い送信も届く／上限を過ぎた送信は打ち切って「応答なし」（進み具合は取れない＝取ると事前確認が出る）
+   G5 旧版で保存された「届いた可能性（maybe）」の録音 → 自動再送しない・タップで再送できる
    G6 録音の実体が無い（noaudio）ものは電波復帰の一括再送の対象外・未送信件数にも入れない
    本番GASには一切送らない（GAS の代役は 127.0.0.1） */
 'use strict';
@@ -31,8 +33,10 @@ const rd = req => new Promise(res => { const ch = []; req.on('data', d => ch.pus
   });
   // オリジンB: GAS の代役
   let posts = 0; const hold = [];
+  let preflights = 0;
   const gas = await listen(async (req, res) => {
     const p = new URL(req.url, 'http://x').pathname;
+    if (req.method === 'OPTIONS') { preflights++; res.writeHead(405, { 'content-type': 'text/html' }); return res.end('<html>405</html>'); } // 本物のGASと同じく事前確認には応えない（CORSヘッダなし）
     if (p === '/login') { res.writeHead(200, { 'content-type': 'text/html' }); return res.end('<!DOCTYPE html><html><body>Sign in - Google Accounts</body></html>'); }
     if (p === '/private') { await rd(req); res.writeHead(302, { location: '/login' }); return res.end(); } // 「全員」でない GAS（CORS ヘッダなし）
     if (p === '/gone') { await rd(req); res.writeHead(404, { 'content-type': 'text/html' }); return res.end('<html>Not Found</html>'); } // 削除済み・URL違い（CORSなし）
@@ -99,33 +103,38 @@ const rd = req => new Promise(res => { const ch = []; req.on('data', d => ch.pus
   const miss = await p.evaluate(() => ['ja', 'en', 'vi', 'id'].flatMap(l => ['drvErrReach', 'drvErrMaybe'].filter(k => !(TX2[l] && TX2[l][k])).map(k => l + ':' + k)));
   c.ok('G3 新しい理由（reach/maybe）は4言語すべてに訳がある ' + miss.join(','), miss.length === 0);
 
-  /* ---------- G4 遅くても進んでいれば切らない／止まったら切る ---------- */
+  /* ---------- G4 上限時間内なら遅くても届く／上限を過ぎたら「届いた可能性」 ---------- */
   await p.evaluate(g => localStorage.setItem('oral_exam_google_v1', g), cfg('/slow'));
   const big = 'A'.repeat(1400000); // 約1.4MB
   const slow = await p.evaluate(async big => {
-    GAS_TO_BASE = 600; GAS_TO_PER_MB = 0; GAS_STALL = 4000; // 上限0.6秒でも、進んでいる間は切らない
+    GAS_TO_BASE = 60000; GAS_TO_PER_MB = 600000;
     const t0 = Date.now();
     try { const j = await gasPost({ token: '', name: 'x', dataB64: big.repeat(6) }); return { ok: true, id: j.id, ms: Date.now() - t0 }; }
     catch (e) { return { ok: false, kind: e.kind, msg: e.message, ms: Date.now() - t0 }; }
   }, big);
-  c.ok('G4 上限(0.6秒)を過ぎても進んでいる送信は届く: ' + JSON.stringify(slow), slow.ok && slow.ms > 600);
+  c.ok('G4 遅い送信（約8MB）も上限内なら届く: ' + JSON.stringify(slow), slow.ok);
   await p.evaluate(g => localStorage.setItem('oral_exam_google_v1', g), cfg('/stall'));
   const st = await p.evaluate(async big => {
-    GAS_TO_BASE = 60000; GAS_TO_PER_MB = 0; GAS_STALL = 1500;
+    GAS_TO_BASE = 1500; GAS_TO_PER_MB = 0;
     const t0 = Date.now();
     try { await gasPost({ token: '', name: 'x', dataB64: big + big + big }); return { ok: true }; }
     catch (e) { return { ok: false, kind: e.kind, ms: Date.now() - t0 }; }
   }, big);
-  c.ok('G4 まったく進まない送信は打ち切って「応答なし」: ' + JSON.stringify(st), !st.ok && st.kind === 'timeout' && st.ms < 20000);
+  c.ok('G4 止まった送信は上限で打ち切って「応答なし」: ' + JSON.stringify(st), !st.ok && st.kind === 'timeout' && st.ms < 20000);
+  await p.evaluate(g => localStorage.setItem('oral_exam_google_v1', g), cfg('/ok'));
+  const pg = await p.evaluate(async () => { GAS_TO_BASE = 1500; GAS_TO_PER_MB = 0; try { await gasPost({ token: '', ping: true }); return 'ok'; } catch (e) { return e.kind; } });
+  c.ok('G4 （対照）接続テストは届けば成功', pg === 'ok');
+  c.ok('G0 どの送信も CORS の事前確認を起こしていない: ' + preflights, preflights === 0);
 
-  /* ---------- G5 送り終えた後の応答切れ＝届いた可能性 ---------- */
-  await p.evaluate(g => localStorage.setItem('oral_exam_google_v1', g), cfg('/noreply'));
-  await p.evaluate(() => { GAS_TO_BASE = 60000; GAS_TO_PER_MB = 0; GAS_STALL = 90000; GAS_RESP_MAX = 1500; });
+  /* ---------- G5 旧版で保存された「届いた可能性」（maybe）の録音 ---------- */
+  // 今の送信処理は maybe を出さない（打ち切りは timeout）。旧版で残った maybe の扱いだけ確かめるため、送信を一度だけ maybe で失敗させる
+  await p.evaluate(g => localStorage.setItem('oral_exam_google_v1', g), cfg('/ok'));
+  await p.evaluate(() => { window.__origGasPost = gasPost; window.gasPost = () => { window.gasPost = window.__origGasPost; return Promise.reject(gasErr('maybe', 'no-response')); }; });
   const n0 = posts;
   await rec(p, 'q4');
   await p.waitForFunction(() => /ドライブに保存されている可能性/.test(document.getElementById('cl-q4').textContent), null, { timeout: 10000 }).catch(() => {});
   cl = await p.textContent('#cl-q4');
-  c.ok('G5 GASに届いた後の応答切れは「保存されている可能性」: ' + cl, posts === n0 + 1 && cl.includes('ドライブに保存されている可能性'));
+  c.ok('G5 maybe の録音は「保存されている可能性」と出る: ' + cl, posts === n0 && cl.includes('ドライブに保存されている可能性'));
   c.ok('G5 下書きに maybe が残る（未送信として見える）', await p.evaluate(() => { const r = JSON.parse(localStorage.getItem('oral_exam_draft_v1')).items.q4; return r.driveErr === 'maybe' && !!r.driveSt; }));
   // 電波復帰の一括再送では送らない（二重保存を作らない）
   await p.evaluate(g => localStorage.setItem('oral_exam_google_v1', g), cfg('/ok'));
