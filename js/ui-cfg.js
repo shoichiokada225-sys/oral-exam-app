@@ -103,15 +103,17 @@ function saveCfg(){
 }
 /* 初期設定に戻す：使用中のセットは書き換えず、セットに入っていない構成として扱う（セットの中身を黙って失わない） */
 async function resetCfg(){
-  if(!(await guardExamSwitch()))return false; // 出題が変わる＝保存していない試問を先に守る
+  const go=await guardExamSwitch();if(!go)return false; // 出題が変わる＝保存していない試問を先に守る
   if(!confirm(t('cResetCfg')))return false;
+  go();
   const qs=getQuestionSets();if(qs.activeId||qs.activeTpl){qs.activeId=null;delete qs.activeTpl;saveQuestionSets(qs)}
   cfg=defaultCfg();persistCfg();toast(t('cfgReset'));
   return true;
 }
 /* その場で出題（空欄3問）に切り替える */
 async function useFreeCfg(){
-  if(!(await guardExamSwitch()))return false;
+  const go=await guardExamSwitch();if(!go)return false;
+  go();
   const qs=getQuestionSets();if(qs.activeId||qs.activeTpl){qs.activeId=null;delete qs.activeTpl;saveQuestionSets(qs)}
   cfg=freeCfg();persistCfg();toast(t2('qsApplied'));
   return true;
@@ -198,8 +200,6 @@ function stampSet(s){
   const i=curSetInfo();
   s.setId=i.id;s.setName=i.name;s.setN=getItems().length;
 }
-/* 出題を切り替える前の保護：保存していない試問（録音・合否）があれば、先に保存するか聞く。
-   OK＝保存してから切り替える（保存できなければ切り替えない）／キャンセル＝切り替えない。戻り値=切り替えてよいか */
 /* 録音のない問の○×を外す（出題の切り替えで持ち越さない）。○×のほかに何も無い問は項目ごと消す */
 function dropUnrecPF(s){
   if(!s||!s.items)return;
@@ -209,22 +209,27 @@ function dropUnrecPF(s){
     if(Object.keys(r).every(f=>r[f]==null||r[f]===''||r[f]===false))delete s.items[k];
   });
 }
+/* 出題を切り替える前の保護：保存していない試問（録音・合否）があれば、先に保存するか聞く。
+   OK＝保存してから切り替える（保存できなければ切り替えない）／キャンセル＝切り替えない。
+   戻り値=false（切り替えない）か、実際に切り替える直前に呼ぶ関数（呼び出し側の確認でキャンセルされたら呼ばない＝何も失わない） */
+const NOOP_SWITCH=()=>{};
 async function guardExamSwitch(){
-  if(typeof cur==='undefined'||!cur||!cur.items)return true;
+  if(typeof cur==='undefined'||!cur||!cur.items)return NOOP_SWITCH;
   if(typeof active!=='undefined'&&active){toast(t2('recBusy'),1);return false}
   const w=curWork();
-  if(!w.n&&!w.m)return true;
+  if(!w.n&&!w.m)return NOOP_SWITCH;
   if(!w.n){ // 録音のない○×だけ：保存はできない（録音のない試問は保存しない）→消えることを知らせて選んでもらう
     if(!confirm(t2('swGuardPf').replace('{m}',w.m)))return false;
-    // 切り替えたら捨てる（見えないまま次の試問に混ざって合否に入らないように・M-2）。問題文などほかの欄は残す
-    dropUnrecPF(cur);saveDraft();return true;
+    // 実際に切り替えたら捨てる（見えないまま次の試問に混ざって合否に入らないように・M-2）。問題文などほかの欄は残す
+    const s0=cur;
+    return ()=>{if(cur===s0){dropUnrecPF(cur);saveDraft()}};
   }
   const el=document.getElementById('fEe');
   const e=((el&&el.value)||cur.examinee||'').trim()||t2('noName');
   if(!confirm(t2('swGuard').replace('{e}',e).replace('{n}',w.n).replace('{m}',w.m)))return false;
   const ok=await saveSession({quiet:true});
   if(ok!==true){setTimeout(()=>toast(t2('swSaveFail'),1),2600);return false} // 名前が空など：試問タブの該当欄へ案内済み
-  return true;
+  return NOOP_SWITCH;
 }
 function renderQsetUI(){
   const box=document.getElementById('qsetArea');if(!box)return;
@@ -278,8 +283,9 @@ async function applyQbank(append,pid){
   const p=v&&qbankPresets().find(x=>sanitizeId(x.id)===v);
   if(!p){toast(t('selPh'),1);return false}
   if(!append){
-    if(!(await guardExamSwitch()))return false;
+    const go=await guardExamSwitch();if(!go)return false;
     if(!confirm(t2('qbRepConfirm').replace('{n}',p.name)))return false;
+    go();
     cfg=qbankCfg(p);
     const qs=getQuestionSets();qs.activeId=null;qs.activeTpl={id:p.id,name:p.name};saveQuestionSets(qs); // テンプレート名を「使用中」として覚える
     persistCfg();
@@ -359,10 +365,11 @@ async function applySet(id){
   const qs0=getQuestionSets();
   const p0=qs0.presets.find(x=>sanitizeId(x.id)===String(id));
   if(!p0||!p0.cfg)return false;
-  if(!(await guardExamSwitch()))return false;
+  const go=await guardExamSwitch();if(!go)return false;
   if(!confirm(t2('qsSwConfirm').replace('{n}',p0.name)))return false;
   const qs=getQuestionSets(); // 保存（guard）の間に書き換わっていても最新を読む
   const p=qs.presets.find(x=>x.id===p0.id);if(!p||!p.cfg)return false;
+  go();
   // 無害化しつつディープコピー（importBackupと同水準。多言語フィールドはcopyLocFieldsで保持）
   cfg=presetCfg(p);
   qs.activeId=p.id;delete qs.activeTpl;saveQuestionSets(qs);

@@ -5,6 +5,7 @@
    M-5 「質問しなかった」の問に試問画面で○×を付けると na が外れる／試問画面の催促で na は判定済み
    L-2 名前を書き換えてそのまま「録音」を押した：切り替え後に「もう一度押して」と知らせる
    R1  今の構成がどこにも保存されていない（セット未保存・変更ありのテンプレート・項目を保存していない編集）なら、続きを開いても置き換えない
+   R2  出題の切り替えで「消えます」を OK しても、次の確認（初期設定に戻す／セット／テンプレート）でキャンセルしたら録音のない○×は消さない
    本物の GAS へは送らない（ドライブ設定なし・script.google は遮断）。 */
 'use strict';
 const env = require('./_env');
@@ -222,6 +223,48 @@ const cardIds = p => p.$$eval('#examCards .qc', cs => cs.map(x => x.id.replace(/
       c.ok('R1-B 書き換えは残る ' + JSON.stringify(r), r.id.endsWith('+') && r.n0 === '書き換えた質問' && r.st === '書き換えた質問');
     }
     c.ok('R1-B JSエラーなし ' + errors.join('|'), errors.length === 0);
+    await ctx.close();
+  }
+
+  /* ---------- R2 ---------- */
+  for (const how of ['resetCfg', 'applySet', 'applyQbank', 'pick:def', 'pick:tpl']) {
+    const { p, errors, ctx } = await open(b);
+    if (how.endsWith('tpl') || how === 'applyQbank') {
+      if (!(await p.evaluate(() => qbankAvailable() && qbankPresets().length > 0))) { c.ok('R2 ' + how + ' 前提: テンプレートがある', false); await ctx.close(); continue; }
+    }
+    await p.evaluate(() => { const qs = getQuestionSets(); qs.presets.push({ id: 'set_r2', name: 'R2のセット', cfg: defaultCfg() }); saveQuestionSets(qs); });
+    const dg = dialogs(p);
+    await p.fill('#fEe', 'R2さん'); await p.press('#fEe', 'Tab');
+    await p.evaluate(() => { setVerdict('q1', 'pass'); setVerdict('q4', 'fail'); });
+    await p.waitForTimeout(600);
+    const marks = () => p.evaluate(() => JSON.stringify(Object.fromEntries(Object.entries(cur.items).filter(([, v]) => isPF(v.score)).map(([k, v]) => [k, v.score]))));
+    const before = await marks();
+    c.ok('R2 ' + how + ' 前提: 録音なしの○×が2問', before === '{"q1":"pass","q4":"fail"}');
+    const run = () => p.evaluate(async h => {
+      if (h === 'resetCfg') return await resetCfg();
+      if (h === 'applySet') return await applySet('set_r2');
+      const pid = sanitizeId(qbankPresets()[0].id);
+      if (h === 'applyQbank') return await applyQbank(false, pid);
+      if (h === 'pick:def') return await pickSetFromList('def', '');
+      return await pickSetFromList('tpl', pid);
+    }, how);
+    // 1つ目（消えます）は OK、2つ目はキャンセル
+    let n = 0; dg.log.length = 0; dg.ans = () => (++n === 1);
+    const r = await run(); await p.waitForTimeout(300);
+    c.ok('R2 ' + how + ' 2つ目の確認まで出た ' + JSON.stringify(dg.log.map(m => m.slice(0, 16))), dg.log.length === 2 && dg.log[0].includes('消えます'));
+    c.ok('R2 ' + how + ' キャンセルなら切り替えない', r === false && await p.evaluate(() => curSetInfo().id) === 'def');
+    c.ok('R2 ' + how + ' キャンセルなら録音なしの○×は残る ' + await marks(), await marks() === before);
+    // 下書き（保存済みの状態）にも残っている
+    const dr = await p.evaluate(() => { const d = JSON.parse(localStorage.getItem(DRAFTKEY) || '{}'); return JSON.stringify(Object.fromEntries(Object.entries(d.items || {}).filter(([, v]) => isPF(v.score)).map(([k, v]) => [k, v.score]))); });
+    c.ok('R2 ' + how + ' 下書きにも○×が残る ' + dr, dr === before);
+    // 両方 OK なら切り替えて○×は消える（M-2 は維持）
+    dg.log.length = 0; dg.ans = () => true;
+    const r2 = await run(); await p.waitForTimeout(300);
+    const idAfter = await p.evaluate(() => curSetInfo().id);
+    const want = how === 'applySet' ? idAfter === 'set:set_r2' : (how === 'resetCfg' || how === 'pick:def') ? idAfter === 'def' : idAfter.startsWith('tpl:');
+    c.ok('R2 ' + how + ' 両方 OK なら切り替える ' + idAfter, r2 === true && want);
+    c.ok('R2 ' + how + ' 切り替えたら録音なしの○×は持ち越さない ' + await marks(), await marks() === '{}');
+    c.ok('R2 ' + how + ' JSエラーなし ' + errors.join('|'), errors.length === 0);
     await ctx.close();
   }
 
