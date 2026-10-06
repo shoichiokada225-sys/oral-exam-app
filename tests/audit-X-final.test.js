@@ -10,6 +10,8 @@
    V-2 狭い画面の録音中、録音ピルが録音中の問の文字起こし欄の文字に重ならない（停止したら元の余白）
    V-3 その場で出題の問題文欄は中身の行数に合わせて伸びる（中でスクロールしない）
    V-5 推移グラフの点は上端で欠けない（clip:false・上の余白）
+   VIS-1 録音中の文字起こし欄の点線の枠も録音ピルの下に入らない（V-2 の空きを枠の外に取る）
+   P-3 ページのアイコンを明示し /favicon.ico の 404 を出さない
    V-7 score が空文字の問に「旧5段階評価:」の空の表示を出さない（採点画面・履歴の詳細）
    本物の GAS へは送らない（script.google は遮断）。 */
 'use strict';
@@ -273,13 +275,33 @@ async function ctxOf(b, vp, extra) {
     const r = await p.evaluate(i => {
       const lv = document.getElementById('lv-' + i), pl = document.getElementById('recPill');
       const a = lv.getBoundingClientRect(), b = pl.getBoundingClientRect(), pr = parseFloat(getComputedStyle(lv).paddingRight) || 0;
-      return { textRight: Math.round(a.right - pr), pillLeft: Math.round(b.left) };
+      return { textRight: Math.round(a.right - pr), boxRight: Math.round(a.right), pillLeft: Math.round(b.left) };
     }, i1);
     c.ok(tag + ' 録音中の文字起こし欄の文字が録音ピルの下に入らない ' + JSON.stringify(r), r.textRight <= r.pillLeft);
+    // VIS-1 点線の枠の右端もピルの左端より左（枠の線がピルの下に入らない）
+    c.ok('VIS-1 ' + tag + ' 録音中の文字起こし欄の枠が録音ピルの下に入らない ' + JSON.stringify(r), r.boxRight <= r.pillLeft);
     await p.evaluate(() => stopRec()); await p.waitForTimeout(500);
-    const pad = await p.evaluate(i => parseFloat(getComputedStyle(document.getElementById('lv-' + i)).paddingRight), i1);
+    const pad = await p.evaluate(i => { const cs = getComputedStyle(document.getElementById('lv-' + i)); return parseFloat(cs.paddingRight) + parseFloat(cs.marginRight); }, i1);
     c.ok(tag + ' 停止したら右の空きを戻す ' + pad, pad <= 14);
     c.ok(tag + ' JSエラーなし ' + errors.join('|'), !errors.length);
+    await ctx.close();
+  }
+
+  /* ---------- P-3 ---------- */
+  {
+    console.log('[P-3]');
+    // ページのアイコンを明示（無いとブラウザが /favicon.ico を取りに行き毎回 404・オフラインでは失敗が出る）。
+    // 指すファイルは sw の ASSETS（オフラインでも出る）
+    const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+    const m = html.match(/<link[^>]*rel="icon"[^>]*href="([^"]+)"/);
+    c.ok('P-3 index.html に rel="icon" がある ' + (m && m[1]), !!m);
+    const sw = fs.readFileSync(path.join(__dirname, '..', 'sw.js'), 'utf8');
+    c.ok('P-3 アイコンは sw の ASSETS に入っている', !!m && sw.includes("'./" + m[1] + "'") && fs.existsSync(path.join(__dirname, '..', m[1])));
+    const ctx = await ctxOf(b, { width: 390, height: 844 });
+    const { page: p } = await env.newPage(ctx);
+    const fav = []; p.on('request', r => { if (/favicon\.ico/.test(r.url())) fav.push(r.url()); });
+    await p.goto(env.URL); await p.waitForTimeout(800);
+    c.ok('P-3 /favicon.ico を取りに行かない ' + fav.join('|'), !fav.length);
     await ctx.close();
   }
 

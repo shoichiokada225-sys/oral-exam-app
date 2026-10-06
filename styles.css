@@ -1019,9 +1019,10 @@ html.scoring{
 /* その場で出題：問題文の入力欄（カード見出しの位置） */
 #examCards .qc .qtx{display:block;width:100%;box-sizing:border-box;margin:4px 0 10px;font-size:1rem;font-weight:700;line-height:1.5;min-height:52px;resize:vertical}
 
-/* V-2：狭い画面の録音中は、固定の録音ピル（右下）が録音中の問の文字起こし欄の右側に重なる→欄の右にピルの幅だけ空ける（文字が隠れない） */
+/* V-2：狭い画面の録音中は、固定の録音ピル（右下）が録音中の問の文字起こし欄の右側に重なる→欄の右にピルの幅だけ空ける（文字が隠れない）。
+   空けるのは欄の外（margin）＝点線の枠ごとピルの列から外し、枠の右端がピルの下に入らない（VIS-1） */
 @media (max-width:600px){
-  body:has(#recPill) #examCards .qc:has(.recbtn.recording) .live{padding-right:calc(var(--recpill-w,120px) - 6px)}
+  body:has(#recPill) #examCards .qc:has(.recbtn.recording) .live{margin-right:calc(var(--recpill-w,120px) - 6px)}
 }
 /* V-4：360px 前後では試問日の数字とカレンダーの印が密着する→左右の余白と字を少し詰め、印との間を空ける */
 @media (max-width:400px){
