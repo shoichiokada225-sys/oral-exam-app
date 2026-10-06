@@ -17,6 +17,7 @@ function setVerdict(itemId,v){
   if(lp&&lp.v===v&&now-lp.t<500)return;
   const cleared=rec.score===v;
   rec.score=cleared?null:v;
+  if(!cleared&&rec.na)rec.na=false; // ○×を付けた＝質問した（「質問しなかった」と排他。採点画面の pickScore と同じ・M-5）
   saveDraft();
   if(cleared)toast(t2('pfCleared')); // 解除は画面に出して知らせる（緑が消えるだけでは受験者を見ている試問者は気づかない）
   const vp=document.getElementById('vp-'+itemId),vf=document.getElementById('vf-'+itemId);

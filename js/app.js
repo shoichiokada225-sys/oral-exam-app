@@ -149,6 +149,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   // 名前が空の間は、消す前の名前を覚えたままにする（A→空→B でも A からの書き換えとして確認する）
   fEe.addEventListener('focus',()=>{const v=cur?String(cur.examinee||'').trim():'';if(v||!cur)eeBefore=v});
   fEe.addEventListener('change',()=>{onExamineeChange()});
+  // 名前の欄から直接「録音」を押した：確認ダイアログでそのタップが消えるので、切り替え後に押し直しを促す（L-2）
+  document.addEventListener('pointerdown',e=>{const b=e.target&&e.target.closest&&e.target.closest('.recbtn');if(b)recTapAt=Date.now()},true);
   // 名前の入力中はドライブへ送らない（途中の名前のフォルダを作らない）。欄を離れた・確定したら待たせていた分を送る
   fEe.addEventListener('input',()=>{eeTyping=true});
   fEe.addEventListener('change',()=>{eeCommitted()});
@@ -432,7 +434,7 @@ function markInvalid(id){
 }
 /* 受験者名の書き換え：元の名前が空でなく、名前が変わり、未保存の録音か○×があるときは確認する。
    OK＝元の名前で保存してから新しい名前で試問を始める／キャンセル＝名前の訂正だけ（従来どおり） */
-let eeBefore='';
+let eeBefore='',recTapAt=0;
 function curWork(){
   const it=cur&&cur.items?Object.values(cur.items):[];
   return{n:it.filter(x=>x&&x.hasAudio).length,m:it.filter(x=>x&&isPF(x.score)).length};
@@ -449,6 +451,7 @@ async function onExamineeChange(){
   // 録音が無ければ「保存してから次の人へ」は保存できない（録音のない試問は保存しない）→確認せず名前の訂正として扱う
   //（○×だけなら新しい名前にそのまま付く）
   if(!w.n)return;
+  const recTap=Date.now()-recTapAt<1500; // 「録音」を押したはずみで名前の欄を離れた
   const fill=s=>s.replace(/\{o\}/g,prev).replace(/\{e\}/g,next||'—').replace('{n}',w.n).replace('{m}',w.m);
   if(!confirm(fill(t2('eeSwitch'))))return; // 名前の訂正だけ（保存時にドライブの名前も付け直す）
   // 元の名前に戻して保存 → 成功したら新しい名前で次の試問を始める
@@ -457,7 +460,7 @@ async function onExamineeChange(){
   if(ok===true){
     el.value=next;eeBefore=next;
     if(cur){cur.examinee=next}
-    toast(fill(t2('eeSwitched')));
+    toast(fill(t2('eeSwitched'))+(recTap?' · '+t2('recTapAgain'):''));
   }else{
     eeBefore=prev; // 保存できなかった：前の人の録音を新しい名前に付け替えないよう、名前は元のまま
     if(!document.getElementById('saveErr'))setTimeout(()=>toast(fill(t2('eeSwitchFail')),1),5200);

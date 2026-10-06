@@ -200,14 +200,24 @@ function stampSet(s){
 }
 /* 出題を切り替える前の保護：保存していない試問（録音・合否）があれば、先に保存するか聞く。
    OK＝保存してから切り替える（保存できなければ切り替えない）／キャンセル＝切り替えない。戻り値=切り替えてよいか */
+/* 録音のない問の○×を外す（出題の切り替えで持ち越さない）。○×のほかに何も無い問は項目ごと消す */
+function dropUnrecPF(s){
+  if(!s||!s.items)return;
+  Object.keys(s.items).forEach(k=>{
+    const r=s.items[k];if(!r||r.hasAudio||!isPF(r.score))return;
+    r.score=null;
+    if(Object.keys(r).every(f=>r[f]==null||r[f]===''||r[f]===false))delete s.items[k];
+  });
+}
 async function guardExamSwitch(){
   if(typeof cur==='undefined'||!cur||!cur.items)return true;
   if(typeof active!=='undefined'&&active){toast(t2('recBusy'),1);return false}
   const w=curWork();
   if(!w.n&&!w.m)return true;
-  if(!w.n){ // 録音のない○×だけ：保存はできない（録音のない試問は保存しない）→見えなくなることを知らせて選んでもらう
+  if(!w.n){ // 録音のない○×だけ：保存はできない（録音のない試問は保存しない）→消えることを知らせて選んでもらう
     if(!confirm(t2('swGuardPf').replace('{m}',w.m)))return false;
-    snapMeta(cur);saveDraft();return true;
+    // 切り替えたら捨てる（見えないまま次の試問に混ざって合否に入らないように・M-2）。問題文などほかの欄は残す
+    dropUnrecPF(cur);saveDraft();return true;
   }
   const el=document.getElementById('fEe');
   const e=((el&&el.value)||cur.examinee||'').trim()||t2('noName');
@@ -270,8 +280,7 @@ async function applyQbank(append,pid){
   if(!append){
     if(!(await guardExamSwitch()))return false;
     if(!confirm(t2('qbRepConfirm').replace('{n}',p.name)))return false;
-    cfg={sections:(p.sections||[]).map(s=>({id:sanitizeId('qb_'+p.id+'_'+s.id),name:String(s.name||'')})),
-         items:(p.items||[]).map(it=>qbankToCfgItem(p,it))};
+    cfg=qbankCfg(p);
     const qs=getQuestionSets();qs.activeId=null;qs.activeTpl={id:p.id,name:p.name};saveQuestionSets(qs); // テンプレート名を「使用中」として覚える
     persistCfg();
     toast(t2('qbApplied'));
@@ -287,6 +296,43 @@ async function applyQbank(append,pid){
     syncActiveSet();persistCfg();
     toast(added+t('catAdded'));
   }
+  return true;
+}
+/* テンプレート・自分のセットから出題の実体を作る（applyQbank／applySet／続きの出題の復元で共用） */
+function qbankCfg(p){
+  return{sections:(p.sections||[]).map(s=>({id:sanitizeId('qb_'+p.id+'_'+s.id),name:String(s.name||'')})),
+         items:(p.items||[]).map(it=>qbankToCfgItem(p,it))};
+}
+// 無害化しつつディープコピー（importBackupと同水準。多言語フィールドはcopyLocFieldsで保持）
+function presetCfg(p){
+  return{sections:(p.cfg.sections||[]).map(s=>copyLocFields(s,{id:sanitizeId(s.id),name:String(s.name||'')},['name'])),
+       items:(p.cfg.items||[]).map(it=>{const o={id:sanitizeId(it.id),secId:sanitizeId(it.secId),name:String(it.name||''),desc:String(it.desc||'')};if(it.free)o.free=true;if(it.ans!=null)o.ans=String(it.ans);return copyLocFields(it,o,['name','desc','ans'])})};
+}
+/* 保存済みの試問の出題（setId）から、その出題の実体と「使用中」の印を作る。今の出題と同じ・作れない（変更ありのテンプレート・
+   消したセット・セット未保存の構成・記録のない旧データ）なら null。戻り値 {cfg, apply(qs)} */
+function setCfgOf(r){
+  const id=r&&r.setId!=null?String(r.setId):'';
+  if(!id||id===curSetInfo().id)return null;
+  const clr=qs=>{qs.activeId=null;delete qs.activeTpl};
+  if(id==='def')return{cfg:defaultCfg(),apply:clr};
+  if(id==='free')return{cfg:freeCfg(),apply:clr};
+  if(id.startsWith('set:')){
+    const p=getQuestionSets().presets.find(x=>x.id===id.slice(4));
+    return p&&p.cfg?{cfg:presetCfg(p),apply:qs=>{qs.activeId=p.id;delete qs.activeTpl}}:null;
+  }
+  if(id.startsWith('tpl:')&&!id.endsWith('+')&&qbankAvailable()){
+    const p=qbankPresets().find(x=>x.id===id.slice(4));
+    return p?{cfg:qbankCfg(p),apply:qs=>{qs.activeId=null;qs.activeTpl={id:p.id,name:p.name}}}:null;
+  }
+  return null;
+}
+/* 試問の出題の質問（今の出題と違っても、その試問の出題で数える。作れなければ今の出題） */
+function sessSetItems(r){const x=setCfgOf(r);return x?x.cfg.items:getItems()}
+/* 「この試問を続ける」：その試問の出題に切り替える（M-1）。切り替えたら true */
+function restoreSetOf(r){
+  const x=setCfgOf(r);if(!x)return false;
+  const qs=getQuestionSets();x.apply(qs);saveQuestionSets(qs);
+  cfg=x.cfg;persistCfg();
   return true;
 }
 /* --- 自分のセット（名前付き保存/切替） --- */
@@ -310,8 +356,7 @@ async function applySet(id){
   const qs=getQuestionSets(); // 保存（guard）の間に書き換わっていても最新を読む
   const p=qs.presets.find(x=>x.id===p0.id);if(!p||!p.cfg)return false;
   // 無害化しつつディープコピー（importBackupと同水準。多言語フィールドはcopyLocFieldsで保持）
-  cfg={sections:(p.cfg.sections||[]).map(s=>copyLocFields(s,{id:sanitizeId(s.id),name:String(s.name||'')},['name'])),
-       items:(p.cfg.items||[]).map(it=>{const o={id:sanitizeId(it.id),secId:sanitizeId(it.secId),name:String(it.name||''),desc:String(it.desc||'')};if(it.free)o.free=true;if(it.ans!=null)o.ans=String(it.ans);return copyLocFields(it,o,['name','desc','ans'])})};
+  cfg=presetCfg(p);
   qs.activeId=p.id;delete qs.activeTpl;saveQuestionSets(qs);
   persistCfg();
   toast(t2('qsApplied'));

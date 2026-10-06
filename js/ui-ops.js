@@ -71,7 +71,9 @@ function alignNames(sess){
    表記ゆれは alignNames で利用者が「同じ人」と答えた時だけ既存の表記にそろい、ここで一致する */
 function sameDaySessions(sess){
   const k=nameExact(sess.examinee);if(!k)return[];
-  return getAll().filter(s=>s.id!==sess.id&&s.date===sess.date&&nameExact(s.examinee)===k);
+  // 出題の違う試問どうしはまとめない（記録のない旧データはどれとも同じ扱い・M-1）
+  const sk=x=>x&&x.setId!=null?String(x.setId):null,mine=sk(sess);
+  return getAll().filter(s=>s.id!==sess.id&&s.date===sess.date&&nameExact(s.examinee)===k&&(mine==null||sk(s)==null||sk(s)===mine));
 }
 /* 録音したことのある項目 */
 function recKeys(s){return Object.keys((s&&s.items)||{}).filter(k=>s.items[k]&&s.items[k].hasAudio&&safeKey(k))}
@@ -152,7 +154,8 @@ function showDraftNote(on){
 /* ==============================================================
    保存済みの試問を続ける（途中で中断した試問に録音を足す）
    ============================================================== */
-function unrecCount(r){return getItems().filter(it=>!(r.items[it.id]&&r.items[it.id].hasAudio)).length}
+// 未録音の数はその試問の出題で数える（今の出題と違っても・M-1）
+function unrecCount(r){const its=typeof sessSetItems==='function'?sessSetItems(r):getItems();return its.filter(it=>!(r.items[it.id]&&r.items[it.id].hasAudio)).length}
 function canResume(r){return !!(r&&!active&&unrecCount(r)>0)}
 function resumeBtnHtml(r,ctx){
   if(!canResume(r))return'';
@@ -183,6 +186,8 @@ async function resumeExam(id){
     if(cur.status==='scored')cur.status='rec';
     saveDraft();
   }
+  // その試問の出題に切り替える（今の出題の質問を混ぜない・M-1）。切り替えたら出題名も知らせる
+  const swSet=typeof restoreSetOf==='function'&&restoreSetOf(cur);
   document.getElementById('fDate').value=cur.date||todayStr();
   document.getElementById('fEr').value=cur.examiner||'';
   document.getElementById('fEe').value=cur.examinee||'';
@@ -190,7 +195,7 @@ async function resumeExam(id){
   const tb=document.querySelector('.tabs button[data-pg="pgExam"]');if(tb)swTab(tb);
   buildExamCards();
   showDraftNote(false);
-  toast(t2('resumed').replace('{e}',cur.examinee||''));
+  toast(t2('resumed').replace('{e}',cur.examinee||'')+(swSet?' · '+t2('examSetLbl')+': '+setLbl(cur):''));
   const nx=getItems().find(it=>!(cur.items[it.id]&&cur.items[it.id].hasAudio));
   if(nx){const c=document.getElementById('q-'+sanitizeId(nx.id));if(c)setTimeout(()=>scrollToBand(c,'smooth'),60)}
 }

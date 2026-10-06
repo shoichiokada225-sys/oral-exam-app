@@ -125,7 +125,8 @@ function toggleHowtoMore(){howtoMoreOn=!howtoMoreOn;renderHowtoMore()}
 /* 試問タブ：録音進捗バー＋合否の進捗＋セクションジャンプ
    完了（緑・✓）は「録音と○×の両方がそろった」とき。録音だけでは完了にしない（○×の付け忘れを見逃さない） */
 function examRecd(it){return !!(cur&&cur.items[it.id]&&cur.items[it.id].hasAudio)}
-function examJudged(it){return !!(cur&&cur.items[it.id]&&isPF(cur.items[it.id].score))}
+// 「質問しなかった」（採点画面で付けた na）は判定済み＝○×の催促に数えない（M-5）
+function examJudged(it){const r=cur&&cur.items[it.id];return !!(r&&(isPF(r.score)||r.na))}
 function updateExamProg(){
   const box=document.getElementById('examProg');if(!box)return;
   updateDriveUi();

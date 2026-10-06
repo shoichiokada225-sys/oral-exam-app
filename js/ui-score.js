@@ -267,7 +267,25 @@ function queueAutoNext(){
     if(findUnscoredId())nextUnscored();
   },600);
 }
+/* 同じボタンをもう一度押したら合否を外す（試問画面の setVerdict と同じ。録音のない問の誤タップの○×も外せる・M-4）。
+   手袋のチャタリング・二度押し：同じボタンを500ms以内に続けて押した2回目は無視 */
+const scLast={};
+function clearScore(id){
+  const rec=curScore&&curScore.items[id];if(!rec)return;
+  rec.score=null;
+  if(typeof resyncDriveName==='function'&&rec.hasAudio)resyncDriveName(curScore,id);
+  document.querySelectorAll('.sb[data-id="'+id+'"]').forEach(b=>{b.classList.remove('sel');b.setAttribute('aria-checked','false')});
+  const sp=document.getElementById('sp-'+id);if(sp)sp.textContent='';
+  const c=document.getElementById('sc-'+id);if(c)c.classList.remove('scored','v-pass','v-fail');
+  clearTimeout(autoNextTimer);
+  updateScoreProg();persistScoreDraft(true);
+  toast(t2('pfCleared'));
+}
 function pickScore(id,s,btn){
+  const now=Date.now(),lp=scLast[id];
+  scLast[id]={s,t:now};
+  if(lp&&lp.s===s&&now-lp.t<500)return;
+  if(curScore&&curScore.items[id]&&curScore.items[id].score===s&&btn&&btn.classList.contains('sel'))return clearScore(id);
   // 旧5段階の点を合否で上書きする時は確認（1タップ＋自動保存で旧点数が黙って消えないように）
   const prevSc=curScore&&curScore.items[id]&&curScore.items[id].score;
   if(isOld(prevSc)&&!confirm(t2('oldReplace').replace('{v}',pfLabel(prevSc))))return;
