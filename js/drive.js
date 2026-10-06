@@ -387,7 +387,16 @@ function scheduleDrive(sess,itemId,flags){
   f.sess=sess;if(flags&&flags.audio)f.audio=true;
   vdTimers[k]=setTimeout(()=>fireDrive(k),VD_WAIT);
 }
-function drivePending(sess,itemId){return !!(sess&&vdTimers[sess.id+'_'+itemId])}
+// まとめ元（driveMoved）で待っている送信もまとめ先の送信待ちに数える＝停止直後にまとめても、待ち終えた時の1回だけにする（M-8×M-16）
+function drivePending(sess,itemId){
+  if(!sess)return false;
+  const seen={},q=[sess.id];seen[sess.id]=1;
+  while(q.length){
+    const id=q.shift();if(vdTimers[id+'_'+itemId])return true;
+    Object.keys(driveMoved).forEach(s=>{if(driveMoved[s]===id&&!seen[s]){seen[s]=1;q.push(s)}});
+  }
+  return false;
+}
 function fireDrive(k){
   clearTimeout(vdTimers[k]);delete vdTimers[k];
   const f=vdOpt[k];delete vdOpt[k];if(!f)return;

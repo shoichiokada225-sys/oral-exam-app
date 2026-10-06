@@ -215,6 +215,29 @@ const setName = async (p, v) => { await p.fill('#fEe', v); await p.press('#fEe',
     await ctx.close();
   }
 
+  /* ---------- M-8×M-16 停止直後（送信待ち1.5秒の間）にまとめても1回だけ送る ---------- */
+  for (const vd of [false, true]) {
+    const { ctx, p, S, dl, errors } = await mkCtx(b);
+    dl.ans = m => !/採点も確定/.test(m); // まとめる＝OK
+    await setName(p, 'まとめ三郎');
+    await rec(p, 'q1'); await idle(p, S);
+    await p.evaluate(() => saveSession()); await p.waitForTimeout(500);
+    await setName(p, 'まとめ三郎');
+    await rec(p, 'q4'); if (vd) await p.click('#vf-q4'); await p.waitForTimeout(100);
+    const n0 = full(S).length;
+    await p.evaluate(() => saveSession()); await p.waitForTimeout(300); await idle(p, S);
+    const all = await saved(p);
+    const sent = full(S).slice(n0);
+    const tag = 'M-8×M-16(○×' + (vd ? 'あり' : 'なし') + ') ';
+    c.ok(tag + '前提: まとめた', dl.log.some(m => m.includes('前回の続きにまとめる')) && all.length === 1);
+    c.ok(tag + '録音の送信は1回だけ ' + JSON.stringify(sent.map(x => [x.name, x.rep])), sent.length === 1 && !sent[0].rep);
+    c.ok(tag + '最新の名前で送る ' + JSON.stringify(sent[0] && sent[0].name), sent[0] && (vd ? /_不合格_/ : /_未判定_/).test(sent[0].name));
+    const q4 = all[0].items.q4;
+    c.ok(tag + 'まとめ先に送信結果が入る ' + JSON.stringify(q4 && [q4.driveFileId, q4.driveSt]), q4 && /^F\d+$/.test(q4.driveFileId || '') && !q4.driveSt);
+    c.ok(tag + 'JSエラーなし ' + errors.join('|'), !errors.length);
+    await ctx.close();
+  }
+
   /* ---------- M-17 まだ無いフォルダへ同時に送らない ---------- */
   {
     const { ctx, p, S } = await mkCtx(b, { delay: 800 });
