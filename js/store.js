@@ -55,6 +55,8 @@ function sanitizeLoadedCfg(c){
 }
 /* その場で出題の問に名前か説明が書いてあれば通常の問として扱う（free を外す）。旧版で保存した設定も同じ（M-13） */
 function normFreeItem(it){if(it&&it.free&&(String(it.name||'').trim()||String(it.desc||'').trim()))delete it.free;return it}
+/* 設定の編集で名前と説明を両方消したら、その場で出題（f1〜）の問は free に戻す（M-13 の書いて消した時の戻し） */
+function restoreFreeItem(it){if(it&&!it.free&&/^f\d+$/.test(String(it.id||''))&&!String(it.name||'').trim()&&!String(it.desc||'').trim())it.free=true;return it}
 function loadCfg(){try{const r=localStorage.getItem(CKEY);return r?sanitizeLoadedCfg(JSON.parse(r)):freeCfg()}catch{return freeCfg()}}
 /* 多言語の任意フィールド（name_en / desc_vi 等）を文字列化して安全にコピー。
    importBackup/applySetの無害化取り込みで翻訳を落とさないための共通ヘルパー（後方互換: 無ければ何もしない） */

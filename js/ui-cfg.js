@@ -60,8 +60,8 @@ function buildCfgUI(){
 function dropLoc(o,k){['en','vi','id'].forEach(l=>delete o[k+'_'+l])}
 function cfgSecName(secId,val){const s=cfg.sections.find(s=>s.id===secId);if(s){s.name=val;dropLoc(s,'name');markCfgDirty()}}
 /* その場で出題の問に名前・説明を書いたら通常の問にする（試問画面・採点・CSVに書いた文を出す・M-13） */
-function cfgItemName(itemId,val){const it=cfg.items.find(i=>i.id===itemId);if(it){it.name=val;dropLoc(it,'name');normFreeItem(it);markCfgDirty()}}
-function cfgItemDesc(itemId,val){const it=cfg.items.find(i=>i.id===itemId);if(it){it.desc=val;dropLoc(it,'desc');normFreeItem(it);markCfgDirty()}}
+function cfgItemName(itemId,val){const it=cfg.items.find(i=>i.id===itemId);if(it){it.name=val;dropLoc(it,'name');normFreeItem(it);restoreFreeItem(it);markCfgDirty()}}
+function cfgItemDesc(itemId,val){const it=cfg.items.find(i=>i.id===itemId);if(it){it.desc=val;dropLoc(it,'desc');normFreeItem(it);restoreFreeItem(it);markCfgDirty()}}
 function cfgItemAns(itemId,val){const it=cfg.items.find(i=>i.id===itemId);if(it){it.ans=val;dropLoc(it,'ans');markCfgDirty()}}
 function addSection(){cfg.sections.push({id:'sec_'+Date.now(),name:t('secName')});markCfgDirty();buildCfgUI()}
 function addItem(secId){

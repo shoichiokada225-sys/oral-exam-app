@@ -139,6 +139,34 @@ const flat = l => (Array.isArray(l) ? l.join(' ') : String(l));
     await ctx.close();
   }
 
+  /* ---------- M-13 書いて消した時（検証担当の指摘 M-13-regression） ---------- */
+  {
+    const { p, errors, ctx } = await open(bf);
+    await p.evaluate(() => swTab(document.querySelector('.tabs [data-pg="pgCfg"]'))); await p.waitForTimeout(300);
+    const inp = p.locator('#cfgArea .cfg-item input[type=text]').first();
+    await inp.fill('あ'); await inp.dispatchEvent('change');
+    await inp.fill(''); await inp.dispatchEvent('change');
+    const ta = p.locator('#cfgArea .cfg-item textarea').nth(1);
+    await ta.fill('説明だけ'); await ta.dispatchEvent('change');
+    await ta.fill(''); await ta.dispatchEvent('change');
+    await p.evaluate(() => saveCfg()); await p.waitForTimeout(300);
+    await p.evaluate(() => swTab(document.querySelector('.tabs [data-pg="pgExam"]'))); await p.waitForTimeout(300);
+    const r = await p.evaluate(() => ({ id: curSetInfo().id, f1: !!cfg.items[0].free, f2: !!cfg.items[1].free, qt1: !!document.getElementById('qt-f1'), qt2: !!document.getElementById('qt-f2') }));
+    c.ok('M-13 名前を書いて消したら その場で出題に戻る ' + JSON.stringify({ id: r.id, f1: r.f1, qt1: r.qt1 }), r.f1 && r.qt1);
+    c.ok('M-13 説明を書いて消したら その場で出題に戻る', r.f2 && r.qt2);
+    c.ok('M-13 書いて消した後もセットは「その場で出題」 ' + r.id, r.id === 'free');
+    c.ok('M-13 JSエラーなし（書いて消す） ' + errors.join('|'), errors.length === 0);
+    await ctx.close();
+  }
+  {
+    // 追加した通常の問（item_〜）は名前を消しても free にしない
+    const { p, errors, ctx } = await open(bf);
+    const r = await p.evaluate(() => { const it = { id: 'item_1', secId: 'F', name: 'x', desc: '' }; cfg.items.push(it); cfgItemName('item_1', ''); return !!it.free; });
+    c.ok('M-13 追加した問は名前を消しても free にならない', r === false);
+    c.ok('M-13 JSエラーなし（追加した問） ' + errors.join('|'), errors.length === 0);
+    await ctx.close();
+  }
+
   /* ---------- M-14 ---------- */
   {
     const { p, errors, ctx } = await open(b);
