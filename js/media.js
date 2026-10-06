@@ -436,7 +436,7 @@ function commitTake(sess,itemId,blob,old,undoLbl){
   updateExamProg();
   const lv=document.getElementById('lv-'+itemId);
   if(lv){lv.querySelector('.lvtxt').textContent=sess.items[itemId].draft;lv.style.display=sess.items[itemId].draft?'block':'none'}
-  maybeAutoUpload(itemId); // Googleドライブ自動保存（設定時のみ）
+  queueDriveTake(sess,itemId); // Googleドライブ自動保存（設定時のみ）。少し待って○×と一緒に1回で送る・前のファイルは置き換え（drive.js）
   if(old)showUndoBar(sess.id,itemId,old,undoLbl); // 録り直し・続きの上書き完了：次の操作まで「元に戻す」を提示
 }
 /* 録音を端末に書き込めなかった（容量不足等）：黙って「未録音」に戻さず、失敗を常設表示し、
@@ -512,7 +512,7 @@ function showUndoBar(sessId,itemId,old,label){
         cur.items[lr.itemId].draft=lr.draft;
         saveDraft();
         buildExamCards();
-        maybeAutoUpload(lr.itemId); // 復元した旧テイクをドライブにも再送（ローカルとドライブの不一致を防ぐ）
+        queueDriveTake(cur,lr.itemId); // 復元した旧テイクをドライブにも再送（ローカルとドライブの不一致を防ぐ。前のファイルは置き換え）
       }
       toast(t('undoDone'));
     }catch(e){toast(t2('storeFail'),1)}

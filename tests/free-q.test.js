@@ -24,7 +24,7 @@ const GAS = 'https://script.google.com/macros/s/x/exec';
     await p.goto(env.URL); await p.waitForTimeout(500);
     return { ctx, p, errors, posts };
   };
-  const rec = async (p, id) => { await p.click('#rb-' + id); await p.waitForTimeout(1000); await p.click('#rb-' + id); await p.waitForTimeout(900); };
+  const rec = async (p, id) => { await p.click('#rb-' + id); await p.waitForTimeout(1000); await p.click('#rb-' + id); await p.waitForTimeout(2000); }; // 停止後のドライブ送信は1.5秒待ってから（○×と1回にまとめる・M-16）
 
   console.log('[1] 新しい端末は空欄3問');
   {
@@ -78,7 +78,7 @@ const GAS = 'https://script.google.com/macros/s/x/exec';
     T.ok('ドライブ名に問題文: ' + (posts[0] && posts[0].name), !!posts[0] && posts[0].name.includes('出-1_未判定_分娩舎で最初に確認することは'));
     await p.click('#vp-f1'); await p.waitForTimeout(2300);
     T.ok('合否で付け直し: ' + (posts[1] && posts[1].name), !!posts[1] && posts[1].name.includes('_合格_分娩舎') && posts[1].replaceId === 'F1');
-    await p.fill('#qt-f1', '分娩舎の温度の見方は？'); await p.waitForTimeout(2300);
+    await p.fill('#qt-f1', '分娩舎の温度の見方は？'); await p.press('#qt-f1', 'Tab'); await p.waitForTimeout(2300); // 欄を離れた時に付け直す（入力中は送らない・M-16）
     const last = posts[posts.length - 1];
     T.ok('録音後に問題文を直すとドライブ名も付け直す: ' + last.name, last.name.includes('_合格_分娩舎の温度の見方は') && !!last.replaceId);
     await p.fill('#qt-f2', '<img src=x onerror="window.__x=1">'); await rec(p, 'f2');

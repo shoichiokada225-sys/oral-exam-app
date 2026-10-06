@@ -28,13 +28,21 @@ function toggleAuto(){
   localStorage.setItem(GKEY,JSON.stringify(g));
   updateGoogleStatus();
 }
+/* 接続できているか：この画面で接続テストか送信に成功した／前回までにこの保存先へ送信できた（okUrl・L-1）。
+   接続テストに失敗したら gFailed＝「未接続」。保存先はあるがまだ確かめていなければ中立の「設定済み（未確認）」 */
+let gFailed=false;
+function gIsConnected(){const g=getGoogleCfg();return !!g.url&&!gFailed&&(gConnected||g.okUrl===g.url)}
+function markGasOk(){
+  gConnected=true;gFailed=false;
+  try{const g=getGoogleCfg();if(g.url&&g.okUrl!==g.url){g.okUrl=g.url;localStorage.setItem(GKEY,JSON.stringify(g));updateGoogleStatus()}}catch(e){}
+}
 function updateGoogleStatus(){
   const el=document.getElementById('gStatus');
   if(el){
-    const auto=!!getGoogleCfg().auto;
+    const g=getGoogleCfg(),auto=!!g.auto,con=gIsConnected();
     // 接続OKでも自動保存OFFなら「送られない」ことを中立色で明示（「自動保存できます」と言わない）
-    el.textContent=gConnected?(auto?t('gConnected'):t2('drvConnNoAuto')):t('gDisconnected');
-    el.style.color=gConnected&&auto?'var(--pri)':'var(--sub)';
+    el.textContent=con?(auto?t('gConnected'):t2('drvConnNoAuto')):(g.url&&!gFailed?t('gUntested'):t('gDisconnected'));
+    el.style.color=con&&auto?'var(--pri)':'var(--sub)';
   }
   if(typeof updateDriveUi==='function')updateDriveUi();
   if(typeof renderDrvOrphans==='function')renderDrvOrphans(); // ドライブに残った旧名のファイルの案内
@@ -92,13 +100,16 @@ async function gasTest(fromSave){
   const btn=document.getElementById('gTestBtn');const old=btn.textContent;btn.disabled=true;
   try{
     await gasPost({token:g.token,ping:true});
-    gConnected=true;
+    gConnected=true;gFailed=false;
+    try{const g1=getGoogleCfg();if(g1.url){g1.okUrl=g1.url;localStorage.setItem(GKEY,JSON.stringify(g1))}}catch(e){}
     // 接続テストに成功し、自動保存を一度も選んでいない（未設定）なら既定ONにする
     let turnedOn=false;
     if(g.auto===undefined&&!g.autoSet){const g2=getGoogleCfg();g2.auto=true;localStorage.setItem(GKEY,JSON.stringify(g2));const cb=document.getElementById('gAuto');if(cb)cb.checked=true;turnedOn=true}
     updateGoogleStatus();toast(t('gTestOk')+(turnedOn?' · '+t2('gAutoOn'):''));
   }catch(e){
-    gConnected=false;updateGoogleStatus();
+    gConnected=false;gFailed=true;
+    try{const g1=getGoogleCfg();if(g1.okUrl){delete g1.okUrl;localStorage.setItem(GKEY,JSON.stringify(g1))}}catch(e){}
+    updateGoogleStatus();
     // 自動保存の既定ONを待っている（未設定）：つながるまでONにしないことを添える
     const pend=getGoogleCfg().auto===undefined&&!getGoogleCfg().autoSet;
     // 理由を利用者の言葉で（公開範囲／合言葉／圏外／URL）。技術情報は末尾の括弧に短く残す
@@ -116,12 +127,20 @@ function driveBaseName(session,itemId){
   const rec=session.items[itemId]||{};
   // 同じ日の追試（2回目以降として別に保存した試問）は末尾に「_2回目」。1回目と旧データは今までと同じ名前
   const nth=+session.attempt>1?'_'+(+session.attempt)+'回目':'';
-  return safeName(tag+'_'+verdictTag(rec.score)+'_'+(it?(it.free?qName(session,it,ii+1):it.name):itemId)+nth);
+  // その場で出題の空欄の問は「質問n」で固定（画面の言語に依らない。言語を変えるたびに名前が変わって送り直すのを防ぐ・M-15）
+  const qn=it&&it.free?(String(rec.qText||'').trim()||'質問'+(ii+1)):null;
+  return safeName(tag+'_'+verdictTag(rec.score)+'_'+(it?(it.free?qn:it.name):itemId)+nth);
 }
 /* 送った時の合否ラベルが今の合否と違うか（driveName が無い旧データは判定しない） */
 function driveNameStale(session,itemId){
   const r=session.items[itemId];if(!r||!r.driveName)return false;
   return String(r.driveName).replace(/\.[^.]+$/,'')!==driveBaseName(session,itemId);
+}
+/* 送った受験者名・日付（＝ドライブのフォルダ）が今の試問と違うか（記録の無い旧データは判定しない・L-3） */
+function driveFolderStale(session,itemId){
+  const r=session.items[itemId];if(!r||!r.driveFileId)return false;
+  const ee=String(session.examinee||'').trim()||'受験者';
+  return (r.driveEe!==undefined&&r.driveEe!==ee)||(r.driveDate!==undefined&&r.driveDate!==(session.date||''));
 }
 async function gasUpload(session,itemId,replaceId){
   const g=getGoogleCfg();
@@ -133,19 +152,62 @@ async function gasUpload(session,itemId,replaceId){
   const ee=String(session.examinee||'').trim()||'受験者';
   const body={token:g.token,folder:g.folder||'口頭試問音声',examinee:ee,date:session.date||'',name,mime:blob.type||'audio/webm',dataB64:b64};
   if(replaceId)body.replaceId=replaceId; // 合否変更時：旧名のファイルをGAS側でゴミ箱へ（旧GASは無視＝新旧2本残るだけ）
-  const j=await gasPost(body);
-  return{id:j.id,link:j.url,name,ee};
+  // まだ届いたことのない受験者フォルダへは1件ずつ送る（GASの「無ければ作る」が同時に走ると同じ名前のフォルダが2つできる・M-17）
+  const fk=body.folder+'/'+ee+'_'+body.date;
+  let j;
+  if(gFolderOk[fk])j=await gasPost(body);
+  else{
+    const run=(gFolderQ[fk]||Promise.resolve()).then(()=>gasPost(body));
+    gFolderQ[fk]=run.catch(()=>{});
+    j=await run;
+  }
+  gFolderOk[fk]=true;
+  return{id:j.id,link:j.url,name,ee,date:body.date};
+}
+const gFolderQ={},gFolderOk={};
+/* ドライブのファイル名だけを付け直す（合否・問題文の変更。録音は送り直さない・M-16）。
+   新しい GAS（gas/Code.gs の op:'rename'）は同じ受験者フォルダにあるファイルの名前を変えて renamed:true を返す。
+   旧 GAS は op を知らず ping として ok を返すだけ（何も作らない）→ null を返し、呼び出し側が録音ごと置き換えて送る */
+async function gasRename(session,itemId,prev){
+  const g=getGoogleCfg();
+  const ext=(String(prev.driveName||'').match(/\.([^.]+)$/)||[])[1]||audioExt(prev.mime||'');
+  const name=driveBaseName(session,itemId)+'.'+ext;
+  const ee=String(session.examinee||'').trim()||'受験者';
+  const j=await gasPost({token:g.token,ping:true,op:'rename',fileId:prev.driveFileId,folder:g.folder||'口頭試問音声',examinee:ee,date:session.date||'',name});
+  if(!j||j.renamed!==true)return null;
+  return{id:j.id||prev.driveFileId,link:j.url||prev.driveLink,name,ee,date:session.date||''};
 }
 
 // 録音停止後に呼ばれる：自動アップロード
-// opt.replace=true は合否変更による「付け直し」（前回アップロード分を置き換える）
+// ドライブにファイルがある録音は常に置き換え（replaceId）で送る＝録り直し・続き・元に戻す・合否の付け直しで同じ名前の別ファイルを増やさない（M-7）
+// opt.nameOnly＝名前（合否・問題文・追試の番号）だけが変わった：フォルダが同じなら名前だけの送信（gasRename）、変わっていなければ送らない
 const upBusy={},upPend={};
+// 「前回の続きにまとめる」で試問が移った先（元のid→まとめ先のid）。送信中に移っても、届いた結果をまとめ先へ写す（M-8）
+const driveMoved={};
+function mergeDriveOpt(a,b){
+  if(!a)return Object.assign({},b||{});if(!b)return Object.assign({},a);
+  return{replace:!!(a.replace||b.replace),nameOnly:!!(a.nameOnly&&b.nameOnly),manual:!!(a.manual||b.manual),quiet:!!(a.quiet&&b.quiet)};
+}
+function liveSess(sess){
+  let s=sess;
+  for(let i=0;i<5&&s&&driveMoved[s.id];i++){const x=sessById(driveMoved[s.id]);if(!x)break;s=x}
+  return s;
+}
+function noteDriveMoved(src,tgt,keys){
+  if(!src||!tgt||src.id===tgt.id)return;
+  driveMoved[src.id]=tgt.id;
+  // まとめ先へ写した後に届いていた送信結果を写す（写した時点では「送信中」のまま）
+  (keys||[]).forEach(k=>{const a=src.items[k],b=tgt.items[k];if(a&&b&&a.driveFileId&&!a.driveSt&&(b.driveFileId!==a.driveFileId||b.driveSt)){copyDriveFields(a,b);persistDriveInfo(tgt,k)}});
+}
+/* まとめ元で送信中か（まとめ先の「送信中」を未送信と数えて二重に送らないため） */
+function movedBusy(sess,itemId){return Object.keys(driveMoved).some(s=>driveMoved[s]===sess.id&&upBusy[s+'_'+itemId])}
 // sessArg: 採点画面(curScore)から合否を変えた時など、試問中(cur)以外のセッションを指定する
 async function maybeAutoUpload(itemId,opt,sessArg){
   const g=getGoogleCfg();
   if(!g.url||(!g.auto&&!(opt&&opt.manual)))return; // 手動の再送は自動保存OFFでも送る
-  const sess=sessArg||cur; // 対象セッションを固定（アップロード中にcurが切り替わっても取り違えない）
+  let sess=sessArg||cur; // 対象セッションを固定（アップロード中にcurが切り替わっても取り違えない）
   if(!sess)return;
+  sess=liveSess(sess); // まとめ先へ移った試問はまとめ先で送る（元のキーの録音は片付け済み）
   // 試問中で受験者名が空のまま送ると、ドライブの「受験者」フォルダに誰のものか分からない録音が並ぶ→送らない
   //（名前を入れて「試問を保存」したときに syncExamineeOnSave が送る）
   if(sess===cur&&!String(cur.examinee||'').trim()){if(opt&&opt.manual&&!opt.quiet)needExamineeUi();return}
@@ -153,31 +215,43 @@ async function maybeAutoUpload(itemId,opt,sessArg){
   if(sess===cur&&!(opt&&opt.manual)&&typeof eeEditing==='function'&&eeEditing()){eeWaitSend(itemId,opt);return}
   const key=sess.id+'_'+itemId;
   // 送信中に合否が変わった等：終わってから最新の状態でもう一度送る（多重送信・順序逆転を防ぐ）
-  if(upBusy[key]){upPend[key]=upPend[key]||opt||{};return}
-  upBusy[key]=true;
+  if(upBusy[key]||movedBusy(sess,itemId)){upPend[key]=mergeDriveOpt(upPend[key],opt||{});return}
   sess.items[itemId]=sess.items[itemId]||{};
-  const isRep=!!(opt&&opt.replace&&sess.items[itemId].driveFileId);
+  const prev=sess.items[itemId];
+  const isRep=!!prev.driveFileId;
+  // 名前だけの付け直しで、名前もフォルダも送った時のまま（未送信でもない）：送らない
+  if(opt&&opt.nameOnly&&isRep&&!prev.driveSt&&!driveNameStale(sess,itemId)&&!driveFolderStale(sess,itemId))return;
+  upBusy[key]=true;
+  const wasSt=prev.driveSt; // 前の送信が届いていない（録音ごとの送信が残っている）なら名前だけでは済ませない
   // 送信状態を記録（'up'=送信中/中断、'upR'=付け直し中、'fail'/'failR'=失敗。成功で消す）＝未送信の録音を後から特定・再送できる
-  sess.items[itemId].driveSt=isRep?'upR':'up';
+  prev.driveSt=isRep?'upR':'up';
   persistDriveState(sess,itemId);
   showCloud(sess,itemId,'up');
+  let okDone=false;
   try{
-    const prev=sess.items[itemId];
-    const oldEe=prev.driveEe,oldName=prev.driveName; // 送り直す前の受験者名・ファイル名（フォルダが変わると旧ファイルは消えない）
-    const res=await gasUpload(sess,itemId,isRep?prev.driveFileId:null);
+    const oldEe=prev.driveEe,oldDate=prev.driveDate,oldName=prev.driveName; // 送り直す前の受験者名・日付・ファイル名（フォルダが変わると旧ファイルは消えない）
+    let res=null;
+    if(opt&&opt.nameOnly&&isRep&&!wasSt&&!driveFolderStale(sess,itemId)){
+      // 名前だけの送信が圏外・応答なし以外で失敗した（GASの版や設定の違い）：録音ごとの置き換えで送る
+      try{res=await gasRename(sess,itemId,prev)}catch(e){if(e&&(e.kind==='offline'||e.kind==='timeout'))throw e;res=null}
+    }
+    if(!res)res=await gasUpload(sess,itemId,isRep?prev.driveFileId:null);
     if(!res)throw gasErr('noaudio','no-audio'); // 端末に録音の実体が無い（再送しても直らない→案内を分ける）
     // GAS は replaceId の旧ファイルを「新しいフォルダの中にある時だけ」ゴミ箱へ入れる（gas/Code.gs）。
-    // 受験者名が変わった＝別フォルダ（受験者名_日付）なので旧ファイルが残る→案内用に記録（項目を足すだけ）
-    if(isRep&&oldEe!==undefined&&oldEe!==res.ee){
+    // 受験者名・日付が変わった＝別フォルダ（受験者名_日付）なので旧ファイルが残る→案内用に記録（項目を足すだけ）
+    if(isRep&&((oldEe!==undefined&&oldEe!==res.ee)||(oldDate!==undefined&&oldDate!==res.date))){
       const o=Array.isArray(sess.items[itemId].driveOrphan)?sess.items[itemId].driveOrphan:[];
-      const folder=oldEe+'_'+(sess.date||'');
+      const folder=(oldEe!==undefined?oldEe:res.ee)+'_'+(oldDate!==undefined?oldDate:(sess.date||''));
       if(!o.some(x=>x.folder===folder&&x.name===(oldName||'')))o.push({folder,name:oldName||''});
       sess.items[itemId].driveOrphan=o;
     }
-    sess.items[itemId].driveFileId=res.id;sess.items[itemId].driveLink=res.link;sess.items[itemId].driveName=res.name;sess.items[itemId].driveEe=res.ee; // 送った受験者名（保存時に名前が変わっていたら付け直す）
-    delete sess.items[itemId].driveSt;delete sess.items[itemId].driveErr;
+    const it=sess.items[itemId];
+    it.driveFileId=res.id;it.driveLink=res.link;it.driveName=res.name;it.driveEe=res.ee;it.driveDate=res.date; // 送った受験者名・日付（保存時に変わっていたら付け直す）
+    delete it.driveSt;delete it.driveErr;
     persistDriveState(sess,itemId);
     showCloud(sess,itemId,'done');
+    markGasOk();
+    okDone=true;
   }catch(e){
     sess.items[itemId].driveSt=isRep?'failR':'fail';
     sess.items[itemId].driveErr=(e&&e.kind)||'gas'; // 失敗の理由（未送信表示に出す。成功で消す）
@@ -188,9 +262,20 @@ async function maybeAutoUpload(itemId,opt,sessArg){
   }
   finally{
     upBusy[key]=false;
+    // 送信中に試問を保存した・まとめた・合否を変えた：cur が切り替わっていても、いまの実体で最新の名前へ送り直す（M-6）
+    const s2=liveSess(sess)||sess,k2=s2.id+'_'+itemId;
     const p=upPend[key];delete upPend[key];
-    if(p&&(cur===sess||sessArg))maybeAutoUpload(itemId,p,sessArg);
+    const p2=k2!==key?upPend[k2]:null;if(p2)delete upPend[k2];
+    const arg=s2===cur?undefined:s2;
+    if(p||p2)maybeAutoUpload(itemId,mergeDriveOpt(p,p2),arg);
+    else if(okDone&&s2.items[itemId]&&s2.items[itemId].driveFileId&&!drivePending(s2,itemId)&&
+      (driveNameStale(s2,itemId)||(s2!==cur&&driveFolderStale(s2,itemId))))maybeAutoUpload(itemId,{nameOnly:true},arg);
   }
+}
+function copyDriveFields(src,dst){
+  ['driveFileId','driveLink','driveName','driveEe','driveDate','driveOrphan'].forEach(f=>{if(src[f]!==undefined||(f!=='driveEe'&&f!=='driveDate'&&f!=='driveOrphan'))dst[f]=src[f]});
+  if(src.driveSt)dst.driveSt=src.driveSt;else delete dst.driveSt;
+  if(src.driveSt&&src.driveErr)dst.driveErr=src.driveErr;else delete dst.driveErr;
 }
 
 // 保存済みセッション（採点画面から付け直した時）のドライブ情報を保存（採点中の他の入力は触らない）
@@ -199,6 +284,7 @@ function persistDriveInfo(sess,itemId){
   const src=sess.items[itemId]||{};
   const dst=x.items[itemId]=Object.assign(x.items[itemId]||{},{driveFileId:src.driveFileId,driveLink:src.driveLink,driveName:src.driveName});
   if(src.driveEe!==undefined)dst.driveEe=src.driveEe;
+  if(src.driveDate!==undefined)dst.driveDate=src.driveDate;
   if(src.driveOrphan!==undefined)dst.driveOrphan=src.driveOrphan;
   if(src.driveSt)dst.driveSt=src.driveSt;else delete dst.driveSt;
   if(src.driveSt&&src.driveErr)dst.driveErr=src.driveErr;else delete dst.driveErr;
@@ -210,17 +296,20 @@ function persistDriveState(sess,itemId){
   //（古い「未送信」を後から保存し直して、届いた録音を二重送信しないため）
   [typeof cur!=='undefined'?cur:null,typeof curScore!=='undefined'?curScore:null].forEach(o=>{
     if(!o||o===sess||o.id!==sess.id)return;
-    const src=sess.items[itemId]||{},dst=o.items[itemId]=o.items[itemId]||{};
-    ['driveFileId','driveLink','driveName','driveEe','driveOrphan'].forEach(f=>{if(src[f]!==undefined||(f!=='driveEe'&&f!=='driveOrphan'))dst[f]=src[f]});
-    if(src.driveSt)dst.driveSt=src.driveSt;else delete dst.driveSt;
-    if(src.driveSt&&src.driveErr)dst.driveErr=src.driveErr;else delete dst.driveErr;
+    copyDriveFields(sess.items[itemId]||{},o.items[itemId]=o.items[itemId]||{});
   });
   if(cur===sess)saveDraft();else persistDriveInfo(sess,itemId);
+  // まとめ先へ移った試問：送信結果をまとめ先にも書く（元の試問はもう保存されていない・M-8）
+  const mv=driveMoved[sess.id];
+  if(mv&&mv!==sess.id){
+    const t0=sessById(mv);
+    if(t0&&t0!==sess&&t0.items&&t0.items[itemId]){copyDriveFields(sess.items[itemId]||{},t0.items[itemId]);if(t0===cur)saveDraft();else persistDriveInfo(t0,itemId)}
+  }
 }
 /* 未送信（送信失敗・送信中に終了）か。送信中のものは除く */
 function isUnsent(sess,itemId){
   const r=sess&&sess.items&&sess.items[itemId];
-  return !!(r&&r.hasAudio&&r.driveSt&&!upBusy[sess.id+'_'+itemId]);
+  return !!(r&&r.hasAudio&&r.driveSt&&!upBusy[sess.id+'_'+itemId]&&!movedBusy(sess,itemId)&&!drivePending(sess,itemId));
 }
 /* 送り直せば届く見込みのある未送信か（録音の実体が無い noaudio は何度送っても失敗するので除く） */
 function isResendable(sess,itemId){return isUnsent(sess,itemId)&&!driveNoAudio(sess.items[itemId])}
@@ -272,7 +361,7 @@ function resendDrive(sid,itemId,quiet){
   const r=sess.items[itemId];
   const rep=/R$/.test(r.driveSt||'')&&r.driveFileId;
   const opt=Object.assign({manual:true},rep?{replace:true}:{},quiet?{quiet:true}:{});
-  maybeAutoUpload(itemId,opt,sess===cur?undefined:sess);
+  return maybeAutoUpload(itemId,opt,sess===cur?undefined:sess);
 }
 /* 未送信の録音をまとめて再送（電波復帰・起動時）。試問中・保存済みの全セッションが対象 */
 function resendAllUnsent(){
@@ -288,19 +377,38 @@ function resendAllUnsent(){
   return n;
 }
 
-// 合否が変わった録音のドライブ上の名前を付け直す（連打で何本も送らないよう少し待ってから1回だけ）
-const vdTimers={};
-function resyncDriveName(sess,itemId){
+// ドライブへの送信をまとめる（1.5秒待ってから1回だけ）。録音の停止直後に○×を押す・連打する・録り直してすぐ元に戻す、
+// を1回の送信にする（M-16）。録音そのものが変わった（audio）なら録音ごと、名前だけなら名前だけ送る
+const vdTimers={},vdOpt={},VD_WAIT=1500;
+function scheduleDrive(sess,itemId,flags){
   const k=sess.id+'_'+itemId;
   clearTimeout(vdTimers[k]);
-  vdTimers[k]=setTimeout(()=>{
-    const r=sess.items[itemId];if(!r||!r.hasAudio)return;
-    const arg=(sess===cur)?undefined:sess;
-    if(upBusy[k]){maybeAutoUpload(itemId,{replace:true},arg);return} // 送信中→完了後に置き換え送信
-    if(r.driveFileId)maybeAutoUpload(itemId,{replace:true},arg);
-    else if(r.driveSt)maybeAutoUpload(itemId,undefined,arg); // 最初の送信が届いていない録音：合否を変えた機会に新しい名前で送り直す
-  },1500);
+  const f=vdOpt[k]=vdOpt[k]||{sess,itemId,audio:false};
+  f.sess=sess;if(flags&&flags.audio)f.audio=true;
+  vdTimers[k]=setTimeout(()=>fireDrive(k),VD_WAIT);
 }
+function drivePending(sess,itemId){return !!(sess&&vdTimers[sess.id+'_'+itemId])}
+function fireDrive(k){
+  clearTimeout(vdTimers[k]);delete vdTimers[k];
+  const f=vdOpt[k];delete vdOpt[k];if(!f)return;
+  const sess=liveSess(f.sess)||f.sess,itemId=f.itemId;
+  const r=sess.items[itemId];if(!r||!r.hasAudio)return;
+  const arg=(sess===cur)?undefined:sess;
+  if(f.audio){maybeAutoUpload(itemId,undefined,arg);return} // 録音が変わった：録音ごと（ドライブにあれば置き換え）
+  if(r.driveFileId||upBusy[sess.id+'_'+itemId])maybeAutoUpload(itemId,{nameOnly:true},arg);
+  else if(r.driveSt)maybeAutoUpload(itemId,undefined,arg); // 最初の送信が届いていない録音：合否を変えた機会に新しい名前で送り直す
+}
+/* 待たせている送信をすぐ送る（画面を離れる・閉じる時。待っている間に閉じても送り損ねない） */
+function flushDrive(){Object.keys(vdTimers).forEach(fireDrive)}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flushDrive()});
+addEventListener('pagehide',flushDrive);
+/* 録音を端末へ書けた（停止・録り直し・続き・元に戻す）：少し待ってから送る（自動保存ONのときだけ） */
+function queueDriveTake(sess,itemId){
+  const g=getGoogleCfg();if(!g.url||!g.auto||!sess)return;
+  scheduleDrive(sess,itemId,{audio:true});
+}
+// 合否・問題文が変わった録音のドライブ上の名前を付け直す（連打で何本も送らないよう少し待ってから1回だけ）
+function resyncDriveName(sess,itemId){scheduleDrive(sess,itemId)}
 
 /* 「試問を保存」の直後：確定した受験者名とドライブへ送った名前が違う録音を付け直す（replaceId で旧ファイルを置き換え）。
    名前が空で送れずに待っていた録音もここで送る。saved は保存したセッション（保存後は cur ではない） */
@@ -314,7 +422,8 @@ function syncExamineeOnSave(saved,opt){
     const key=saved.id+'_'+k;
     // 受験者名が違う・または合否などで今の名前がドライブのファイル名と違う
     //（名前が空の間に○×を変えると付け直し送信が見送られるため、ここで拾う）→ replaceId で付け直す
-    if(r.driveFileId&&((r.driveEe!==undefined&&r.driveEe!==ee)||driveNameStale(saved,k))){n++;maybeAutoUpload(k,{replace:true},saved);return}
+    if(drivePending(saved,k))return; // 停止直後の送信待ち：待ち終えた時に今の名前で送る
+    if(r.driveFileId&&((r.driveEe!==undefined&&r.driveEe!==ee)||driveFolderStale(saved,k)||driveNameStale(saved,k))){n++;maybeAutoUpload(k,{nameOnly:true},saved);return}
     if(upBusy[key])return;
     if(opt&&opt.onlySent)return;
     if(!r.driveFileId&&g.auto&&!r.driveSt){n++;maybeAutoUpload(k,undefined,saved)} // 名前待ちで送っていなかった録音
@@ -342,26 +451,35 @@ function isAllowedDriveUrl(u){
   try{const pu=new URL(u);return pu.protocol==='https:'&&(pu.hostname==='script.google.com'||pu.hostname==='script.googleusercontent.com')}catch(e){return false}
 }
 function applyUrlConfig(){
+  let p;try{p=new URLSearchParams(location.search)}catch(e){return false}
+  if(!p.has('gurl')&&!p.has('gtoken')&&!p.has('gfolder')&&!p.has('gauto'))return false;
+  // 取り込んだ時も、拒否・キャンセルした時もアドレスからクエリを消す（合言葉を残さない・開くたびに確認やエラーを出さない・L-29）
+  const clean=()=>{try{history.replaceState(null,'',location.pathname)}catch(e){}};
   try{
-    const p=new URLSearchParams(location.search);
-    if(!p.has('gurl')&&!p.has('gtoken')&&!p.has('gfolder')&&!p.has('gauto'))return false;
     const g=getGoogleCfg();
     let url=g.url;
     if(p.has('gurl')){
       const u=(p.get('gurl')||'').trim();
-      if(!isAllowedDriveUrl(u)){toast(t('gBadUrl'),1);return false} // Google以外/非httpsは拒否
+      if(!isAllowedDriveUrl(u)){clean();toast(t('gBadUrl'),1);return false} // Google以外/非httpsは拒否
       url=u;
     }
+    const n=Object.assign({},g,{url});
+    if(p.has('gtoken'))n.token=(p.get('gtoken')||'').trim();
+    if(p.has('gfolder'))n.folder=(p.get('gfolder')||'').trim();
+    if(p.has('gauto'))n.auto=(p.get('gauto')==='1'||p.get('gauto')==='true');
+    // 変わる設定を並べて確かめる（保存フォルダ・合言葉・自動保存も黙って上書きしない・L-6）
+    const chg=[];
+    if(p.has('gfolder')&&n.folder!==(g.folder||''))chg.push('・'+t('gFolder')+': '+(n.folder||'—'));
+    if(p.has('gtoken')&&n.token!==(g.token||''))chg.push('・'+t('gToken'));
+    if(p.has('gauto')&&n.auto!==g.auto)chg.push('・'+t('gAuto')+': '+(n.auto?'ON':'OFF'));
     // 保存先（送信先）が変わる場合は必ずユーザー確認（リンクを開くだけのサイレント設定を防ぐ）
     if(url&&url!==g.url){
-      if(!confirm(t('gConfirmCfg')+'\n\n'+url))return false;
+      if(!confirm(t('gConfirmCfg')+'\n\n'+url+(chg.length?'\n'+chg.join('\n'):''))){clean();return false}
+    }else if(chg.length){
+      if(!confirm(t('gConfirmChg')+'\n\n'+chg.join('\n'))){clean();return false}
     }
-    g.url=url;
-    if(p.has('gtoken'))g.token=(p.get('gtoken')||'').trim();
-    if(p.has('gfolder'))g.folder=(p.get('gfolder')||'').trim();
-    if(p.has('gauto'))g.auto=(p.get('gauto')==='1'||p.get('gauto')==='true');
-    localStorage.setItem(GKEY,JSON.stringify(g));
-    try{history.replaceState(null,'',location.pathname)}catch(e){} // 合言葉をアドレスバーから消す
+    localStorage.setItem(GKEY,JSON.stringify(n));
+    clean();
     return true;
-  }catch(e){return false}
+  }catch(e){clean();return false}
 }

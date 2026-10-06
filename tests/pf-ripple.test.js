@@ -24,7 +24,7 @@ const SESS=[
   const dialogs=[];let dialogAns=false;
   p.on('dialog',async d=>{dialogs.push(d.message());dialogAns?await d.accept():await d.dismiss()});
   const posts=[];let n=0;
-  await p.route('https://script.google.com/**',async r=>{const j=JSON.parse(r.request().postData());posts.push({name:j.name,replaceId:j.replaceId||null});n++;r.fulfill({contentType:'application/json',body:JSON.stringify({ok:true,id:'G'+n,url:'https://drive/G'+n})})});
+  await p.route('https://script.google.com/**',async r=>{const j=JSON.parse(r.request().postData());if(j.ping)return r.fulfill({contentType:'application/json',body:'{"ok":true,"ping":true}'});/* 旧GAS（名前だけの送信も ping として返す） */posts.push({name:j.name,replaceId:j.replaceId||null});n++;r.fulfill({contentType:'application/json',body:JSON.stringify({ok:true,id:'G'+n,url:'https://drive/G'+n})})});
   await p.goto(URL0);
   await p.evaluate(s=>{localStorage.setItem('oral_exam_sessions_v1',JSON.stringify({sessions:s}));localStorage.setItem('oral_exam_google_v1',JSON.stringify({url:'https://script.google.com/macros/s/x/exec',auto:true}))},SESS);
   await p.reload();await p.waitForTimeout(400);

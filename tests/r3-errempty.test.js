@@ -12,7 +12,7 @@ const c = env.counter();
 const GURL = 'https://script.google.com/macros/s/x/exec';
 const GCFG = JSON.stringify({ url: GURL, token: 'tk', auto: true, autoSet: true });
 const toastTxt = p => p.evaluate(() => document.getElementById('toast').textContent);
-async function rec(p, id) { await p.click('#rb-' + id); await p.waitForTimeout(900); await p.click('#rb-' + id); await p.waitForTimeout(900); }
+async function rec(p, id) { await p.click('#rb-' + id); await p.waitForTimeout(900); await p.click('#rb-' + id); await p.waitForTimeout(2000); } // 停止後のドライブ送信は1.5秒待ってから（○×と1回にまとめる・M-16）
 async function saveExam(p) { await p.click('button:has-text("試問を保存")'); await p.waitForTimeout(500); }
 
 (async () => {

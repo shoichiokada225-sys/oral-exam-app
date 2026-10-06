@@ -6,7 +6,7 @@ let pass=0,fail=0;const ok=(n,c)=>{c?pass++:fail++;console.log((c?'  OK ':'  NG 
   const b=await env.launch();
   const {page:p,errors:errs}=await env.newPage(b);
   const posts=[];let n=0;
-  await p.route('https://script.google.com/**',async r=>{const j=JSON.parse(r.request().postData());posts.push({name:j.name,replaceId:j.replaceId||null});n++;await new Promise(s=>setTimeout(s,300));r.fulfill({contentType:'application/json',body:JSON.stringify({ok:true,id:'F'+n,url:'https://drive/F'+n})})});
+  await p.route('https://script.google.com/**',async r=>{const j=JSON.parse(r.request().postData());if(j.ping)return r.fulfill({contentType:'application/json',body:'{"ok":true,"ping":true}'});/* 旧GAS（名前だけの送信も ping として返す） */posts.push({name:j.name,replaceId:j.replaceId||null});n++;await new Promise(s=>setTimeout(s,300));r.fulfill({contentType:'application/json',body:JSON.stringify({ok:true,id:'F'+n,url:'https://drive/F'+n})})});
   await p.goto(env.URL);
   await p.evaluate(()=>localStorage.setItem('oral_exam_google_v1',JSON.stringify({url:'https://script.google.com/macros/s/x/exec',auto:true})));
   await p.reload();await p.waitForTimeout(300);
@@ -16,7 +16,7 @@ let pass=0,fail=0;const ok=(n,c)=>{c?pass++:fail++;console.log((c?'  OK ':'  NG 
   const box=await p.locator('#vp-q1').boundingBox(),rb=await p.locator('#rb-q1').boundingBox();
   ok('録音ボタンと同じ行',Math.abs((box.y+box.height/2)-(rb.y+rb.height/2))<30);
   // 録音→判定なしで送信
-  await p.click('#rb-q1');await p.waitForTimeout(1000);await p.click('#rb-q1');await p.waitForTimeout(1200);
+  await p.click('#rb-q1');await p.waitForTimeout(1000);await p.click('#rb-q1');await p.waitForTimeout(2300); // 停止後の送信は1.5秒待ってから（M-16）
   ok('判定前の送信名=未判定: '+posts[0]?.name,posts[0]?.name.includes('_未判定_'));
   // 合格を押す→付け直し
   await p.click('#vp-q1');ok('合格が点灯',await p.locator('#vp-q1.on').count()===1);

@@ -81,8 +81,7 @@ function recKeys(s){return Object.keys((s&&s.items)||{}).filter(k=>s.items[k]&&s
 /* 同じ日の続きとしてまとめる：src（今の試問）の録音と合否を tgt（保存済みの試問の複製）へ写す。
    録音は src.id_item → tgt.id_item へ複製（同じ問の録音が両方にある場合は呼ばない）。写したキーを返す */
 async function copySessInto(src,tgt){
-  // 送信中の録音は、届いてから写す（送信結果が行き場を失って二重送信にならないように）
-  for(let i=0;i<60&&recKeys(src).some(k=>typeof upBusy!=='undefined'&&upBusy[src.id+'_'+k]);i++)await new Promise(r=>setTimeout(r,250));
+  // 送信中の録音は待たずに写す。届いた結果は保存後に noteDriveMoved（drive.js）がまとめ先へ写す（M-8）
   const copied=[];
   for(const k of Object.keys(src.items||{})){
     const r=src.items[k];if(!r||!safeKey(k))continue;
@@ -365,7 +364,7 @@ function gShareLink(){
   const p=new URLSearchParams();
   p.set('gurl',g.url);
   if(g.folder)p.set('gfolder',g.folder);
-  if(gShareTokOn&&g.token){p.set('gtoken',g.token);p.set('gauto',g.auto?'1':'0')}
+  if(gShareTokOn&&g.token){p.set('gtoken',g.token);if(g.auto)p.set('gauto','1')} // gauto=0 は載せない（受け取った端末を黙ってOFFにしない・L-6）
   u.search=p.toString();
   return u.href;
 }

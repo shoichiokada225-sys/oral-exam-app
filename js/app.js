@@ -392,6 +392,8 @@ async function saveSession(opt){
     }
     saveDraft();showSaveErr(true);return;
   }
+  // まとめた：送信中だった録音の結果がまとめ先へ届くようにする（同期のうちに＝この間に届いた結果も写す・M-8）
+  if(merged&&typeof noteDriveMoved==='function')noteDriveMoved(cur,merged,copied);
   // まとめた：今の試問のキーの録音は、まとめ先へ写し終えたので片付ける
   if(merged)for(const k of copied)await delAudio(cur.id+'_'+k);
   // 続きで録り直した問：保存した＝新しい録音に決めた。退避しておいた元の録音を片付ける

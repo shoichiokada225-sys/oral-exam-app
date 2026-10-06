@@ -19,7 +19,7 @@ function buildExamCards(){
       const ansTxt=loc(it,'ans');
       h+=`<div class="cd qc${has&&isPF(rec.score)?' done':''}" id="q-${iid}">
         <div class="en">${esc(secName.charAt(0))}-${ii+1}</div>
-        ${it.free?`<textarea class="qtx" id="qt-${iid}" rows="2" placeholder="${esc(t2('freePh'))}" aria-label="${esc(freeLbl(ii+1))}" oninput="setQText('${iid}',this.value)">${esc(rec&&rec.qText||'')}</textarea>`
+        ${it.free?`<textarea class="qtx" id="qt-${iid}" rows="2" placeholder="${esc(t2('freePh'))}" aria-label="${esc(freeLbl(ii+1))}" oninput="setQText('${iid}',this.value)" onchange="qTextDone('${iid}')">${esc(rec&&rec.qText||'')}</textarea>`
           :`<div class="enm">${esc(loc(it,'name'))}</div>
         <div class="ed">${esc(loc(it,'desc'))}</div>`}
         ${ansTxt?`<details class="ans"><summary>${t('ansLbl')}${lang!=='ja'&&ansTxt===it.ans?' '+esc(t('ansJaNote')):''}</summary><div class="ansb">${esc(ansTxt)}</div></details>`:''}
@@ -246,12 +246,15 @@ function renderStoWarn(){
 /* 録音を始めるとき（toggleRec）：永続化を頼み、残り容量を見直す（録音自体は待たせない） */
 function storageOnRec(){askPersist();checkStorage()}
 
-/* その場で出題：問題文を試問ごとに保存（入力のたびに下書きへ）。録音済みならドライブのファイル名も付け直す */
+/* その場で出題：問題文を試問ごとに保存（入力のたびに下書きへ）。録音済みならドライブのファイル名は欄を離れた時に付け直す（qTextDone・M-16） */
 let qtTimer=null;
 function setQText(itemId,v){
   if(!cur)return;
   cur.items[itemId]=cur.items[itemId]||{};
   cur.items[itemId].qText=String(v||'');
   clearTimeout(qtTimer);qtTimer=setTimeout(()=>{if(typeof saveDraft==='function')saveDraft()},400);
+}
+function qTextDone(itemId){
+  if(!cur||!cur.items[itemId])return;
   if(cur.items[itemId].hasAudio&&typeof resyncDriveName==='function')resyncDriveName(cur,itemId);
 }

@@ -131,6 +131,9 @@ function doDel(id){
   // セッション自身のキーで削除（cfg変更後でも旧項目の音声がIndexedDBに孤児残留しない）
   // 先に一覧から外す。保存に失敗したら（容量不足等）録音も消さない＝履歴に残るのに音声だけ無い状態を作らない
   const r=getAll().find(e=>e.id===id);
+  // ドライブへ送れていない録音（端末にしかない唯一の写し）があれば件数を出してもう一度確かめる（L-4）
+  const off=r&&getGoogleCfg().url?Object.keys(r.items||{}).filter(k=>r.items[k]&&r.items[k].hasAudio&&!r.items[k].driveFileId).length:0;
+  if(off&&!confirm(t('cDelUnsent').replace('{n}',off)))return;
   if(!saveAll(getAll().filter(e=>e.id!==id)))return;
   if(r)Object.keys(r.items||{}).forEach(k=>delAudio(id+'_'+k));
   closeMo();drawHist();refreshSel();

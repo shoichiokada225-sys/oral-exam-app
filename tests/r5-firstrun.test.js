@@ -9,7 +9,7 @@
 const env = require('./_env');
 const T = env.counter();
 const GURL = 'https://script.google.com/macros/s/r5test/exec';
-async function rec(p, id) { await p.click('#rb-' + id); await p.waitForTimeout(900); await p.click('#rb-' + id); await p.waitForTimeout(900); }
+async function rec(p, id) { await p.click('#rb-' + id); await p.waitForTimeout(900); await p.click('#rb-' + id); await p.waitForTimeout(2000); } // 停止後のドライブ送信は1.5秒待ってから（○×と1回にまとめる・M-16）
 async function setup(b, dialogAns) {
   const { page: p, errors } = await env.newPage(b);
   const posts = []; let n = 0;

@@ -12,7 +12,7 @@ const GURL = 'https://script.google.com/macros/s/x/exec';
 const toastTxt = p => p.evaluate(() => document.getElementById('toast').textContent);
 const draft = p => p.evaluate(() => JSON.parse(localStorage.getItem('oral_exam_draft_v1') || 'null'));
 const sessions = p => p.evaluate(() => JSON.parse(localStorage.getItem('oral_exam_sessions_v1') || 'null'));
-async function rec(p, id) { await p.click('#rb-' + id); await p.waitForTimeout(900); await p.click('#rb-' + id); await p.waitForTimeout(900); }
+async function rec(p, id) { await p.click('#rb-' + id); await p.waitForTimeout(900); await p.click('#rb-' + id); await p.waitForTimeout(2000); } // 停止後のドライブ送信は1.5秒待ってから（○×と1回にまとめる・M-16）
 
 (async () => {
   const b = await env.launch();
@@ -91,7 +91,9 @@ async function rec(p, id) { await p.click('#rb-' + id); await p.waitForTimeout(9
     const posts = []; let n = 0, down = false;
     await p.route('https://script.google.com/**', async r => {
       if (down) return r.abort();
-      const j = JSON.parse(r.request().postData()); n++; posts.push({ name: j.name, replaceId: j.replaceId || null });
+      const j = JSON.parse(r.request().postData());
+      if (j.ping) return r.fulfill({ contentType: 'application/json', body: '{"ok":true,"ping":true}' }); // 旧GAS（名前だけの送信も ping として返す）
+      n++; posts.push({ name: j.name, replaceId: j.replaceId || null });
       r.fulfill({ contentType: 'application/json', body: JSON.stringify({ ok: true, id: 'F' + n, url: 'https://drive/F' + n }) });
     });
     await p.goto(env.URL);
