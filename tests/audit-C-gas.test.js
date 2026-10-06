@@ -41,7 +41,7 @@ function world(over) {
   };
   vm.createContext(ctx);
   vm.runInContext(SRC + '\n' + (over || ''), ctx);
-  W.post = body => JSON.parse(ctx.doPost({ postData: { contents: JSON.stringify(body) } }).s);
+  W.post = body => JSON.parse(ctx.doPost({ postData: { contents: JSON.stringify(Object.assign({ token: 'OOIRI' }, body)) } }).s);   // アプリの既定の保存先は合言葉 OOIRI（Code.gs の既定値と同じ）
   W.sub = (folder, sub) => W.folders.filter(x => x.name === sub && x.parent && x.parent.name === folder);
   return W;
 }

@@ -16,7 +16,7 @@
 | SW のキャッシュ名 | `oral-exam-vNN` | `oral-exam-vNN-<id>`（同じ場所に置いても混ざらない） |
 
 ## 新しい農場を1つ追加する（コマンド1本）
-1. （1回だけ）その農場の Google アカウントで GAS を作る: `gas/Code.gs` を貼る → 「プロジェクトの設定」→「スクリプト プロパティ」に `TOKEN`（農場の合言葉）を入れる。値は `node tools/gen-tokens.mjs` が24字の乱数で作る（16字未満は GAS が全拒否） → ウェブアプリとして「全員」で公開 → `/exec` URL を控える。詳細は `SETUP-GOOGLE-DRIVE.md`。
+1. （1回だけ）その農場の Google アカウントで GAS を作る: **`node tools/build-tenant.mjs <id>` が作る `dist/<id>/gas/Code.gs`**（リポの `gas/Code.gs` ではない）を貼る → 「プロジェクトの設定」→「スクリプト プロパティ」に `TOKEN`（農場の合言葉）を入れる。値は `node tools/gen-tokens.mjs` が24字の乱数で作る（16字未満は GAS が全拒否） → ウェブアプリとして「全員」で公開 → `/exec` URL を控える。詳細は `SETUP-GOOGLE-DRIVE.md`。
 2. `cp tenants/demo-farm.json tenants/<id>.json` して `id`・`brand.title`・`gas.url`・`gas.folder` を書く（合言葉はここに書かない。書くとビルドが止まる）。
 3. `TENANT_GAS_TOKEN='<GASのTOKENと同じ値>' node tools/build-tenant.mjs <id>`
    （または git に入れない `tenants/<id>.secret.json` に `{"gasToken":"…"}`。`.gitignore` 済み）
@@ -31,7 +31,8 @@
 - **総当たり対策は「合言葉の強さ」**: スクリプトプロパティ由来の `TOKEN` は16字未満だと**全拒否**（コード直書きの `var TOKEN`＝既存のヒラノの GAS は従来どおり長さを問わない＝ヒラノの動作は不変）。
   「間違いが多いと全員拒否」の全体ロックは**入れていない**（GAS は接続元 IP を見られず、誰でも利用者全員を締め出せるため）。間違いは数えるだけで、`/exec?token=…&stat=1` の `authFails`（直近10分）で見られる。
 - 反映手順（社長作業・任意）: GAS エディタに `gas/Code.gs` を貼り直す → 「デプロイを管理」→ 鉛筆 →「新バージョン」。
-  🚨 **ヒラノの既存 GAS に貼り直す場合は、貼る前後で合言葉が消えないよう、プロパティ `TOKEN` に現行の合言葉（`OOIRI`）を必ず入れる**。貼り直しで `var TOKEN = ''` に戻るため、プロパティを入れ忘れると合言葉なしで誰でも書き込める状態になる。反映しなくてもアプリは今のまま動く（総当たり対策が効かないだけ）。
+  ヒラノの既存 GAS に貼り直しても、既定の `var TOKEN = 'OOIRI'`（現行の合言葉）が効くので、プロパティを入れ忘れても無防備にならない（貼る前に現行 GAS の TOKEN 行を控えておくこと）。
+  他農場用の `dist/<id>/gas/Code.gs` は既定の合言葉が空で `TENANT_MODE = true`＝プロパティ `TOKEN`（16字以上）を入れ忘れると**全拒否**（fail-closed）。リポの `gas/Code.gs` を他農場に貼らないこと（既定 OOIRI は公開値）。
 
 ## 契約書の合格条件との対応
 | # | 条件 | 状態 |

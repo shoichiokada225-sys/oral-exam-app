@@ -72,13 +72,24 @@ export function build(id, outDir) {
     }
     fs.writeFileSync(dst, buf);
   }
+  // 農場専用の GAS（dist/<id>/gas/Code.gs）: 既定の合言葉を空にして TENANT_MODE を有効にする
+  // ＝プロパティ TOKEN（16字以上）を入れ忘れると全拒否（fail-closed）。ヒラノの既定の合言葉・名称は消す
+  {
+    let g = fs.readFileSync(path.join(ROOT, 'gas', 'Code.gs'), 'utf8');
+    const n0 = g.length;
+    g = g.replace("var TOKEN = 'OOIRI';", "var TOKEN = '';").replace('var TENANT_MODE = false;', 'var TENANT_MODE = true;');
+    if (!/var TENANT_MODE = true;/.test(g) || !/var TOKEN = '';/.test(g)) die('gas/Code.gs の TOKEN / TENANT_MODE の行が見つかりません');
+    g = g.split('OOIRI').join('（既定値）').split('ヒラノ版').join('既存の本番').split('ヒラノ').join('既存');
+    const gd = path.join(out, 'gas'); fs.mkdirSync(gd, { recursive: true });
+    fs.writeFileSync(path.join(gd, 'Code.gs'), g);
+  }
   // 検査: 既定（ヒラノ）の保存先・合言葉・公開URLが出力に1つも残っていない
   const bad = [];
   (function walk(d) {
     for (const n of fs.readdirSync(d)) {
       const p = path.join(d, n);
       if (fs.statSync(p).isDirectory()) { walk(p); continue; }
-      if (!/\.(js|html|webmanifest|json|css)$/.test(n)) continue;
+      if (!/\.(js|html|webmanifest|json|css|gs)$/.test(n)) continue;
       const s = fs.readFileSync(p, 'utf8');
       for (const k of Object.values(HIRANO)) if (s.includes(k)) bad.push(path.relative(out, p) + ' に "' + k.slice(0, 12) + '…"');
       if (/睦沢|ヒラノ/.test(s)) bad.push(path.relative(out, p) + ' に固有名');

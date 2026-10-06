@@ -5,7 +5,7 @@
  *  1. https://script.google.com/ で「新しいプロジェクト」を作成
  *  2. このコードを全て貼り付け
  *  3. （任意）下の TOKEN に合言葉を設定すると、その値をアプリの設定にも入れる必要があります。
- *       合言葉が不要なら TOKEN = '' のまま（空）でOK。
+ *       既定は TOKEN = 'OOIRI'（ヒラノ版）。合言葉なしにしたい時だけ TOKEN = '' に自分で変える。
  *       ※ 農場ごとに別の GAS を作る（docs/MULTI-TENANT.md）。合言葉はコードに書かず、スクリプトプロパティ TOKEN に入れる方法を推奨
  *  4. 「デプロイ」→「新しいデプロイ」→ 種類=ウェブアプリ
  *       実行するユーザー = 自分
@@ -25,7 +25,12 @@
  */
 
 // ▼▼▼ 合言葉（任意）。設定するとアプリ側にも同じ値が必要。不要なら '' のまま ▼▼▼
-var TOKEN = '';
+var TOKEN = 'OOIRI';
+// ↑ 既定値（ヒラノ版の現行の合言葉）。スクリプトプロパティ TOKEN が無くても、貼り直しで無防備（合言葉なし）にならない。
+//   アプリの既定の保存先（tenant-config.js）も同じ値。他農場の GAS には使わない（下の TENANT_MODE と tools/build-tenant.mjs の gas 出力を使う）
+// ▼ 他農場向け配布物（dist/<id>/gas/Code.gs）では tools/build-tenant.mjs が true にし、TOKEN を空にする。
+//   true の間は「プロパティ TOKEN が無い・16文字未満」ならすべて拒否する（入れ忘れても開かない）
+var TENANT_MODE = false;
 // スクリプトプロパティ TOKEN があればそちらが優先（コードに合言葉を書かずに済む。2026-10-07 マルチテナント化）。
 // 既存の GAS（上の TOKEN に直書き）はそのまま動く＝プロパティを作らなければ従来と同じ
 var PROP_TOKEN = (function () {
@@ -60,7 +65,8 @@ function failCount() {
 function authCheck(token) {
   if (PROP_TOKEN && PROP_TOKEN.length < MIN_PROP_TOKEN) return json({ ok: false, error: 'bad-token' }); // 短すぎるプロパティ合言葉は全拒否
   var want = activeToken();
-  if (!want) return null; // 合言葉なし運用（従来どおり）
+  if (TENANT_MODE && !want) return json({ ok: false, error: 'bad-token' }); // 他農場: プロパティ未設定は全拒否（fail-closed）
+  if (!want) return null; // 合言葉なし運用（TOKEN を空にした GAS のみ）
   if (String(token || '') !== want) { noteFail(); return json({ ok: false, error: 'bad-token' }); }
   return null;
 }

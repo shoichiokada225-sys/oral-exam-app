@@ -29,7 +29,10 @@ const HIRANO = ['AKfycbxupXbLNCzUGtwr2D2sWQfozP0u4bFitbqyiIk_efuUdpPzE-EaVdCI4nJ
   T.ok('A/B にヒラノの値・固有名が無い ' + HIRANO.filter(k => sa.includes(k) || sb.includes(k)).join(','), HIRANO.every(k => !sa.includes(k) && !sb.includes(k)));
   T.ok('合言葉は tenants/*.json に書かれていない', !fs.readFileSync(path.join(env.ROOT, 'tenants', 'demo-farm.json'), 'utf8').includes('tokenAAA'));
   T.ok('SW のキャッシュ名が農場別', /oral-exam-v\d+-demo-farm'/.test(fs.readFileSync(path.join(A, 'sw.js'), 'utf8')) && /-demo-farm-b'/.test(fs.readFileSync(path.join(B, 'sw.js'), 'utf8')));
-  T.ok('配布物に tests/gas/tools/tenants/*.md が入らない', ['tests', 'gas', 'tools', 'tenants', 'README.md'].every(n => !fs.existsSync(path.join(A, n))));
+  T.ok('配布物に tests/tools/tenants/*.md が入らない（gas/ は農場用 Code.gs だけ）', ['tests', 'tools', 'tenants', 'README.md'].every(n => !fs.existsSync(path.join(A, n))) && fs.readdirSync(path.join(A, 'gas')).join() === 'Code.gs');
+
+  const gasT = fs.readFileSync(path.join(A, 'gas', 'Code.gs'), 'utf8');
+  T.ok('農場用 GAS: 既定の合言葉は空・TENANT_MODE=true・OOIRI/ヒラノの文字なし', /var TOKEN = '';/.test(gasT) && /var TENANT_MODE = true;/.test(gasT) && !/OOIRI|ヒラノ/.test(gasT));
 
   console.log('[2] ヒラノの値は他農場に使えない');
   const tdir = path.join(env.ROOT, 'tenants'), tmpT = path.join(tdir, 'zz-bad.json');
@@ -95,8 +98,14 @@ const HIRANO = ['AKfycbxupXbLNCzUGtwr2D2sWQfozP0u4bFitbqyiIk_efuUdpPzE-EaVdCI4nJ
   T.ok('B の間違いは A に影響しない', gA({ token: 'tokenAAA-1234567890', ping: true }).ok === true);
   const gShort = gas({ TOKEN: 'short-123' }, {});
   T.ok('プロパティ由来の短い合言葉（16字未満）は全拒否', gShort({ token: 'short-123', ping: true }).error === 'bad-token' && gShort({ ping: true }).error === 'bad-token');
+  // 農場用 GAS（ビルド出力）: プロパティ TOKEN の入れ忘れは全拒否・入れれば通る
+  const SRC_T = gasT;
+  const gasT2 = props => { const ctx = { PropertiesService: { getScriptProperties: () => ({ getProperty: k => props[k] || null }) }, CacheService: { getScriptCache: () => ({ get: () => null, put() {} }) }, DriveApp: {}, LockService: {}, Utilities: {}, ContentService: { MimeType: { JSON: 'json' }, createTextOutput: s => ({ s, setMimeType() { return this; } }) } }; vm.createContext(ctx); vm.runInContext(SRC_T, ctx); return body => JSON.parse(ctx.doPost({ postData: { contents: JSON.stringify(body) } }).s); };
+  T.ok('農場用 GAS: プロパティ TOKEN を入れ忘れると、合言葉なしでも OOIRI でも全拒否（fail-closed）', gasT2({})({ ping: true }).error === 'bad-token' && gasT2({})({ token: 'OOIRI', ping: true }).error === 'bad-token' && gasT2({})({ token: '', ping: true }).error === 'bad-token');
+  T.ok('農場用 GAS: プロパティ TOKEN（16字以上）を入れれば通る', gasT2({ TOKEN: 'tokenXYZ-1234567890' })({ token: 'tokenXYZ-1234567890', ping: true }).ok === true);
+  // リポの既定 GAS（ヒラノ）: プロパティが無くても貼り直しで無防備にならない（既定 OOIRI）
   const gOld = gas({}, {});
-  T.ok('プロパティ未設定・TOKEN 空の従来 GAS は合言葉なしで通る（従来どおり）', gOld({ ping: true }).ok === true);
+  T.ok('既定 GAS: プロパティ無しでも合言葉 OOIRI が必要（貼り直しても無防備にならない）・OOIRI なら従来どおり通る', gOld({ ping: true }).error === 'bad-token' && gOld({ token: 'OOIRI', ping: true }).ok === true);
 
   fs.rmSync(tmp, { recursive: true, force: true });
   T.done();
