@@ -4,6 +4,7 @@
    M-4 採点画面で同じ○×をもう一度押すと外れる（録音のない問の誤タップも外せる）
    M-5 「質問しなかった」の問に試問画面で○×を付けると na が外れる／試問画面の催促で na は判定済み
    L-2 名前を書き換えてそのまま「録音」を押した：切り替え後に「もう一度押して」と知らせる
+   R1  今の構成がどこにも保存されていない（セット未保存・変更ありのテンプレート・項目を保存していない編集）なら、続きを開いても置き換えない
    本物の GAS へは送らない（ドライブ設定なし・script.google は遮断）。 */
 'use strict';
 const env = require('./_env');
@@ -168,6 +169,59 @@ const cardIds = p => p.$$eval('#examCards .qc', cs => cs.map(x => x.id.replace(/
     c.ok('L-2 録音を押していなければ付けない: ' + await toastTxt(p), (await toastTxt(p)).includes('Cさん') && !(await toastTxt(p)).includes('もう一度'));
     c.ok('L-2 4言語に文言がある', await p.evaluate(() => ['ja', 'en', 'vi', 'id'].every(l => { const o = lang; lang = l; const v = t2('recTapAgain'); lang = o; return v && v !== 'recTapAgain'; })));
     c.ok('L-2 JSエラーなし ' + errors.join('|'), errors.length === 0);
+    await ctx.close();
+  }
+
+  /* ---------- R1: 続きを開いても、保存されていない今の構成を消さない ---------- */
+  {
+    const { p, errors, ctx } = await open(b);
+    const dg = dialogs(p); dg.ans = m => !isScoredQ(m);
+    await p.fill('#fEe', '旧さん'); await p.press('#fEe', 'Tab');
+    await rec(p, 'q1');
+    await p.evaluate(() => saveSession()); await p.waitForTimeout(600);
+    const sid = (await all(p))[0].id;
+    c.ok('R1 前提: 標準の3問で保存', (await all(p))[0].setId === 'def');
+    // A: セット未保存の構成（名前の書き換え＋質問の追加→項目を保存）
+    await p.evaluate(() => { cfg.items[0].name = '自作の質問A'; cfg.items.push({ id: 'my1', secId: cfg.items[0].secId, name: '自作の質問B', desc: '' }); saveCfg(); });
+    c.ok('R1 前提: 今の構成はセット未保存', await p.evaluate(() => curSetInfo().id) === '');
+    c.ok('R1-A 続きのボタンの数は今の構成で数える（3問）', await p.evaluate(id => unrecCount(getAll().find(s => s.id === id)), sid) === 3);
+    dg.log.length = 0;
+    await p.evaluate(id => resumeExam(id), sid); await p.waitForTimeout(800);
+    const a = await p.evaluate(() => ({ id: curSetInfo().id, n: getItems().map(x => x.name), stored: JSON.parse(localStorage.getItem(CKEY)).items.map(x => x.name) }));
+    c.ok('R1-A 自作の構成は残る（保存した質問も） ' + JSON.stringify(a.stored), a.stored.includes('自作の質問A') && a.stored.includes('自作の質問B'));
+    c.ok('R1-A 画面の出題も自作のまま', a.id === '' && a.n.includes('自作の質問B'));
+    c.ok('R1-A 続きは開いている', await p.evaluate(id => !!(cur && cur.id === id && cur._resume), sid));
+    // C: 設定タブで編集中（項目を保存していない）の構成も置き換えない
+    await p.evaluate(() => { const qs = getQuestionSets(); qs.presets.push({ id: 'set_r1', name: 'R1セット', cfg: freeCfg() }); qs.activeId = 'set_r1'; saveQuestionSets(qs); cfg = freeCfg(); persistCfg(); });
+    c.ok('R1-C 前提: 保存済みの自分のセットを使用中', await p.evaluate(() => curSetInfo().id) === 'set:set_r1');
+    const sid2 = sid;
+    await p.evaluate(() => { cfg.items[0].name = '編集中の質問'; markCfgDirty(); });
+    c.ok('R1-C 前提: 編集中（未保存）', await p.evaluate(() => cfgDirty === true));
+    await p.evaluate(id => resumeExam(id), sid2); await p.waitForTimeout(800);
+    c.ok('R1-C 編集中の構成は置き換えない', await p.evaluate(() => getItems()[0].name === '編集中の質問' && curSetInfo().id === 'set:set_r1'));
+    c.ok('R1 JSエラーなし ' + errors.join('|'), errors.length === 0);
+    await ctx.close();
+  }
+  {
+    const { p, errors, ctx } = await open(b);
+    const dg = dialogs(p); dg.ans = m => !isScoredQ(m);
+    const avail = await p.evaluate(() => qbankAvailable() && qbankPresets().length > 0);
+    c.ok('R1-B 前提: テンプレートがある', avail);
+    if (avail) {
+      const pid = await p.evaluate(() => sanitizeId(qbankPresets()[0].id));
+      await p.evaluate(id => applyQbank(false, id), pid); await p.waitForTimeout(500);
+      const first = await p.evaluate(() => getItems()[0].id);
+      await p.fill('#fEe', 'テンプレさん'); await p.press('#fEe', 'Tab');
+      await rec(p, first);
+      await p.evaluate(() => saveSession()); await p.waitForTimeout(600);
+      const sid = (await all(p))[0].id;
+      await p.evaluate(() => { cfg.items[0].name = '書き換えた質問'; cfgDirty = true; saveCfg(); });
+      c.ok('R1-B 前提: 変更ありのテンプレート', (await p.evaluate(() => curSetInfo().id)).endsWith('+'));
+      await p.evaluate(id => resumeExam(id), sid); await p.waitForTimeout(800);
+      const r = await p.evaluate(() => ({ id: curSetInfo().id, n0: getItems()[0].name, st: JSON.parse(localStorage.getItem(CKEY)).items[0].name }));
+      c.ok('R1-B 書き換えは残る ' + JSON.stringify(r), r.id.endsWith('+') && r.n0 === '書き換えた質問' && r.st === '書き換えた質問');
+    }
+    c.ok('R1-B JSエラーなし ' + errors.join('|'), errors.length === 0);
     await ctx.close();
   }
 

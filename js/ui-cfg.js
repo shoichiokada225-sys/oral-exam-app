@@ -308,11 +308,19 @@ function presetCfg(p){
   return{sections:(p.cfg.sections||[]).map(s=>copyLocFields(s,{id:sanitizeId(s.id),name:String(s.name||'')},['name'])),
        items:(p.cfg.items||[]).map(it=>{const o={id:sanitizeId(it.id),secId:sanitizeId(it.secId),name:String(it.name||''),desc:String(it.desc||'')};if(it.free)o.free=true;if(it.ans!=null)o.ans=String(it.ans);return copyLocFields(it,o,['name','desc','ans'])})};
 }
+/* 今の構成がどこにも保存されていない（セット未保存の構成・変更ありのテンプレート・項目を保存していない編集）。
+   切り替えると戻せないので、続きを開いても今の出題を置き換えない（B-verdict-R1） */
+function curCfgUnsaved(ci){
+  const id=(ci||curSetInfo()).id;
+  return id===''||id.endsWith('+')||(typeof cfgDirty!=='undefined'&&cfgDirty);
+}
 /* 保存済みの試問の出題（setId）から、その出題の実体と「使用中」の印を作る。今の出題と同じ・作れない（変更ありのテンプレート・
-   消したセット・セット未保存の構成・記録のない旧データ）なら null。戻り値 {cfg, apply(qs)} */
+   消したセット・セット未保存の構成・記録のない旧データ）・今の構成が保存されていない（curCfgUnsaved）なら null。戻り値 {cfg, apply(qs)} */
 function setCfgOf(r){
   const id=r&&r.setId!=null?String(r.setId):'';
-  if(!id||id===curSetInfo().id)return null;
+  if(!id)return null;
+  const ci=curSetInfo();
+  if(id===ci.id||curCfgUnsaved(ci))return null;
   const clr=qs=>{qs.activeId=null;delete qs.activeTpl};
   if(id==='def')return{cfg:defaultCfg(),apply:clr};
   if(id==='free')return{cfg:freeCfg(),apply:clr};
