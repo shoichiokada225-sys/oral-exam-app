@@ -8,7 +8,7 @@
  *  - インストール時は HTTP キャッシュを通さず取り直す（古い JS を新しい版のキャッシュに入れない・M-23）
  *  - GAS(script.google.com)やAPI等の外部リクエストには一切関与しない
  */
-const VER = 'oral-exam-v42';
+const VER = 'oral-exam-v43';
 const ASSETS = [
   './',
   './index.html',
