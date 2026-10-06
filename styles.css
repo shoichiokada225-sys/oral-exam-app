@@ -992,11 +992,15 @@ html.scoring{
 .hset{font-weight:700}
 
 /* ---- R5b 初回利用の導線：初回カード（手順1行＋ドライブ未設定1行・閉じる1つ）／他の端末へ設定を渡す ---- */
-#examHowto.howto{position:relative;padding:8px 44px 8px 12px;margin-bottom:10px;font-size:.8rem;color:var(--sub);line-height:1.6}
+#examHowto.howto{position:relative;padding:8px 46px 8px 12px;margin-bottom:10px;font-size:.8rem;color:var(--sub);line-height:1.6}
 .howto .hw-t{color:var(--txt);font-weight:500}
 .howto .hw-long{margin-top:6px;padding-top:6px;border-top:1px dashed var(--bdr)}
-.howto .hw-link{padding:12px 6px;margin:-12px -4px;vertical-align:baseline} /* 「詳しく」：当たり判定だけ44px（行の高さは負マージンで据え置き・L-27） */
-.howto .hw-drv{margin-top:3px;margin-right:-34px;font-size:.76rem;line-height:1.5}
+.howto .hw-link{vertical-align:baseline}
+/* 当たり判定だけ44px（行の高さは負マージンで据え置き・L-27）。「詳しく」は上へ、「ドライブを設定」は下へ広げ、
+   2行の間を14pxあけて、互いの判定が重ならないようにする（重なると後ろの行が下端を奪う）。右端は×に掛けない */
+.howto #howtoMore{padding:19px 2px 5px 10px;margin:-19px 0 -5px -6px}
+.howto #drvHintGo{padding:8px 2px 18px 6px;margin:-8px 0 -18px -4px}
+.howto .hw-drv{margin-top:14px;margin-right:-34px;font-size:.76rem;line-height:1.5}
 .hw-link{background:none;border:0;padding:0 2px;margin:0;font:inherit;display:inline-block;font-weight:700;color:var(--pri);text-decoration:underline;text-underline-offset:2px;cursor:pointer;min-height:0;white-space:nowrap}
 .howto .hw-x{position:absolute;top:2px;right:2px;width:44px;height:44px;border:0;border-radius:var(--r-s);background:transparent;color:var(--sub);font-size:1.25rem;line-height:1;cursor:pointer;font-family:inherit}
 .howto .hw-x:hover{background:var(--pri-l);color:var(--txt)}

@@ -5,7 +5,7 @@
         （幅が変わったときは従来どおり録音行を見える所へ戻す）
    M-22 スクロールで進捗パネルが小さくなる／戻るときに、カードが跳ばない（10pxずつ動かして毎回10pxだけ動く）
    L-11 キーボードで移動した先が下のタブバーの裏に隠れない
-   L-12 小型の進捗パネルは1行（320×568・ベトナム語でも高さ52px以下）
+   L-12 小型の進捗パネルは1行（320×568・ベトナム語でも高さ52px以下）。マイクの準備が遅くても前提（録音1件・「次の未判定へ」）が崩れない
    L-13 採点の保存バーのボタン文言が「…」で切れない（601/768/1280・4言語）
    L-14 試問タブのトーストはタブのすぐ上（カードの中ほどを覆わない）。採点画面では保存バーより上
    L-15 名前なしで録音を押したときの赤いトーストは、名前を入れて録音を始めたら消える／名前を入れたら消える
@@ -13,20 +13,23 @@
    L-17 ダークでカード上の赤い文字（リセット）が 4.5:1 以上
    L-20 ヘッダーのタイトルが切れない（320/360/390・4言語）
    L-22 名前訂正ダイアログの枠は --bdr（ダークで #ccc に浮かない）
-   L-26 「画面を消さないで」の表示が進捗パネルを覆わない
-   L-27 試問タブ上部の小さいボタン（?・変更・詳しく・×・言語）が44px以上
+   L-26 「画面を消さないで」の表示が進捗パネルを覆わない（2問目を録音中に400px下へ送り、パネルが上に貼り付いた状態でも）
+   L-27 試問タブ上部の小さいボタン（?・変更・詳しく・×・言語）が44px以上。「詳しく」「ドライブを設定」は
+        四隅まで実際に押せる（次の行や×に下端・角を奪われない＝押しても設定タブへ飛ばない）
    本物の GAS へは送らない（script.google は代役で応答 or 遮断）。 */
 'use strict';
 const env = require('./_env');
 const c = env.counter();
 
 const WAKE_NONE = `(()=>{try{Object.defineProperty(Navigator.prototype,'wakeLock',{configurable:true,get:()=>undefined})}catch(e){}})();`;
+// 負荷が高い端末の再現：マイクの準備（getUserMedia）が1.5秒遅れる（L-12 の全体実行での1件NG＝録音が始まる前に停止を押していた）
+const SLOW_MIC = `(()=>{const md=navigator.mediaDevices;if(!md)return;const g=md.getUserMedia.bind(md);md.getUserMedia=c=>new Promise(r=>setTimeout(r,1500)).then(()=>g(c))})();`;
 const rect = (p, sel) => p.evaluate(s => { const e = document.querySelector(s); if (!e) return null; const r = e.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, left: r.left, right: r.right, w: r.width, h: r.height, cx: r.left + r.width / 2, cy: r.top + r.height / 2 }; }, sel);
 const tabsTop = p => p.evaluate(() => document.querySelector('.tabs').getBoundingClientRect().top);
 
 async function open(b, opts) {
   opts = opts || {};
-  const ctx = await b.newContext({ viewport: opts.vp || { width: 390, height: 844 }, colorScheme: opts.dark ? 'dark' : 'light', permissions: ['microphone'] });
+  const ctx = await b.newContext({ viewport: opts.vp || { width: 390, height: 844 }, colorScheme: opts.dark ? 'dark' : 'light', permissions: ['microphone'], isMobile: !!opts.mobile, hasTouch: !!opts.mobile });
   await ctx.route('**/script.google*/**', r => opts.gas ? r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: '{"ok":true,"id":"F1","url":"https://drive.example/F1"}' }) : r.abort());
   const init = [];
   if (opts.lang) init.push(`localStorage.setItem('oral_exam_lang',${JSON.stringify(opts.lang)});`);
@@ -35,6 +38,7 @@ async function open(b, opts) {
   if (opts.sessions) init.push(`localStorage.setItem('oral_exam_sessions_v1',${JSON.stringify(JSON.stringify({ sessions: opts.sessions }))});`);
   if (init.length) await ctx.addInitScript(`try{if(!sessionStorage.getItem('__seedE')){sessionStorage.setItem('__seedE','1');${init.join('')}}}catch(e){}`);
   if (opts.noWake) await ctx.addInitScript(WAKE_NONE);
+  if (opts.slowMic) await ctx.addInitScript(SLOW_MIC);
   const { page, errors } = await env.newPage(ctx);
   page.on('dialog', d => (opts.dismiss ? d.dismiss() : d.accept()));
   await page.goto(env.URL); await page.waitForTimeout(600);
@@ -47,8 +51,13 @@ const tap = async (p, sel) => {
 };
 async function recordStop(p, id, ms) {
   await p.fill('#fEe', 'グエン'); await p.locator('#fEe').blur(); await p.waitForTimeout(150);
-  await tap(p, '#rb-' + id); await p.waitForTimeout(ms || 1200);
+  await tap(p, '#rb-' + id);
+  // 録音が本当に始まってから（マイクの準備は負荷が高いと遅れる＝始まる前に「停止」を押すと録音が残らない・L-12）
+  await p.waitForFunction(() => !!active, null, { timeout: 15000 }).catch(() => { });
+  await p.waitForTimeout(ms || 1200);
 }
+// 停止のあと、録音が保存されて進捗パネルに「次の未判定へ」が出るまで待つ（固定の待ち時間は負荷が高いと足りない・L-12）
+const stopped = async p => { await p.waitForSelector('#epNextUnj', { state: 'attached', timeout: 15000 }).catch(() => { }); await p.waitForTimeout(300); };
 const lum = c2 => { const m = c2.match(/[\d.]+/g).map(Number).slice(0, 3).map(v => v / 255).map(v => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)); return 0.2126 * m[0] + 0.7152 * m[1] + 0.0722 * m[2]; };
 const ratio = (a, b2) => { const x = lum(a), y = lum(b2); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
 const colors = (p, sel) => p.evaluate(s => { const e = document.querySelector(s); const cs = getComputedStyle(e); return { fg: cs.color, bg: cs.backgroundColor }; }, sel);
@@ -63,7 +72,7 @@ const colors = (p, sel) => p.evaluate(s => { const e = document.querySelector(s)
     const { p, errors, ctx } = await open(bf, Object.assign({ dismiss: true }, v));
     await recordStop(p, 'f1');
     const rb0 = await rect(p, '#rb-f1');
-    await p.mouse.click(rb0.cx, rb0.cy); await p.waitForTimeout(1300); // 停止
+    await p.mouse.click(rb0.cx, rb0.cy); await stopped(p); await p.waitForTimeout(600); // 停止
     const rb1 = await rect(p, '#rb-f1'), vp1 = await rect(p, '#vp-f1'), tt = await tabsTop(p);
     c.ok(tag + ` 停止ボタンが動かない ${Math.round(rb0.top)}→${Math.round(rb1.top)}`, Math.abs(rb1.top - rb0.top) <= 12);
     c.ok(tag + ` 合否ボタンがタブの裏に入らない ${Math.round(vp1.bottom)} <= ${Math.round(tt)}`, vp1.bottom <= tt);
@@ -120,7 +129,7 @@ const colors = (p, sel) => p.evaluate(s => { const e = document.querySelector(s)
   for (const v of [{ vp: { width: 390, height: 844 } }, { vp: { width: 390, height: 844 }, lang: 'vi' }, { vp: { width: 768, height: 1024 } }]) {
     const tag = 'M-22 ' + v.vp.width + (v.lang ? ' ' + v.lang : '');
     const { p, errors, ctx } = await open(bf, Object.assign({ howtoOff: true }, v));
-    await recordStop(p, 'f1'); await tap(p, '#rb-f1'); await p.waitForTimeout(1200);
+    await recordStop(p, 'f1'); await tap(p, '#rb-f1'); await stopped(p);
     await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(100);
     const max = await p.evaluate(() => document.documentElement.scrollHeight - innerHeight);
     const pos = async () => p.evaluate(() => ({ y: scrollY, t: document.getElementById('qt-f2').getBoundingClientRect().top, mini: document.getElementById('examProg').classList.contains('mini') }));
@@ -146,10 +155,10 @@ const colors = (p, sel) => p.evaluate(s => { const e = document.querySelector(s)
     c.ok(tag + ' JSエラーなし ' + errors.join('|'), !errors.length);
     await ctx.close();
   }
-  for (const v of [{ vp: { width: 320, height: 568 }, lang: 'vi' }, { vp: { width: 320, height: 568 } }, { vp: { width: 390, height: 844 }, lang: 'id' }]) {
-    const tag = 'L-12 ' + v.vp.width + 'x' + v.vp.height + ' ' + (v.lang || 'ja');
+  for (const v of [{ vp: { width: 320, height: 568 }, lang: 'vi' }, { vp: { width: 320, height: 568 } }, { vp: { width: 390, height: 844 }, lang: 'id' }, { vp: { width: 320, height: 568 }, slowMic: true }]) {
+    const tag = 'L-12 ' + v.vp.width + 'x' + v.vp.height + ' ' + (v.lang || 'ja') + (v.slowMic ? ' マイクの準備が遅い端末' : '');
     const { p, ctx } = await open(bf, Object.assign({ howtoOff: true }, v));
-    await recordStop(p, 'f1'); await tap(p, '#rb-f1'); await p.waitForTimeout(1200);
+    await recordStop(p, 'f1'); await tap(p, '#rb-f1'); await stopped(p);
     await p.evaluate(() => window.scrollTo(0, 2000)); await p.waitForTimeout(200);
     const r = await p.evaluate(() => { const g = document.getElementById('examProg'); return { mini: g.classList.contains('mini'), h: Math.round(g.getBoundingClientRect().height), btn: !!document.getElementById('epNextUnj') }; });
     c.ok(tag + ' 小型の進捗パネルは1行（○×未入力の「次へ」付きでも52px以下） ' + JSON.stringify(r), r.mini && r.btn && r.h <= 52);
@@ -310,6 +319,27 @@ const colors = (p, sel) => p.evaluate(s => { const e = document.querySelector(s)
     c.ok('L-26 JSエラーなし ' + errors.join('|'), !errors.length);
     await ctx.close();
   }
+  // 報告の手順どおり：スマホで初回カードを閉じ、1問目を録音→停止、2問目を録音中に 400px 下へ（進捗パネルが上に貼り付く）
+  for (const vp of [{ width: 390, height: 844 }, { width: 320, height: 568 }]) {
+    const { p, errors, ctx } = await open(b, { vp, noWake: true, mobile: true });
+    await p.click('#howtoX'); await p.waitForTimeout(200);
+    const ids = await p.evaluate(() => [...document.querySelectorAll('#examCards .recbtn:not(.pausebtn)')].map(x => x.id));
+    await recordStop(p, ids[0].slice(3)); await tap(p, '#' + ids[0]); await stopped(p);
+    await tap(p, '#' + ids[1]); await p.waitForFunction(() => !!active, null, { timeout: 15000 }).catch(() => { }); await p.waitForTimeout(1200);
+    await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(200);
+    await p.evaluate(() => window.scrollBy(0, 400)); await p.waitForTimeout(400);
+    const st = await p.evaluate(() => ({ y: scrollY, rec: !!active, stuck: Math.round(document.getElementById('examProg').getBoundingClientRect().top) }));
+    const wn = await rect(p, '#wakeNote'), pr = await rect(p, '#examProg'), cnt = await rect(p, '#epCnt'), pill = await rect(p, '#recPill'), tt = await tabsTop(p);
+    const ov = (a, b2) => !!(a && b2 && a.bottom > b2.top && a.top < b2.bottom && a.right > b2.left && a.left < b2.right);
+    const tag = `L-26 ${vp.width} 2問目を録音中・400px下 ${JSON.stringify(st)}`;
+    c.ok(tag + ' 前提：録音中・パネルが上に貼り付き・「画面を消さないで」が出ている', st.rec && st.y >= 200 && st.stuck <= 80 && !!wn && wn.h > 0 && !!pr && pr.h > 0);
+    c.ok(tag + ' 進捗パネルを覆わない', !ov(wn, pr));
+    c.ok(tag + ' 数（epCnt）を覆わない', !ov(wn, cnt));
+    c.ok(tag + ' 録音ピル・タブとも重ならない', !ov(wn, pill) && wn.bottom <= tt);
+    await tap(p, '#' + ids[1]); await p.waitForTimeout(800);
+    c.ok(`L-26 ${vp.width} 2問目 JSエラーなし ` + errors.join('|'), !errors.length);
+    await ctx.close();
+  }
 
   /* ---------- L-27 ---------- */
   {
@@ -322,6 +352,27 @@ const colors = (p, sel) => p.evaluate(s => { const e = document.querySelector(s)
     await p.evaluate(() => toggleHowto(false)); await p.waitForTimeout(200);
     const q = await sz('#howtoBtn');
     c.ok(`L-27 ? は44px以上 ${JSON.stringify(q)}`, q.length && q.every(([w, h]) => w >= 44 && h >= 44));
+    await ctx.close();
+  }
+  // 箱の大きさだけでなく、実際に押せる範囲：初回（ドライブ未設定・案内を閉じていない）で四辺・四隅・中央を elementFromPoint で確かめる
+  for (const lang of ['ja', 'vi', 'en', 'id']) for (const w of [320, 360, 390, 430, 600, 768]) {
+    const { p, ctx } = await open(b, { vp: { width: w, height: 800 }, lang });
+    const r = await p.evaluate(() => {
+      const d = t => t ? (t.id ? '#' + t.id : t.tagName + '.' + t.className) : 'null';
+      const hit = s => { const e = document.querySelector(s); if (!e || !e.getClientRects().length) return null; const r = e.getBoundingClientRect(); const cx = r.left + r.width / 2, cy = r.top + r.height / 2; /* 四辺の中点（1px内側）＋四隅（角丸ぶん6px内側）＋中央 */ const pts = [[cx, r.top + 1], [cx, r.bottom - 1], [r.left + 1, cy], [r.right - 1, cy], [r.left + 6, r.top + 6], [r.right - 6, r.top + 6], [r.left + 6, r.bottom - 6], [r.right - 6, r.bottom - 6], [cx, cy]]; return { w: Math.round(r.width), h: Math.round(r.height), miss: pts.map(([x, y]) => { const t = document.elementFromPoint(x, y); return t === e || e.contains(t) ? '' : d(t); }).filter(Boolean) }; };
+      return { more: hit('#howtoMore'), go: hit('#drvHintGo'), x: hit('#howtoX') };
+    });
+    const ok = h => !!h && h.w >= 44 && h.h >= 44 && !h.miss.length;
+    c.ok(`L-27 ${lang} ${w} 「詳しく」は四隅まで押せる ${JSON.stringify(r.more)}`, ok(r.more));
+    c.ok(`L-27 ${lang} ${w} 「ドライブを設定」は四隅まで押せる ${JSON.stringify(r.go)}`, ok(r.go));
+    c.ok(`L-27 ${lang} ${w} × は四隅まで押せる ${JSON.stringify(r.x)}`, ok(r.x));
+    if (w === 390) {
+      // 「詳しく」の下端を押す → 使い方が開くだけで、設定タブへは飛ばない
+      const m = await rect(p, '#howtoMore');
+      await p.mouse.click(m.left + 3, m.bottom - 2); await p.waitForTimeout(250);
+      const st = await p.evaluate(() => ({ pg: document.querySelector('.pg.on').id, open: !document.getElementById('howtoLong').hidden }));
+      c.ok(`L-27 ${lang} 「詳しく」の下端を押すと使い方が開き、試問タブのまま ${JSON.stringify(st)}`, st.pg === 'pgExam' && st.open);
+    }
     await ctx.close();
   }
 
