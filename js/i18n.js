@@ -47,7 +47,7 @@ qnPurpose:'目的の説明',qnCaution:'注意点の説明',qnMistakes:'よくあ
 qtPurpose:'「{work}」は何のために行う作業ですか。目的を説明してください。',qtCaution:'「{work}」を行うときに注意すべき点を説明してください。',qtMistakes:'「{work}」でよくあるミス・失敗と、それを防ぐ方法を説明してください。',
 catFeeding:'飼養管理',catHygiene:'衛生管理',catBreeding:'繁殖管理',catFarrowing:'分娩管理',catFacility:'施設管理',catRecord:'記録管理',catShipping:'出荷管理',
 thAuto:'テーマ：自動',thLight:'テーマ：ライト',thDark:'テーマ：ダーク',
-tOffline:'オフラインです（記録は端末内に保存されます）',tOnline:'通信が復帰しました',
+tOffline:'オフラインです（記録は端末内に保存されます）',tOnline:'通信が復帰しました',tUpdate:'新しい版があります。区切りのよいところで開き直してください',
 alUp:'ひとつ上へ移動',alDown:'ひとつ下へ移動',alFilter:'絞り込み',cDelItem:'この質問を削除しますか？',navMain:'メインナビゲーション'},
 
 en:{appTitle:'Oral Exam System',appTitleS:'Oral Exam',tabExam:'Exam',tabScore:'Score',tabHi:'History',tabCh:'Charts',tabCfg:'Settings',
@@ -94,7 +94,7 @@ qnPurpose:'Purpose',qnCaution:'Precautions',qnMistakes:'Common mistakes',
 qtPurpose:'What is the purpose of "{work}"? Please explain.',qtCaution:'What should you be careful about when doing "{work}"?',qtMistakes:'What are common mistakes in "{work}" and how do you prevent them?',
 catFeeding:'Feeding',catHygiene:'Hygiene',catBreeding:'Breeding',catFarrowing:'Farrowing',catFacility:'Facility',catRecord:'Records',catShipping:'Shipping',
 thAuto:'Theme: Auto',thLight:'Theme: Light',thDark:'Theme: Dark',
-tOffline:'Offline — data is saved on this device',tOnline:'Back online',
+tOffline:'Offline — data is saved on this device',tOnline:'Back online',tUpdate:'A new version is ready. Reopen the app when convenient',
 alUp:'Move up',alDown:'Move down',alFilter:'Filter',cDelItem:'Delete this question?',navMain:'Main navigation'},
 
 vi:{appTitle:'Hệ thống Vấn đáp',appTitleS:'Vấn đáp',tabExam:'Vấn đáp',tabScore:'Chấm',tabHi:'Lịch sử',tabCh:'Biểu đồ',tabCfg:'Cài đặt',
@@ -141,7 +141,7 @@ qnPurpose:'Mục đích',qnCaution:'Điểm cần chú ý',qnMistakes:'Lỗi th�
 qtPurpose:'Công việc "{work}" nhằm mục đích gì? Hãy giải thích.',qtCaution:'Khi làm "{work}" cần chú ý điều gì?',qtMistakes:'Những lỗi thường gặp trong "{work}" là gì và làm sao để tránh?',
 catFeeding:'Nuôi dưỡng',catHygiene:'Vệ sinh',catBreeding:'Sinh sản',catFarrowing:'Đẻ',catFacility:'Thiết bị',catRecord:'Ghi chép',catShipping:'Xuất chuồng',
 thAuto:'Giao diện: Tự động',thLight:'Giao diện: Sáng',thDark:'Giao diện: Tối',
-tOffline:'Ngoại tuyến — dữ liệu được lưu trên thiết bị',tOnline:'Đã có mạng trở lại',
+tOffline:'Ngoại tuyến — dữ liệu được lưu trên thiết bị',tOnline:'Đã có mạng trở lại',tUpdate:'Có phiên bản mới. Hãy mở lại ứng dụng khi thuận tiện',
 alUp:'Chuyển lên',alDown:'Chuyển xuống',alFilter:'Lọc',cDelItem:'Xóa câu hỏi này?',navMain:'Điều hướng chính'},
 
 id:{appTitle:'Sistem Ujian Lisan',appTitleS:'Ujian Lisan',tabExam:'Ujian',tabScore:'Nilai',tabHi:'Riwayat',tabCh:'Grafik',tabCfg:'Pengaturan',
@@ -188,7 +188,7 @@ qnPurpose:'Tujuan',qnCaution:'Hal yang diperhatikan',qnMistakes:'Kesalahan umum'
 qtPurpose:'Apa tujuan pekerjaan "{work}"? Jelaskan.',qtCaution:'Apa yang harus diperhatikan saat melakukan "{work}"?',qtMistakes:'Apa kesalahan umum dalam "{work}" dan bagaimana mencegahnya?',
 catFeeding:'Pemberian pakan',catHygiene:'Kebersihan',catBreeding:'Reproduksi',catFarrowing:'Kelahiran',catFacility:'Fasilitas',catRecord:'Pencatatan',catShipping:'Pengiriman',
 thAuto:'Tema: Otomatis',thLight:'Tema: Terang',thDark:'Tema: Gelap',
-tOffline:'Offline — data disimpan di perangkat ini',tOnline:'Kembali online',
+tOffline:'Offline — data disimpan di perangkat ini',tOnline:'Kembali online',tUpdate:'Versi baru tersedia. Buka ulang aplikasi saat sempat',
 alUp:'Naik satu',alDown:'Turun satu',alFilter:'Filter',cDelItem:'Hapus pertanyaan ini?',navMain:'Navigasi utama'}
 };
 

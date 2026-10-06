@@ -224,9 +224,30 @@ document.addEventListener('DOMContentLoaded',()=>{
   window.addEventListener('online',()=>{toast(t('tOnline'));setTimeout(()=>{if(typeof resendAllUnsent==='function')resendAllUnsent()},1500)});
   // PWA: オフライン利用・ホーム画面インストール（https/localhostのみ。file://直開きでは何もしない）
   if('serviceWorker' in navigator&&(location.protocol==='https:'||['localhost','127.0.0.1'].includes(location.hostname))){
+    // 新しい版の SW が制御を取ったら（controllerchange）、安全なときに1回だけ開き直して新しい JS/CSS にする（M-23）。
+    // 録音中・送れていない録音・設定の未保存・確認画面・入力中は開き直さず、短く知らせて次に画面へ戻ったときに再判定
+    const hadCtrl=!!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange',()=>{if(hadCtrl)swUpdReady()});
     navigator.serviceWorker.register('sw.js').catch(()=>{});
   }
 });
+
+/* SW 更新の適用（M-23）。初回インストール（それまで制御なし）では呼ばない */
+let swUpdPending=false,swUpdDone=false;
+function swSafeToReload(){
+  if(typeof active!=='undefined'&&active)return false;
+  if(typeof pendingTakes==='function'&&pendingTakes().length)return false;
+  if(typeof cfgDirty!=='undefined'&&cfgDirty)return false;
+  const mo=document.getElementById('modal');if(mo&&mo.classList.contains('show'))return false;
+  const ae=document.activeElement;if(ae&&(ae.tagName==='TEXTAREA'||(ae.tagName==='INPUT'&&!/^(button|checkbox|radio|range|file|submit|reset)$/i.test(ae.type||''))))return false;
+  return true;
+}
+function swUpdReady(){
+  if(swUpdDone)return;
+  if(swSafeToReload()){swUpdDone=true;location.reload();return}
+  if(!swUpdPending){swUpdPending=true;toast(t('tUpdate'))}
+}
+document.addEventListener('visibilitychange',()=>{if(swUpdPending&&document.visibilityState==='visible')swUpdReady()});
 
 /* 要素が上下の固定表示に重なっていれば、見える位置までスクロールする（モーダル内・固定表示そのものは対象外） */
 /* 画面に出ているか（position:fixed の要素は offsetParent が常に null なので getClientRects で見る・L-11） */

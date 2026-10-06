@@ -15,7 +15,10 @@ const sw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const mArr = sw.match(/const ASSETS\s*=\s*\[([\s\S]*?)\];/);
 ok('sw.js に ASSETS 配列がある', !!mArr);
-const assets = mArr ? [...mArr[1].matchAll(/'([^']+)'/g)].map(x => x[1]) : [];
+const mOpt = sw.match(/const OPT_ASSETS\s*=\s*\[([\s\S]*?)\];/); // 取れたらキャッシュする CDN（M-21: インストール必須からは外した）
+const reqAssets = mArr ? [...mArr[1].matchAll(/'([^']+)'/g)].map(x => x[1]) : [];
+const assets = reqAssets.concat(mOpt ? [...mOpt[1].matchAll(/'([^']+)'/g)].map(x => x[1]) : []);
+ok('インストール必須の ASSETS に外部URLが無い（CDN に届かなくても SW が入る・M-21）', !reqAssets.some(a => /^https?:/.test(a)));
 const norm = p => p.replace(/^\.\//, '');
 const local = assets.filter(a => !/^https?:/.test(a));
 const set = new Set(assets.map(norm));
