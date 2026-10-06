@@ -443,14 +443,15 @@ function syncExamineeOnSave(saved,opt){
 }
 // 既定の保存先（社長のドライブ）。端末ごとの設定をしなくても、開いた時点で録音がドライブへ自動保存されるようにする（09-29 社長指示）。
 // 一度だけ入れる（GDEFKEY）＝後から自分で保存先を変えた・消した端末には入れ直さない。すでにURLがある端末は触らない
-const GDEF={url:'https://script.google.com/macros/s/AKfycbxupXbLNCzUGtwr2D2sWQfozP0u4bFitbqyiIk_efuUdpPzE-EaVdCI4nJCOYIbUzBuLA/exec',token:'OOIRI',folder:'口頭試問音声'};
+// 既定の保存先は tenant-config.js（window.TENANT.gas）から来る。農場ごとの配布物ではその農場の GAS に差し替わる。url が空なら何も入れない
+const GDEF=(()=>{const g=(typeof window!=='undefined'&&window.TENANT&&window.TENANT.gas)||{};return {url:String(g.url||''),token:String(g.token||''),folder:String(g.folder||'口頭試問音声')}})();
 const GDEFKEY='oral_exam_gdefault_v1';
 function applyDefaultDrive(){
   try{
     if(localStorage.getItem(GDEFKEY))return false;
     localStorage.setItem(GDEFKEY,'1');
     const g=getGoogleCfg();
-    if(g.url)return false;
+    if(g.url||!GDEF.url)return false;
     localStorage.setItem(GKEY,JSON.stringify(Object.assign({},g,GDEF,{auto:true})));
     return true;
   }catch(e){return false}

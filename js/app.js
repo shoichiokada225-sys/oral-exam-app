@@ -5,7 +5,7 @@
 function setLang(l){
   if(active){toast(t2('recBusy'),1);return} // 録音中は切替不可（カード再描画でUIが壊れるため）
   lang=l;localStorage.setItem(LKEY,l);document.documentElement.lang=l;
-  document.title=t('appTitle'); // ブラウザタブ名も言語に追従
+  document.title=(window.TENANT&&window.TENANT.id!=='default'&&l==='ja'&&window.TENANT.brand&&window.TENANT.brand.title)||t('appTitle'); // ブラウザタブ名も言語に追従（農場別ビルドの日本語は農場の題名）
   document.querySelectorAll('.lsw button').forEach(b=>{const on=b.textContent.trim()==={ja:'JP',en:'EN',vi:'VI',id:'ID'}[l];b.classList.toggle('on',on);b.setAttribute('aria-pressed',on?'true':'false')});
   applyT();buildExamCards();buildCfgUI();
   if(typeof renderStoWarn==='function'){renderStoWarn();renderPersistNote()} // 空き容量・永続化の案内も言語に追従

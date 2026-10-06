@@ -1,0 +1,6 @@
+{
+  "id": "demo-farm-b",
+  "brand": { "title": "デモB農場 口頭試問" },
+  "gas": { "url": "https://script.google.com/macros/s/AKfycbDEMOBdemoBdemoBdemoBdemoBdemoB0000000000/exec", "folder": "デモB_口頭試問音声" },
+  "copyright": { "mode": "hide" }
+}

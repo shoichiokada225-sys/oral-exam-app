@@ -6,7 +6,7 @@
  *  2. このコードを全て貼り付け
  *  3. （任意）下の TOKEN に合言葉を設定すると、その値をアプリの設定にも入れる必要があります。
  *       合言葉が不要なら TOKEN = '' のまま（空）でOK。
- *       ※ アプリの既定の保存先（社長のドライブ）は合言葉 'OOIRI' で運用している。その GAS を貼り直すときは TOKEN = 'OOIRI' にする
+ *       ※ 農場ごとに別の GAS を作る（docs/MULTI-TENANT.md）。合言葉はコードに書かず、スクリプトプロパティ TOKEN に入れる方法を推奨
  *  4. 「デプロイ」→「新しいデプロイ」→ 種類=ウェブアプリ
  *       実行するユーザー = 自分
  *       アクセスできるユーザー = 全員
@@ -26,19 +26,51 @@
 
 // ▼▼▼ 合言葉（任意）。設定するとアプリ側にも同じ値が必要。不要なら '' のまま ▼▼▼
 var TOKEN = '';
-// ▲▲▲ 例: var TOKEN = 'ooiri-koutou-2026'; のように設定すると保護できます ▲▲▲
+// スクリプトプロパティ TOKEN があればそちらが優先（コードに合言葉を書かずに済む。2026-10-07 マルチテナント化）。
+// 既存の GAS（上の TOKEN に直書き）はそのまま動く＝プロパティを作らなければ従来と同じ
+var PROP_TOKEN = (function () {
+  try { return String(PropertiesService.getScriptProperties().getProperty('TOKEN') || ''); } catch (e) { return ''; }
+})();
+function activeToken() { return PROP_TOKEN || TOKEN; }
+// ▲▲▲ 例: var TOKEN = 'farm-secret-123'; のように設定すると保護できます ▲▲▲
 
 // ▼ 保存先をフォルダIDで固定する（任意）。入れるとアプリが送るフォルダ名は使わない。空ならフォルダ名で探す／作る
 var FOLDER_ID = '';
+// （スクリプトプロパティ FOLDER_ID があればそちらが優先）
 var DEFAULT_FOLDER = '口頭試問音声';
 // base64 の文字数の上限（約 50MB の音声。口頭試問1問の録音はふつう数MB）
 var MAX_B64 = 70 * 1024 * 1024;
 
+/* 合言葉の間違いは数えるだけ（2026-10-07）。GAS は接続元 IP を見られないため「間違いが多いから全員拒否」にすると、
+   誰でも利用者全員を締め出せる（DoS）。守りは合言葉の強さに置く: スクリプトプロパティ由来の TOKEN は 16 文字未満だと全拒否
+   （他農場向けは tools/gen-tokens.mjs が 24 文字の乱数を作る）。コード直書きの TOKEN（既存のヒラノの GAS）は従来どおり長さを問わない。
+   件数は doGet?token=…&stat=1 の authFails（直近10分）で見られる */
+var MIN_PROP_TOKEN = 16, FAIL_WINDOW_SEC = 600;
+function failKey() { return 'authfail_' + Math.floor(Date.now() / (FAIL_WINDOW_SEC * 1000)); }
+function noteFail() {
+  try {
+    var c = CacheService.getScriptCache(), k = failKey();
+    c.put(k, String(Number(c.get(k) || 0) + 1), FAIL_WINDOW_SEC * 2);
+  } catch (e) { /* 数えられなくても判定は変わらない */ }
+}
+function failCount() {
+  try { return Number(CacheService.getScriptCache().get(failKey()) || 0); } catch (e) { return 0; }
+}
+/* 合言葉の照合。戻り値: null=通す / ContentService=拒否の応答 */
+function authCheck(token) {
+  if (PROP_TOKEN && PROP_TOKEN.length < MIN_PROP_TOKEN) return json({ ok: false, error: 'bad-token' }); // 短すぎるプロパティ合言葉は全拒否
+  var want = activeToken();
+  if (!want) return null; // 合言葉なし運用（従来どおり）
+  if (String(token || '') !== want) { noteFail(); return json({ ok: false, error: 'bad-token' }); }
+  return null;
+}
+
 function doPost(e) {
   try {
     var body = JSON.parse(e.postData.contents);
-    // TOKENを設定している場合のみ照合（空なら合言葉チェックなし）
-    if (TOKEN && body.token !== TOKEN) return json({ ok: false, error: 'bad-token' });
+    // 合言葉を設定している場合のみ照合（空なら合言葉チェックなし）
+    var denied = authCheck(body.token);
+    if (denied) return denied;
     // 名前だけの付け直し（ping より先に見る。古い GAS は op を知らず ping として応える）
     if (body.op === 'rename') return renameFile(body);
     if (body.ping) return json({ ok: true, ping: true });
@@ -84,14 +116,18 @@ function renameFile(body) {
 function doGet(e) {
   // TOKENを設定している場合のみ照合（空なら合言葉チェックなし＝従来通り）
   var token = (e && e.parameter && e.parameter.token) || '';
-  if (TOKEN && token !== TOKEN) return json({ ok: false, error: 'bad-token' });
+  var denied = authCheck(token);
+  if (denied) return denied;
+  if (e && e.parameter && e.parameter.stat) return json({ ok: true, authFails: failCount() });
   return json({ ok: true, msg: 'oral-exam drive endpoint is alive' });
 }
 
 /* (保存先)/(受験者_日付) のフォルダ。create=false なら探すだけ（無ければ null） */
 function examFolder(body, create) {
   var root;
-  if (FOLDER_ID) root = DriveApp.getFolderById(FOLDER_ID);
+  var fid = FOLDER_ID;
+  try { fid = PropertiesService.getScriptProperties().getProperty('FOLDER_ID') || FOLDER_ID; } catch (e) { /* 既定のまま */ }
+  if (fid) root = DriveApp.getFolderById(fid);
   else root = findFolder(DriveApp.getRootFolder(), cleanFolder(body.folder) || DEFAULT_FOLDER, create);
   if (!root) return null;
   var subName = cleanFolder(String(body.examinee || '受験者') + '_' + String(body.date || '')) || '受験者_';
