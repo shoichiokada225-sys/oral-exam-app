@@ -57,7 +57,6 @@ function drawCharts(){
   let nt=document.getElementById('chNote');
   if(!nt){nt=document.createElement('div');nt.id='chNote';nt.className='eenote';area.insertBefore(nt,area.firstChild)}
   nt.textContent=notes.join('\n');nt.style.whiteSpace='pre-line';nt.style.display=notes.length?'block':'none';
-  const items=getItems();
   const th=chartTheme();
   // スクリーンリーダー向けのテキスト代替（描画データの要約）
   document.getElementById('cvL').setAttribute('aria-label',t2('chRate')+': '+all.map(e=>e.date+' '+passRate(e)+'%').join(', '));
@@ -65,27 +64,83 @@ function drawCharts(){
   // 塗りは上→下へ消えるグラデーション（面の主張を抑えて線を立てる）
   const g=document.getElementById('cvL').getContext('2d').createLinearGradient(0,0,0,280);
   g.addColorStop(0,th.acc+'4d');g.addColorStop(1,th.acc+'05');
-  cL=new Chart(document.getElementById('cvL'),{type:'line',data:{labels:all.map(e=>e.date),datasets:[{label:t2('chRate'),data:all.map(e=>passRate(e)),borderColor:th.acc,borderWidth:2.5,backgroundColor:g,fill:true,tension:.3,pointRadius:5,pointHoverRadius:7,pointBackgroundColor:th.acc,pointBorderColor:'#fff',pointBorderWidth:1.5}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{min:0,max:100,ticks:{stepSize:25}}},plugins:{legend:{display:false}}}});
+  // x.offset：点が1つでも左の軸に重ならないよう両端に余白（L-19）
+  cL=new Chart(document.getElementById('cvL'),{type:'line',data:{labels:all.map(e=>e.date),datasets:[{label:t2('chRate'),data:all.map(e=>passRate(e)),borderColor:th.acc,borderWidth:2.5,backgroundColor:g,fill:true,tension:.3,pointRadius:5,pointHoverRadius:7,pointBackgroundColor:th.acc,pointBorderColor:'#fff',pointBorderWidth:1.5}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{offset:true},y:{min:0,max:100,ticks:{stepSize:25}}},plugins:{legend:{display:false}}}});
   const lat=all[all.length-1];
+  // 軸・分野は「その試問が受けた出題と問題文」で作る（今の出題を切り替えても過去の試問のグラフは変わらない・M-10）
+  const axes=sessAxes(lat);
+  const pfOf=r=>a=>{const v=r&&r.items[a.id]&&r.items[a.id].score;return v==='pass'?100:v==='fail'?0:null};
   // セクション別平均（直近の採点済み試問）
-  const secLabels=[],secData=[];
-  getSections().forEach(sec=>{
-    const si=items.filter(it=>it.secId===sec.id);if(!si.length)return;
-    const vs=si.map(it=>lat.items[it.id]&&lat.items[it.id].score).filter(isPF);
-    if(vs.length){secLabels.push(loc(sec,'name'));secData.push(Math.round(vs.filter(x=>x==='pass').length/vs.length*100))}
-  });
+  const secMap=new Map();
+  axes.forEach(a=>{const v=lat.items[a.id]&&lat.items[a.id].score;if(!isPF(v))return;const k=a.sec||'–';if(!secMap.has(k))secMap.set(k,[]);secMap.get(k).push(v)});
+  const secLabels=[...secMap.keys()],secData=secLabels.map(k=>{const vs=secMap.get(k);return Math.round(vs.filter(x=>x==='pass').length/vs.length*100)});
   document.getElementById('cvS').setAttribute('aria-label',t('chSec')+': '+secLabels.map((l,i)=>l+' '+secData[i]).join(', '));
   if(cS)cS.destroy();
   cS=new Chart(document.getElementById('cvS'),{type:'bar',data:{labels:secLabels,datasets:[{data:secData,backgroundColor:secData.map(v=>th.pick(v)+'cc'),borderRadius:6,barThickness:22}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,scales:{x:{min:0,max:100,ticks:{stepSize:25}}},plugins:{legend:{display:false}}}});
   // 合否の付いていない設問（質問しなかった・未採点・旧5段階）は0点=不合格と区別して欠損(null)で描く
-  const pfv=(r,it)=>{const v=r&&r.items[it.id]&&r.items[it.id].score;return v==='pass'?100:v==='fail'?0:null};
-  document.getElementById('cvR').setAttribute('aria-label',t('chRadar')+': '+items.map(it=>{const v=lat.items[it.id]&&lat.items[it.id].score;return qName(lat,it,itemNo(it))+' '+(isPF(v)?t2(v):t2('notAsked').trim())}).join(', '));
+  const latV=axes.map(pfOf(lat));
+  document.getElementById('cvR').setAttribute('aria-label',t('chRadar')+': '+axes.map((a,i)=>a.name+' '+(latV[i]!=null?t2(lat.items[a.id].score):t2('notAsked').trim())).join(', '));
   if(cR)cR.destroy();
-  // 前回試問のオーバーレイ（破線）＝成長が一目で見える
+  // 前回試問のオーバーレイ（破線）＝成長が一目で見える。同じ質問どうしだけ重ねる（その場で出題は問題文が同じ問だけ・M-11）
   const prev=all.length>1?all[all.length-2]:null;
-  const rDatasets=[{label:lat.date,data:items.map(it=>pfv(lat,it)),spanGaps:true,borderColor:th.acc,backgroundColor:th.fill,pointBackgroundColor:th.acc}];
-  if(prev)rDatasets.push({label:(t2('prevLbl'))+' '+prev.date,data:items.map(it=>pfv(prev,it)),spanGaps:true,borderColor:th.acc+'80',backgroundColor:'transparent',borderDash:[6,4],borderWidth:1.5,pointBackgroundColor:th.acc+'80',pointRadius:2});
-  cR=new Chart(document.getElementById('cvR'),{type:'radar',data:{labels:items.map(it=>{const n0=qName(lat,it,itemNo(it));const n=n0.length>(lang==='ja'?6:14)?n0.slice(0,lang==='ja'?6:14)+'…':n0;return pfv(lat,it)==null?n+t2('notAsked'):n}),datasets:rDatasets},options:{responsive:true,maintainAspectRatio:false,scales:{r:{min:0,max:100,ticks:{stepSize:50,font:{size:10}},pointLabels:{font:{size:11}},grid:{color:th.grid},angleLines:{color:th.grid}}},plugins:{legend:{display:true,position:'bottom'}}}});
+  const pm=new Map();
+  if(prev)sessAxes(prev).forEach(a=>{const v=pfOf(prev)(a);if(a.qk&&v!=null&&!pm.has(a.qk))pm.set(a.qk,v)});
+  const prevV=axes.map(a=>a.qk&&pm.has(a.qk)?pm.get(a.qk):null);
+  const rDatasets=[{label:lat.date,data:latV,spanGaps:true,borderColor:th.acc,backgroundColor:th.fill,pointBackgroundColor:th.acc}];
+  if(prevV.some(v=>v!=null))rDatasets.push({label:(t2('prevLbl'))+' '+prev.date,data:prevV,spanGaps:true,borderColor:th.acc+'80',backgroundColor:'transparent',borderDash:[6,4],borderWidth:1.5,pointBackgroundColor:th.acc+'80',pointRadius:2});
+  // ラベル：長い問題文は省略し、「未実施」は2行目に。スマホ幅で左右にはみ出すなら短くする（L-18）
+  let max=lang==='ja'?6:14,fs=11;
+  const mkLabels=()=>axes.map((a,i)=>{const n=a.name.length>max?a.name.slice(0,max)+'…':a.name;return latV[i]==null?[n,t2('notAsked').trim()]:n});
+  cR=new Chart(document.getElementById('cvR'),{type:'radar',data:{labels:mkLabels(),datasets:rDatasets},options:{responsive:true,maintainAspectRatio:false,scales:{r:{min:0,max:100,ticks:{stepSize:50,font:{size:10}},pointLabels:{font:{size:fs}},grid:{color:th.grid},angleLines:{color:th.grid}}},plugins:{legend:{display:true,position:'bottom'}}}});
+  fitRadarLabels(cR,()=>{if(max>3){max=Math.max(3,max-(lang==='ja'?1:3));cR.data.labels=mkLabels();return true}if(fs>9){fs--;cR.options.scales.r.pointLabels.font.size=fs;return true}return false});
+}
+/* レーダーの軸ラベルが描画領域の左右からはみ出していれば shrink() で短くして描き直す（shrink が false＝これ以上縮めない） */
+function fitRadarLabels(ch,shrink){
+  for(let k=0;k<16;k++){
+    const sc=ch&&ch.scales&&ch.scales.r,its=sc&&sc._pointLabelItems;
+    if(!its||!its.length)return;
+    if(its.every(p=>p.left>=0&&p.right<=ch.width))return;
+    if(!shrink())return;
+    ch.update('none');
+  }
+}
+/* 試問が受けた出題の実体（cfg 形状）。今の出題と同じなら今の cfg、初期設定・その場で出題・自分のセット・テンプレートは作り直す。
+   作れない（セット未保存の構成・変更ありのテンプレート・消したセット・記録のない旧データ）は null */
+function sessSetCfg(r){
+  const id=r&&r.setId!=null?String(r.setId):'';
+  try{
+    if(id&&typeof curSetInfo==='function'&&id===curSetInfo().id)return cfg;
+    if(id==='def')return defaultCfg();
+    if(id==='free')return freeCfg();
+    if(id.startsWith('set:')){const p=getQuestionSets().presets.find(x=>x.id===id.slice(4));return p&&p.cfg?presetCfg(p):null}
+    if(id.startsWith('tpl:')&&!id.endsWith('+')&&qbankAvailable()){const p=qbankPresets().find(x=>x.id===id.slice(4));return p?qbankCfg(p):null}
+  }catch(e){}
+  return null;
+}
+/* グラフの軸＝その試問の出題の問（出題の順）＋その試問にだけ残る問（録音か合否のあるもの）。[{id,name,sec,qk}]
+   出題が分からない試問は、問が今の出題に全部あれば今の出題で描く（従来どおり）。
+   qk＝前回と重ねるときの「同じ質問」の印：その場で出題は問題文（空なら重ねない）、それ以外は項目IDと名前 */
+function sessAxes(r){
+  const items=(r&&r.items)||{};
+  let c=sessSetCfg(r);
+  if(!c){const ks=Object.keys(items);if(ks.every(k=>getItems().some(it=>it.id===k)))c={sections:getSections(),items:getItems()}}
+  const out=[],seen=new Set();
+  if(c)c.items.forEach(it=>{
+    seen.add(it.id);
+    const n=c.items.filter(x=>x.secId===it.secId).findIndex(x=>x.id===it.id)+1;
+    const rec=items[it.id],m=r.meta&&r.meta[it.id],s=c.sections.find(x=>x.id===it.secId);
+    const sec=(s?loc(s,'name'):'')||(m&&m.sec)||'';
+    if(it.free){const q=String(rec&&rec.qText||'').trim();out.push({id:it.id,name:q||freeLbl(n),sec,qk:q?'q:'+q:''});return}
+    const snap=m&&m.name&&m.name!==it.name?m.name:''; // 試問の後に名前を書き換えた問は、その試問の時の名前
+    out.push({id:it.id,name:snap||qName(r,it,n),sec,qk:'i:'+it.id+'|'+(snap||it.name)});
+  });
+  Object.keys(items).forEach(id=>{
+    const rec=items[id];
+    if(seen.has(id)||!safeKey(id)||!rec||!(rec.hasAudio||rec.score!=null))return;
+    const q=String(rec.qText||'').trim(),mm=itemMeta(r,id);
+    out.push({id,name:q||mm.name,sec:mm.sec||'',qk:q?'q:'+q:'i:'+id+'|'+mm.name});
+  });
+  return out;
 }
 /* グラフの「試問セット」セレクト（受験者の採点済み試問に2種類以上の出題があるときだけ出す）。
    受験者を変えたら直近の試問のセットに戻す。戻り値 {keys, key}（key='*' はすべてのセット） */

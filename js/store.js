@@ -39,7 +39,9 @@ const MIGFREEKEY='oral_exam_cfg_free_migrated';
 function freeLbl(n){return (typeof t2==='function'?t2('freeQ'):'質問{n}').replace('{n}',n)}
 function qName(r,it,n){
   if(it&&it.free){const q=r&&r.items&&r.items[it.id]&&r.items[it.id].qText;return String(q||'').trim()||freeLbl(n)}
-  return it?(typeof loc==='function'?loc(it,'name'):it.name):'';
+  if(!it)return'';
+  const nm=typeof loc==='function'?loc(it,'name'):it.name;
+  return nm||(it.desc&&n?freeLbl(n):nm); // 説明だけ書いた問（名前が空）は「質問N」
 }
 function itemNo(it){const sec=getItems().filter(x=>x.secId===it.secId);return sec.findIndex(x=>x.id===it.id)+1}
 
@@ -48,9 +50,11 @@ function itemNo(it){const sec=getItems().filter(x=>x.secId===it.secId);return se
 function sanitizeLoadedCfg(c){
   if(!c||!Array.isArray(c.sections)||!Array.isArray(c.items))return defaultCfg();
   c.sections.forEach(s=>{s.id=sanitizeId(s.id)});
-  c.items.forEach(it=>{it.id=sanitizeId(it.id);it.secId=sanitizeId(it.secId)});
+  c.items.forEach(it=>{it.id=sanitizeId(it.id);it.secId=sanitizeId(it.secId);normFreeItem(it);if(typeof qaUpgradeItem==='function')qaUpgradeItem(it)});
   return c;
 }
+/* その場で出題の問に名前か説明が書いてあれば通常の問として扱う（free を外す）。旧版で保存した設定も同じ（M-13） */
+function normFreeItem(it){if(it&&it.free&&(String(it.name||'').trim()||String(it.desc||'').trim()))delete it.free;return it}
 function loadCfg(){try{const r=localStorage.getItem(CKEY);return r?sanitizeLoadedCfg(JSON.parse(r)):freeCfg()}catch{return freeCfg()}}
 /* 多言語の任意フィールド（name_en / desc_vi 等）を文字列化して安全にコピー。
    importBackup/applySetの無害化取り込みで翻訳を落とさないための共通ヘルパー（後方互換: 無ければ何もしない） */
@@ -331,7 +335,8 @@ function bkCleanCfg(c){
     items:c.items.filter(it=>it&&typeof it==='object').map(it=>{
       const o={id:sanitizeId(it.id),secId:sanitizeId(it.secId),name:String(it.name||''),desc:String(it.desc||'')};if(it.free)o.free=true;
       if(it.ans!=null)o.ans=String(it.ans);
-      return copyLocFields(it,o,['name','desc','ans']);
+      copyLocFields(it,o,['name','desc','ans']);normFreeItem(o);qaUpgradeItem(o);
+      return o;
     })};
 }
 /* 取り込む試問の型をそろえる（L-7: date が数値などの壊れたバックアップでも履歴が空にならないように）。

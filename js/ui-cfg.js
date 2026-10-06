@@ -20,7 +20,7 @@ function buildCfgUI(){
   let h=`<div style="font-size:.75rem;color:var(--sub);margin-bottom:10px">${esc(t2('cfgNote'))}</div>`;
   secs.forEach((sec,si)=>{
     const secItems=items.filter(it=>it.secId===sec.id);
-    const sn=esc(sec.name||t('secName')); // 読み上げ用：削除・移動ボタンにどのセクションかを入れる
+    const sn=esc(loc(sec,'name')||t('secName')); // 読み上げ用：削除・移動ボタンにどのセクションかを入れる（表示言語で・L-25）
     const sid=sanitizeId(sec.id); // 多層防御: onclick属性への埋め込みは描画側でも無害化（buildExamCards/renderScoreDetailと同水準）
     h+=`<div class="cfg-sec" data-sec="${sid}">`;
     h+=`<div class="cfg-sec-hdr">
@@ -33,7 +33,7 @@ function buildCfgUI(){
     </div>`;
     secItems.forEach((it,ii)=>{
       const iid=sanitizeId(it.id);
-      const inm=esc(it.name||t('itemName')); // 読み上げ用：どの質問の欄・ボタンかを名前に入れる
+      const inm=esc(loc(it,'name')||t('itemName')); // 読み上げ用：どの質問の欄・ボタンかを名前に入れる（表示言語で・L-25）
       h+=`<div class="cfg-item">
         <div class="ci-row">
           <input type="text" value="${esc(it.name)}" aria-label="${t('itemName')}" onchange="cfgItemName('${iid}',this.value)" placeholder="${t('itemName')}">
@@ -59,8 +59,9 @@ function buildCfgUI(){
    （デフォルト項目の name_en 等が編集後も古い訳のまま表示され続ける事故を防ぐ） */
 function dropLoc(o,k){['en','vi','id'].forEach(l=>delete o[k+'_'+l])}
 function cfgSecName(secId,val){const s=cfg.sections.find(s=>s.id===secId);if(s){s.name=val;dropLoc(s,'name');markCfgDirty()}}
-function cfgItemName(itemId,val){const it=cfg.items.find(i=>i.id===itemId);if(it){it.name=val;dropLoc(it,'name');markCfgDirty()}}
-function cfgItemDesc(itemId,val){const it=cfg.items.find(i=>i.id===itemId);if(it){it.desc=val;dropLoc(it,'desc');markCfgDirty()}}
+/* その場で出題の問に名前・説明を書いたら通常の問にする（試問画面・採点・CSVに書いた文を出す・M-13） */
+function cfgItemName(itemId,val){const it=cfg.items.find(i=>i.id===itemId);if(it){it.name=val;dropLoc(it,'name');normFreeItem(it);markCfgDirty()}}
+function cfgItemDesc(itemId,val){const it=cfg.items.find(i=>i.id===itemId);if(it){it.desc=val;dropLoc(it,'desc');normFreeItem(it);markCfgDirty()}}
 function cfgItemAns(itemId,val){const it=cfg.items.find(i=>i.id===itemId);if(it){it.ans=val;dropLoc(it,'ans');markCfgDirty()}}
 function addSection(){cfg.sections.push({id:'sec_'+Date.now(),name:t('secName')});markCfgDirty();buildCfgUI()}
 function addItem(secId){
@@ -142,7 +143,7 @@ function catPickWork(workId){
   if(!w){box.innerHTML='';return}
   // 追加済みの質問には「追加済み」バッジを付け、初期チェックを外す（重複追加の混乱を防ぐ）
   const sec=cfg.sections.find(s=>s.name===w.name);
-  const isDup=q=>!!(sec&&cfg.items.some(it=>it.secId===sec.id&&it.name===q.name));
+  const isDup=q=>!!(sec&&cfg.items.some(it=>it.secId===sec.id&&(it.name===q.nameJa||it.name===q.name))); // 原文（日本語）で照合＝言語を変えても追加済みと分かる
   box.innerHTML=qaQuestions(w).map(q=>{
     const dup=isDup(q);
     return `<label class="qa-check"><input type="checkbox" value="${esc(q.key)}" ${dup?'':'checked'}><div class="qat"><div class="qan">${esc(q.name)}${dup?` <span style="font-size:.68rem;color:var(--pri);font-weight:700;border:1px solid var(--pri);border-radius:4px;padding:0 4px">${esc(t2('added'))}</span>`:''}</div><div class="qaq">${esc(q.desc)}</div><div class="qaa">${lang!=='ja'?esc(t('ansJaNote'))+' ':''}${esc(q.ans)}</div></div></label>`;
@@ -158,8 +159,9 @@ function addFromCatalog(){
   if(!sec){sec={id:'sec_'+w.id+'_'+Date.now(),name:w.name};if(w.name_en)sec.name_en=w.name_en;cfg.sections.push(sec)}
   let added=0;
   qaQuestions(w).filter(q=>keys.includes(q.key)).forEach(q=>{
-    if(cfg.items.some(it=>it.secId===sec.id&&it.name===q.name))return; // 同一質問の重複を防ぐ
-    cfg.items.push({id:'qa_'+w.id+'_'+q.key+'_'+Date.now(),secId:sec.id,name:q.name,desc:q.desc,ans:q.ans});
+    if(cfg.items.some(it=>it.secId===sec.id&&(it.name===q.nameJa||it.name===q.name)))return; // 同一質問の重複を防ぐ
+    // 原文は日本語・各言語の訳を持つ（追加した時の画面の言語に固定しない・M-14）
+    cfg.items.push(Object.assign({id:'qa_'+w.id+'_'+q.key+'_'+Date.now(),secId:sec.id},qaLocFields(w,q.key),{ans:q.ans}));
     added++;
   });
   if(added)markTplEdited();
@@ -312,7 +314,7 @@ function qbankCfg(p){
 // 無害化しつつディープコピー（importBackupと同水準。多言語フィールドはcopyLocFieldsで保持）
 function presetCfg(p){
   return{sections:(p.cfg.sections||[]).map(s=>copyLocFields(s,{id:sanitizeId(s.id),name:String(s.name||'')},['name'])),
-       items:(p.cfg.items||[]).map(it=>{const o={id:sanitizeId(it.id),secId:sanitizeId(it.secId),name:String(it.name||''),desc:String(it.desc||'')};if(it.free)o.free=true;if(it.ans!=null)o.ans=String(it.ans);return copyLocFields(it,o,['name','desc','ans'])})};
+       items:(p.cfg.items||[]).map(it=>{const o={id:sanitizeId(it.id),secId:sanitizeId(it.secId),name:String(it.name||''),desc:String(it.desc||'')};if(it.free)o.free=true;if(it.ans!=null)o.ans=String(it.ans);copyLocFields(it,o,['name','desc','ans']);normFreeItem(o);qaUpgradeItem(o);return o})};
 }
 /* 今の構成がどこにも保存されていない（セット未保存の構成・変更ありのテンプレート・項目を保存していない編集）。
    切り替えると戻せないので、続きを開いても今の出題を置き換えない（B-verdict-R1） */

@@ -88,16 +88,32 @@ function qaCatLabel(catId){
   const c=WORKSQA.categories.find(c=>c.id===catId);return c?c.name:catId;
 }
 /* 1作業から出題できる質問（小項目）3種。key はチェックボックスの識別・項目IDの一部 */
+const QA_KEYS={purpose:['qnPurpose','qtPurpose'],caution:['qnCaution','qtCaution'],mistakes:['qnMistakes','qtMistakes']};
+/* 指定した言語の質問文（日本語＝原文。他の言語の作業名は name_en＝従来の qaWorkLabel と同じ） */
+function qaText(work,key,L){
+  const k=QA_KEYS[key],tx=TX[L]||TX.ja,wl=L==='ja'?work.name:(work.name_en||work.name);
+  return{name:tx[k[0]]||TX.ja[k[0]],desc:(tx[k[1]]||TX.ja[k[1]]).replace(/\{work\}/g,wl)};
+}
+/* カタログの質問を設定の項目にする形：原文=日本語＋name_en/vi/id・desc_en/vi/id（表示時に loc() で言語を選ぶ・M-14） */
+function qaLocFields(work,key){
+  const ja=qaText(work,key,'ja'),o={name:ja.name,desc:ja.desc};
+  ['en','vi','id'].forEach(L=>{const x=qaText(work,key,L);o['name_'+L]=x.name;o['desc_'+L]=x.desc});
+  return o;
+}
 function qaQuestions(work){
-  const mk=(key,nameKey,tplKey,src)=>({
-    key,
-    name:t(nameKey),
-    desc:t(tplKey).replace(/\{work\}/g,qaWorkLabel(work)),
-    ans:'・'+src.join('\n・'),
-  });
-  return[
-    mk('purpose','qnPurpose','qtPurpose',work.purpose),
-    mk('caution','qnCaution','qtCaution',work.caution),
-    mk('mistakes','qnMistakes','qtMistakes',work.mistakes),
-  ];
+  const mk=(key,src)=>{const x=qaText(work,key,lang);return{key,name:x.name,desc:x.desc,nameJa:qaText(work,key,'ja').name,ans:'・'+src.join('\n・')}};
+  return[mk('purpose',work.purpose),mk('caution',work.caution),mk('mistakes',work.mistakes)];
+}
+/* 旧版でカタログから足した質問（その時の画面の言語の文だけを原文に保存・訳なし）を、日本語の原文＋各言語の訳に直す。
+   項目IDの作業・質問の種類（qa_<作業>_<purpose|caution|mistakes>_<時刻>）と、どれかの言語で生成した文と名前・説明が
+   そのまま一致するときだけ直す（書き換えた質問・模範解答は変えない）。直したら true */
+function qaUpgradeItem(it){
+  try{
+    if(!it||it.name_en||typeof WORKSQA==='undefined'||typeof TX==='undefined')return false;
+    const m=/^qa_(.+)_(purpose|caution|mistakes)_\d+$/.exec(String(it.id||''));if(!m)return false;
+    const w=qaWorkById(m[1]);if(!w)return false;
+    if(!['ja','en','vi','id'].some(L=>{const x=qaText(w,m[2],L);return x.name===it.name&&x.desc===it.desc}))return false;
+    Object.assign(it,qaLocFields(w,m[2]));
+    return true;
+  }catch(e){return false}
 }

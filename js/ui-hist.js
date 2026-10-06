@@ -152,6 +152,14 @@ function doCSV(){
   all.forEach(r=>Object.keys(r.items||{}).forEach(id=>{
     if(!seen.has(id)&&safeKey(id)){seen.add(id);cols.push({id,name:itemMeta(r,id).name})}
   }));
+  // 問題文を書いた問（その場で出題）は、今の出題に関係なく「問題文」列を出し、見出しは「質問n」に固定する
+  //（受験者ごとに違う問題文を見出しにしない・出題を切り替えても列が消えない・M-12）
+  const hasQ=id=>all.some(r=>r.items&&r.items[id]&&String(r.items[id].qText||'').trim());
+  cols.forEach(c=>{if(!c.free&&hasQ(c.id)){
+    const inCfg=getItems().some(it=>it.id===c.id),m=/^f(\d+)$/.exec(c.id);
+    if(!inCfg)c.name=freeLbl(m?+m[1]:cols.filter(x=>x.free).length+1); // 今の出題で名前を付けた問は、その名前のまま
+    c.free=true;
+  }});
   // ヘッダーはUI言語に追従（CSVは書き出し専用＝再取り込みしないため後方互換の懸念なし）
   const fcols=cols.filter(c=>c.free);
   const hd=[t('labelDate'),t('labelExaminee'),t2('qsTitle'),t('csvStatus'),...fcols.map(c=>c.name+'('+t2('qTextLbl')+')'),...cols.map(c=>c.name+'('+t2('pfLbl')+')'),...cols.map(c=>c.name+'('+t('trLbl')+')'),...cols.map(c=>c.name+'('+t('csvCmt')+')'),t2('csvPass'),t('overall'),t('csvCreated')];
