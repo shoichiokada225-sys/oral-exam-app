@@ -5,10 +5,10 @@
         （幅が変わったときは従来どおり録音行を見える所へ戻す）
    M-22 スクロールで進捗パネルが小さくなる／戻るときに、カードが跳ばない（10pxずつ動かして毎回10pxだけ動く）
    L-11 キーボードで移動した先が下のタブバーの裏に隠れない
-   L-12 小型の進捗パネルは1行（320×568・ベトナム語でも高さ52px以下）。マイクの準備が遅くても前提（録音1件・「次の未判定へ」）が崩れない
+   L-12 小型の進捗パネルは1行（320×568・ベトナム語でも高さ52px以下）。マイクの準備や名前入力後の自動スクロールが遅くても前提（録音1件・「次の未判定へ」）が崩れない
    L-13 採点の保存バーのボタン文言が「…」で切れない（601/768/1280・4言語）
    L-14 試問タブのトーストはタブのすぐ上（カードの中ほどを覆わない）。採点画面では保存バーより上
-   L-15 名前なしで録音を押したときの赤いトーストは、名前を入れて録音を始めたら消える／名前を入れたら消える
+   L-15 名前なしで録音を押したときの赤いトーストは、名前を入れて録音を始めたら消える／名前を入れたら消える（マイクの準備が遅い端末でも）
    L-16 ダークで停止ボタン・録音ピル・エラーのトーストの白文字が 4.5:1 以上
    L-17 ダークでカード上の赤い文字（リセット）が 4.5:1 以上
    L-20 ヘッダーのタイトルが切れない（320/360/390・4言語）
@@ -23,6 +23,8 @@ const c = env.counter();
 
 const WAKE_NONE = `(()=>{try{Object.defineProperty(Navigator.prototype,'wakeLock',{configurable:true,get:()=>undefined})}catch(e){}})();`;
 // 負荷が高い端末の再現：マイクの準備（getUserMedia）が1.5秒遅れる（L-12 の全体実行での1件NG＝録音が始まる前に停止を押していた）
+// なめらかスクロールが遅い端末（behavior:'smooth' の scrollIntoView を 1.2 秒かけて動かす）。名前欄を離れた直後の自動スクロール中に押すと、指の下は別の要素になる
+const SLOW_SCROLL = `(()=>{const o=Element.prototype.scrollIntoView;Element.prototype.scrollIntoView=function(a){if(!a||typeof a!=='object'||a.behavior!=='smooth')return o.apply(this,arguments);const y0=scrollY;o.call(this,Object.assign({},a,{behavior:'instant'}));const y1=scrollY;scrollTo({top:y0,behavior:'instant'});const t0=performance.now();const f=t=>{const k=Math.min(1,(t-t0)/1200);scrollTo({top:y0+(y1-y0)*k,behavior:'instant'});if(k<1)requestAnimationFrame(f)};requestAnimationFrame(f)}})();`;
 const SLOW_MIC = `(()=>{const md=navigator.mediaDevices;if(!md)return;const g=md.getUserMedia.bind(md);md.getUserMedia=c=>new Promise(r=>setTimeout(r,1500)).then(()=>g(c))})();`;
 const rect = (p, sel) => p.evaluate(s => { const e = document.querySelector(s); if (!e) return null; const r = e.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, left: r.left, right: r.right, w: r.width, h: r.height, cx: r.left + r.width / 2, cy: r.top + r.height / 2 }; }, sel);
 const tabsTop = p => p.evaluate(() => document.querySelector('.tabs').getBoundingClientRect().top);
@@ -39,23 +41,36 @@ async function open(b, opts) {
   if (init.length) await ctx.addInitScript(`try{if(!sessionStorage.getItem('__seedE')){sessionStorage.setItem('__seedE','1');${init.join('')}}}catch(e){}`);
   if (opts.noWake) await ctx.addInitScript(WAKE_NONE);
   if (opts.slowMic) await ctx.addInitScript(SLOW_MIC);
+  if (opts.slowScroll) await ctx.addInitScript(SLOW_SCROLL);
   const { page, errors } = await env.newPage(ctx);
   page.on('dialog', d => (opts.dismiss ? d.dismiss() : d.accept()));
+  if (opts.slowScroll) page._aimMs = 300;
   await page.goto(env.URL); await page.waitForTimeout(600);
   return { p: page, errors, ctx };
 }
 // 指で押すのと同じ（画面外なら先に見える所へ送ってから、その座標を押す）
 const tap = async (p, sel) => {
   await p.evaluate(s => { const e = document.querySelector(s), r = e.getBoundingClientRect(), tb = document.querySelector('.tabs').getBoundingClientRect().top; if (r.top < 110 || r.bottom > tb) e.scrollIntoView({ block: 'center' }); }, sel);
-  const r = await rect(p, sel); await p.mouse.click(r.cx, r.cy); return r;
+  const r = await rect(p, sel);
+  // 狙ってから押すまで時間がかかる指（p._aimMs）：位置を読んでから押すまでの間に画面が動いていれば別の要素を押す
+  if (p._aimMs) { await p.mouse.move(r.cx, r.cy); await p.waitForTimeout(p._aimMs); await p.mouse.down(); await p.mouse.up(); } else await p.mouse.click(r.cx, r.cy);
+  return r;
 };
 async function recordStop(p, id, ms) {
-  await p.fill('#fEe', 'グエン'); await p.locator('#fEe').blur(); await p.waitForTimeout(150);
+  await p.fill('#fEe', 'グエン'); await p.locator('#fEe').blur();
+  // 名前欄を離れると1問目の録音ボタンへ自動でなめらかスクロールする（scrollFirstRecIntoView）。動き終わる前に押すと別の要素を押してしまう（L-12）
+  await settled(p, '#rb-' + id);
   await tap(p, '#rb-' + id);
-  // 録音が本当に始まってから（マイクの準備は負荷が高いと遅れる＝始まる前に「停止」を押すと録音が残らない・L-12）
-  await p.waitForFunction(() => !!active, null, { timeout: 15000 }).catch(() => { });
+  // 録音が本当に始まってから（マイクの準備は負荷が高いと遅れる）。始まらなければ黙って進まず NG にする
+  const started = await p.waitForFunction(() => !!active, null, { timeout: 15000 }).then(() => true, () => false);
+  c.ok('前提：録音ボタンを押したら録音が始まる（' + id + '）', started);
   await p.waitForTimeout(ms || 1200);
 }
+// スクロールとボタンの位置が 8 フレーム続けて動かなくなるまで待つ
+const settled = (p, sel) => p.waitForFunction(s => new Promise(res => {
+  const pos = () => { const e = document.querySelector(s); return scrollY + ',' + (e ? Math.round(e.getBoundingClientRect().top) : ''); };
+  let last = pos(), n = 0; const f = () => { const v = pos(); if (v === last) { if (++n >= 8) return res(true); } else { n = 0; last = v; } requestAnimationFrame(f); }; requestAnimationFrame(f);
+}), sel, { timeout: 15000 });
 // 停止のあと、録音が保存されて進捗パネルに「次の未判定へ」が出るまで待つ（固定の待ち時間は負荷が高いと足りない・L-12）
 const stopped = async p => { await p.waitForSelector('#epNextUnj', { state: 'attached', timeout: 15000 }).catch(() => { }); await p.waitForTimeout(300); };
 const lum = c2 => { const m = c2.match(/[\d.]+/g).map(Number).slice(0, 3).map(v => v / 255).map(v => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)); return 0.2126 * m[0] + 0.7152 * m[1] + 0.0722 * m[2]; };
@@ -155,8 +170,8 @@ const colors = (p, sel) => p.evaluate(s => { const e = document.querySelector(s)
     c.ok(tag + ' JSエラーなし ' + errors.join('|'), !errors.length);
     await ctx.close();
   }
-  for (const v of [{ vp: { width: 320, height: 568 }, lang: 'vi' }, { vp: { width: 320, height: 568 } }, { vp: { width: 390, height: 844 }, lang: 'id' }, { vp: { width: 320, height: 568 }, slowMic: true }]) {
-    const tag = 'L-12 ' + v.vp.width + 'x' + v.vp.height + ' ' + (v.lang || 'ja') + (v.slowMic ? ' マイクの準備が遅い端末' : '');
+  for (const v of [{ vp: { width: 320, height: 568 }, lang: 'vi' }, { vp: { width: 320, height: 568 } }, { vp: { width: 390, height: 844 }, lang: 'id' }, { vp: { width: 320, height: 568 }, slowMic: true }, { vp: { width: 320, height: 568 }, slowScroll: true }]) {
+    const tag = 'L-12 ' + v.vp.width + 'x' + v.vp.height + ' ' + (v.lang || 'ja') + (v.slowMic ? ' マイクの準備が遅い端末' : '') + (v.slowScroll ? ' 名前を入れた後の自動スクロールが遅く、狙ってから押すまで0.3秒の指' : '');
     const { p, ctx } = await open(bf, Object.assign({ howtoOff: true }, v));
     await recordStop(p, 'f1'); await tap(p, '#rb-f1'); await stopped(p);
     await p.evaluate(() => window.scrollTo(0, 2000)); await p.waitForTimeout(200);
@@ -224,33 +239,38 @@ const colors = (p, sel) => p.evaluate(s => { const e = document.querySelector(s)
   }
 
   /* ---------- L-15 ---------- */
-  {
-    const { p, errors, ctx } = await open(b, { howtoOff: true, gas: true, google: { url: 'https://script.google.com/macros/s/eTest/exec', auto: true, autoSet: true, folder: 'T' } });
-    await tap(p, '#rb-q1'); await p.waitForTimeout(300);
-    const t0 = await p.evaluate(() => ({ show: document.getElementById('toast').classList.contains('show'), ok: document.getElementById('toast').textContent === t2('needEe'), rec: !!active }));
-    c.ok('L-15 前提: 名前なしで録音→赤いトースト・録音しない', t0.show && t0.ok && !t0.rec);
-    await p.fill('#fEe', 'グエン'); await p.waitForTimeout(100);
-    c.ok('L-15 名前を入れたら赤いトーストは消える', !(await p.evaluate(() => document.getElementById('toast').classList.contains('show'))));
-    // 名前を入れずにもう一度押す→トースト→名前を貼り付けずに録音（change イベント経由でなく）でも、録音が始まったら消える
-    await p.evaluate(() => { const f = document.getElementById('fEe'); f.value = ''; });
-    await tap(p, '#rb-q1'); await p.waitForTimeout(200);
-    await p.evaluate(() => { document.getElementById('fEe').value = 'グエン'; });
-    await tap(p, '#rb-q1'); await p.waitForTimeout(700);
-    const t1 = await p.evaluate(() => ({ show: document.getElementById('toast').classList.contains('show'), rec: !!active }));
-    c.ok('L-15 録音を始めたら「先に受験者名を」のトーストは残らない ' + JSON.stringify(t1), t1.rec && !t1.show);
-    await tap(p, '#rb-q1'); await p.waitForTimeout(800);
-    c.ok('L-15 JSエラーなし ' + errors.join('|'), !errors.length);
-    await ctx.close();
-  }
-  {
-    // ドライブなし：名前が空のまま録音→「名前が未入力」→名前を入れたら消える
-    const { p, ctx } = await open(b, { howtoOff: true });
-    await tap(p, '#rb-q1'); await p.waitForTimeout(500);
-    c.ok('L-15 前提: 名前が空の録音で注意のトースト', await p.evaluate(() => document.getElementById('toast').textContent === t2('eeEmptyRec') && !!active));
-    await p.fill('#fEe', 'グエン'); await p.waitForTimeout(100);
-    c.ok('L-15 名前を入れたら「名前が未入力」のトーストは消える', !(await p.evaluate(() => document.getElementById('toast').classList.contains('show'))));
-    await tap(p, '#rb-q1'); await p.waitForTimeout(800);
-    await ctx.close();
+  // 録音が始まるまで待つ（固定の待ち時間はマイクの準備が遅い端末・高負荷で足りない）
+  const recOn = p => p.waitForFunction(() => !!active, null, { timeout: 15000 }).then(() => true, () => false);
+  for (const slowMic of [false, true]) {
+    const sm = slowMic ? '（マイクの準備が遅い端末）' : '';
+    {
+      const { p, errors, ctx } = await open(b, { howtoOff: true, slowMic, gas: true, google: { url: 'https://script.google.com/macros/s/eTest/exec', auto: true, autoSet: true, folder: 'T' } });
+      await tap(p, '#rb-q1'); await p.waitForTimeout(300);
+      const t0 = await p.evaluate(() => ({ show: document.getElementById('toast').classList.contains('show'), ok: document.getElementById('toast').textContent === t2('needEe'), rec: !!active }));
+      c.ok('L-15 前提: 名前なしで録音→赤いトースト・録音しない' + sm, t0.show && t0.ok && !t0.rec);
+      await p.fill('#fEe', 'グエン'); await p.waitForTimeout(100);
+      c.ok('L-15 名前を入れたら赤いトーストは消える' + sm, !(await p.evaluate(() => document.getElementById('toast').classList.contains('show'))));
+      // 名前を入れずにもう一度押す→トースト→名前を貼り付けずに録音（change イベント経由でなく）でも、録音が始まったら消える
+      await p.evaluate(() => { const f = document.getElementById('fEe'); f.value = ''; });
+      await tap(p, '#rb-q1'); await p.waitForTimeout(200);
+      await p.evaluate(() => { document.getElementById('fEe').value = 'グエン'; });
+      await tap(p, '#rb-q1'); await recOn(p); await p.waitForTimeout(300);
+      const t1 = await p.evaluate(() => ({ show: document.getElementById('toast').classList.contains('show'), rec: !!active }));
+      c.ok('L-15 録音を始めたら「先に受験者名を」のトーストは残らない' + sm + ' ' + JSON.stringify(t1), t1.rec && !t1.show);
+      await tap(p, '#rb-q1'); await p.waitForTimeout(800);
+      c.ok('L-15 JSエラーなし' + sm + ' ' + errors.join('|'), !errors.length);
+      await ctx.close();
+    }
+    {
+      // ドライブなし：名前が空のまま録音→「名前が未入力」→名前を入れたら消える
+      const { p, ctx } = await open(b, { howtoOff: true, slowMic });
+      await tap(p, '#rb-q1'); await recOn(p); await p.waitForTimeout(200);
+      c.ok('L-15 前提: 名前が空の録音で注意のトースト' + sm, await p.evaluate(() => document.getElementById('toast').textContent === t2('eeEmptyRec') && !!active));
+      await p.fill('#fEe', 'グエン'); await p.waitForTimeout(100);
+      c.ok('L-15 名前を入れたら「名前が未入力」のトーストは消える' + sm, !(await p.evaluate(() => document.getElementById('toast').classList.contains('show'))));
+      await tap(p, '#rb-q1'); await p.waitForTimeout(800);
+      await ctx.close();
+    }
   }
 
   /* ---------- L-16 / L-17 ---------- */
@@ -325,7 +345,8 @@ const colors = (p, sel) => p.evaluate(s => { const e = document.querySelector(s)
     await p.click('#howtoX'); await p.waitForTimeout(200);
     const ids = await p.evaluate(() => [...document.querySelectorAll('#examCards .recbtn:not(.pausebtn)')].map(x => x.id));
     await recordStop(p, ids[0].slice(3)); await tap(p, '#' + ids[0]); await stopped(p);
-    await tap(p, '#' + ids[1]); await p.waitForFunction(() => !!active, null, { timeout: 15000 }).catch(() => { }); await p.waitForTimeout(1200);
+    await tap(p, '#' + ids[1]);
+    c.ok(`L-26 ${vp.width} 前提：2問目の録音が始まる`, await p.waitForFunction(() => !!active, null, { timeout: 15000 }).then(() => true, () => false)); await p.waitForTimeout(1200);
     await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(200);
     await p.evaluate(() => window.scrollBy(0, 400)); await p.waitForTimeout(400);
     const st = await p.evaluate(() => ({ y: scrollY, rec: !!active, stuck: Math.round(document.getElementById('examProg').getBoundingClientRect().top) }));
