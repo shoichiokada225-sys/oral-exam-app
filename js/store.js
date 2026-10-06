@@ -291,7 +291,8 @@ async function exportBackup(){
     // 保存できなかった（または保存前の）試問も書き出す：録音のある下書きは「録音のみ」のセッションとして同梱
     //（容量不足で「試問を保存」が失敗した時の退避先。形式は通常のセッションと同じ）
     if(typeof cur!=='undefined'&&cur&&cur.id&&!sessions.some(s=>s.id===cur.id)&&Object.values(cur.items||{}).some(x=>x&&x.hasAudio)){
-      const c=JSON.parse(JSON.stringify(cur));snapMeta(c);if(!c.updatedAt)c.updatedAt=new Date().toISOString();sessions.push(c);
+      const c=JSON.parse(JSON.stringify(cur));snapMeta(c);if(typeof stampSet==='function')stampSet(c); // 出題の記録（setId/setName/setN）も保存と同じく付ける（F2-1）
+      if(!c.updatedAt)c.updatedAt=new Date().toISOString();sessions.push(c);
     }
     // 試問ごとに録音を集め、録音の量で分ける（1つの試問は分けない）
     const groups=[];let g={sessions:[],audio:[],bytes:0};
@@ -380,6 +381,8 @@ async function importBackup(input){
     bks.push(bk);
   }
   if(!confirm(t('bkConfirm'))){done();return}
+  // 取り込み前の出題の記録（取り込みで出題が置き換わる前に取る。古いバックアップで記録が無いときの補い・F2-1）
+  const preSet={};if(typeof stampSet==='function')stampSet(preSet);
   let added=0;
   try{
     for(const bk of bks){
@@ -435,7 +438,13 @@ async function importBackup(input){
     //＝保存のときは取り込み後に下書きで変えた所（○を取り消した等）だけを重ね、取り込んだ版の残りもそのまま残す（3方向マージ）
     if(typeof cur!=='undefined'&&cur&&cur.id&&!cur._resume){
       const sv=getAll().find(s=>s.id===cur.id);
-      if(sv){cur._resume=true;cur._base=JSON.parse(JSON.stringify(sv));if(typeof saveDraft==='function')saveDraft()}
+      if(sv){
+        // 出題の記録が無ければ付ける（続き＝_resume では保存時に付けないため。取り込んだ版の記録を優先・F2-1）
+        if(cur.setId==null&&cur.setName==null){
+          const src=(sv.setId!=null||sv.setName!=null)?sv:preSet;
+          ['setId','setName','setN'].forEach(f=>{if(src[f]!==undefined)cur[f]=src[f]});
+        }
+        cur._resume=true;cur._base=JSON.parse(JSON.stringify(sv));if(typeof saveDraft==='function')saveDraft()}
     }
     buildExamCards();buildCfgUI();refreshSel();
     toast(added+t('bkImported'));
