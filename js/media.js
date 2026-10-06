@@ -622,6 +622,6 @@ async function aiTranscribe(itemId){
     const txt=j.text||j.transcript||'';
     document.getElementById('tr-'+itemId).value=txt;
     toast(t('aiDone'));
-  }catch(e){toast(t('aiFail')+'（'+e.message+'）',1)}
+  }catch(e){toast(t('aiFail')+pParen(e.message),1)}
   finally{btn.disabled=false;btn.textContent=old}
 }

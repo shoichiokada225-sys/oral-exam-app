@@ -41,7 +41,7 @@ sttEndpoint:'エンドポイントURL',sttModel:'モデル名',sttKey:'APIキー
 cfgItemsTitle:'試問項目',addSec:'＋ セクション追加',addItem:'＋ 質問を追加',saveCfg:'項目を保存',resetCfg:'初期設定に戻す',
 cfgSaved:'項目を保存しました',cfgReset:'初期設定に戻しました',cResetCfg:'試問項目を初期設定に戻しますか？',
 secName:'セクション名',itemName:'質問の見出し',itemDesc:'質問文',
-progRec:'録音済み',progScore:'採点済み',draftSaved:'✓ 自動保存済み',searchPh:'受験者名・試問者名で検索',chSec:'分野別の合格率（直近・%）',
+progRec:'録音済み',progScore:'採点済み',draftSaved:'✓ 自動保存済み',searchPh:'受験者名で検索',chSec:'分野別の合格率（直近・%）',
 catAdd:'📚 作業カタログから質問を追加',catAddTitle:'作業カタログから追加',catSelLbl:'カテゴリ（大分類）',workSelLbl:'作業（大項目）',qaSelLbl:'追加する質問（小項目）',selCatPh:'-- カテゴリを選択 --',selWorkPh:'-- 作業を選択 --',ansLbl:'模範解答（参考）',btnCatConfirm:'選んだ質問を追加',catAdded:'問を追加しました',eNoQa:'質問を選んでください',
 qnPurpose:'目的の説明',qnCaution:'注意点の説明',qnMistakes:'よくあるミスと対策',
 qtPurpose:'「{work}」は何のために行う作業ですか。目的を説明してください。',qtCaution:'「{work}」を行うときに注意すべき点を説明してください。',qtMistakes:'「{work}」でよくあるミス・失敗と、それを防ぐ方法を説明してください。',
@@ -81,7 +81,7 @@ gConnected:'● OK: ready to save to Drive',gDisconnected:'○ Not set (save set
 clUp:'☁ Saving to Drive…',clDone:'☁ Saved to Drive',clFail:'⚠ Drive save failed (tap to retry)',gAutoNoCfg:'Save the Web App URL first',
 gBadUrl:'Invalid destination URL (only Google Apps Script https allowed)',gConfirmCfg:'This link will set where recordings are uploaded to the URL below. Apply only if you trust it:',
 bkTitle:'Data Transfer (Backup / Restore)',bkNote:'Export all data on this device (items, recordings, transcripts, scores) to a single file, then load it on another PC or phone. Import merges with existing data (newer exam wins).',
-bkExport:'Export Backup',bkImport:'Import Backup',bkExporting:'Exporting...',bkExported:'Backup exported',bkConfirm:'Import this backup and merge with data on this device?',bkImported:'item(s) imported',bkFail:'Import failed',bkBadFile:'Invalid backup file format',
+bkExport:'Export Backup',bkImport:'Import Backup',bkExporting:'Exporting...',bkExported:'Backup exported',bkConfirm:'Import this backup and merge with data on this device?',bkImported:' item(s) imported',bkFail:'Import failed',bkBadFile:'Invalid backup file format',
 bkExpFail:'Export failed',bkExpParts:'Backup exported as {n} files (select all of them when importing)',bkCfgAsk:'Also replace the questions with the ones in the backup? (Cancel = keep the current questions)',tabSame:'This exam is also open in another tab. Use only one tab.',tabMerged:'Merged with changes saved in another tab',
 sttTitle:'AI Transcription (optional)',sttNote:'External API to auto-transcribe recordings. Without it, you can still use the in-browser live transcript and manual entry. The key is stored only on this device.',
 sttEndpoint:'Endpoint URL',sttModel:'Model',sttKey:'API key',sttSave:'Save API settings',sttSaved:'API settings saved',
@@ -128,7 +128,7 @@ gConnected:'● OK: sẵn sàng lưu lên Drive',gDisconnected:'○ Chưa đặt
 clUp:'☁ Đang lưu lên Drive…',clDone:'☁ Đã lưu lên Drive',clFail:'⚠ Lưu lên Drive thất bại (chạm để thử lại)',gAutoNoCfg:'Hãy lưu URL Web App trước',
 gBadUrl:'URL lưu không hợp lệ (chỉ cho phép https của Google Apps Script)',gConfirmCfg:'Liên kết này sẽ đặt nơi tải ghi âm lên URL dưới đây. Chỉ áp dụng nếu bạn tin tưởng:',
 bkTitle:'Chuyển dữ liệu (Sao lưu / Khôi phục)',bkNote:'Xuất toàn bộ dữ liệu trên thiết bị này (mục, ghi âm, văn bản, điểm) ra một tệp, rồi nạp ở PC hoặc điện thoại khác. Nhập sẽ hợp nhất với dữ liệu hiện có (bản mới hơn được giữ).',
-bkExport:'Xuất sao lưu',bkImport:'Nạp sao lưu',bkExporting:'Đang xuất...',bkExported:'Đã xuất sao lưu',bkConfirm:'Nạp bản sao lưu này và hợp nhất với dữ liệu trên thiết bị?',bkImported:'mục đã nạp',bkFail:'Nạp thất bại',bkBadFile:'Định dạng tệp sao lưu không hợp lệ',
+bkExport:'Xuất sao lưu',bkImport:'Nạp sao lưu',bkExporting:'Đang xuất...',bkExported:'Đã xuất sao lưu',bkConfirm:'Nạp bản sao lưu này và hợp nhất với dữ liệu trên thiết bị?',bkImported:' mục đã nạp',bkFail:'Nạp thất bại',bkBadFile:'Định dạng tệp sao lưu không hợp lệ',
 bkExpFail:'Xuất thất bại',bkExpParts:'Đã xuất sao lưu thành {n} tệp (khi nạp, hãy chọn tất cả)',bkCfgAsk:'Thay cả bộ câu hỏi bằng nội dung trong bản sao lưu? (Hủy = giữ câu hỏi hiện tại)',tabSame:'Bài vấn đáp này cũng đang mở ở tab khác. Chỉ thao tác trên một tab.',tabMerged:'Đã hợp nhất với nội dung được lưu ở tab khác',
 sttTitle:'Ghi chữ AI (tùy chọn)',sttNote:'API ngoài để tự động ghi chữ. Không có vẫn dùng được ghi chữ trực tiếp và nhập tay. Khóa chỉ lưu trên thiết bị này.',
 sttEndpoint:'URL Endpoint',sttModel:'Mô hình',sttKey:'Khóa API',sttSave:'Lưu cài đặt API',sttSaved:'Đã lưu',
@@ -175,7 +175,7 @@ gConnected:'● OK: siap simpan ke Drive',gDisconnected:'○ Belum diatur (simpa
 clUp:'☁ Menyimpan ke Drive…',clDone:'☁ Tersimpan di Drive',clFail:'⚠ Gagal simpan ke Drive (ketuk untuk coba lagi)',gAutoNoCfg:'Simpan URL Web App dulu',
 gBadUrl:'URL tujuan tidak valid (hanya https Google Apps Script yang diizinkan)',gConfirmCfg:'Tautan ini akan mengatur tujuan unggah rekaman ke URL berikut. Terapkan hanya jika Anda percaya:',
 bkTitle:'Pindah Data (Cadangan / Pulihkan)',bkNote:'Ekspor semua data di perangkat ini (item, rekaman, transkrip, nilai) ke satu file, lalu muat di PC atau ponsel lain. Impor akan menggabungkan dengan data yang ada (ujian lebih baru dipakai).',
-bkExport:'Ekspor Cadangan',bkImport:'Impor Cadangan',bkExporting:'Mengekspor...',bkExported:'Cadangan diekspor',bkConfirm:'Impor cadangan ini dan gabungkan dengan data di perangkat?',bkImported:'item diimpor',bkFail:'Impor gagal',bkBadFile:'Format file cadangan tidak valid',
+bkExport:'Ekspor Cadangan',bkImport:'Impor Cadangan',bkExporting:'Mengekspor...',bkExported:'Cadangan diekspor',bkConfirm:'Impor cadangan ini dan gabungkan dengan data di perangkat?',bkImported:' item diimpor',bkFail:'Impor gagal',bkBadFile:'Format file cadangan tidak valid',
 bkExpFail:'Ekspor gagal',bkExpParts:'Cadangan diekspor menjadi {n} file (pilih semuanya saat mengimpor)',bkCfgAsk:'Ganti juga pertanyaan dengan isi cadangan? (Batal = tetap pakai pertanyaan sekarang)',tabSame:'Ujian ini juga terbuka di tab lain. Gunakan satu tab saja.',tabMerged:'Digabung dengan perubahan yang disimpan di tab lain',
 sttTitle:'Transkripsi AI (opsional)',sttNote:'API eksternal untuk transkrip otomatis. Tanpa itu, tetap bisa pakai transkrip langsung dan input manual. Kunci hanya disimpan di perangkat ini.',
 sttEndpoint:'URL Endpoint',sttModel:'Model',sttKey:'Kunci API',sttSave:'Simpan API',sttSaved:'Tersimpan',
@@ -208,5 +208,9 @@ function loc(o,k){
   }
   return o[k]!=null?o[k]:'';
 }
+
+/* 区切り記号を言語に合わせる（ja=全角「：」「（）」／en・vi・id=半角 ": " " ()"） */
+function pColon(){return lang==='ja'?'：':': '}
+function pParen(x){return lang==='ja'?'（'+x+'）':' ('+x+')'}
 
 function speechLang(){return{ja:'ja-JP',en:'en-US',vi:'vi-VN',id:'id-ID'}[lang]||'ja-JP'}

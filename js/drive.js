@@ -114,7 +114,7 @@ async function gasTest(fromSave){
     const pend=getGoogleCfg().auto===undefined&&!getGoogleCfg().autoSet;
     // 理由を利用者の言葉で（公開範囲／合言葉／圏外／URL）。技術情報は末尾の括弧に短く残す
     const kind=e&&e.kind||'offline',code=String(e&&e.message||'').slice(0,60);
-    toast(t('gTestFail')+'：'+gasErrMsg(kind,code)+(kind!=='http'&&code?' ('+code+')':'')+(pend?' · '+t2('gAutoPend'):''),1);
+    toast(t('gTestFail')+pColon()+gasErrMsg(kind,code)+(kind!=='http'&&code?' ('+code+')':'')+(pend?' · '+t2('gAutoPend'):''),1);
   }
   finally{btn.disabled=false;btn.textContent=old}
 }

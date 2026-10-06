@@ -14,6 +14,11 @@ function setLang(l){
   if(typeof draftNoteOn!=='undefined'&&draftNoteOn)showDraftNote(true); // 下書きの案内も言語に追従
   // 開いている採点画面・一覧を再描画（入力中の採点は退避してから再描画）
   if(document.getElementById('pgScore').classList.contains('on')){if(curScore){captureScoreForm();renderScoreDetail(curScore)}else{drawScoreList()}}
+  // 表示中の履歴・グラフ・設定も描き直す（選んだ受験者・検索語は refreshSel が保つ）。開いた画面は背後が inert＝言語は切り替えられない
+  const on=id=>{const e=document.getElementById(id);return!!(e&&e.classList.contains('on'))};
+  if(on('pgHi')){refreshSel();drawHist()}
+  if(on('pgCh')){refreshSel();drawCharts()}
+  if(on('pgCfg')&&typeof updateGoogleStatus==='function')updateGoogleStatus();
 }
 function applyT(){
   document.querySelectorAll('[data-t]').forEach(el=>{el.textContent=t(el.dataset.t)});

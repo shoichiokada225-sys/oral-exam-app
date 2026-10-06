@@ -41,7 +41,7 @@ function eeSummaryHtml(filterName){
 function drawHist(){
   const f=document.getElementById('hFil').value;let all=getAll();if(f)all=all.filter(e=>e.examinee===f);
   const q=(document.getElementById('hQ').value||'').trim().toLowerCase();
-  if(q)all=all.filter(e=>((e.examinee||'')+' '+(e.examiner||'')).toLowerCase().includes(q));
+  if(q)all=all.filter(e=>String(e.examinee||'').toLowerCase().includes(q)); // 試問者名は廃止＝受験者名だけで探す
   all.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
   const c=document.getElementById('hList');
   const none=!getAll().length; // データ0件（新しい端末など）→CSVは押せなくし、次の手を示す

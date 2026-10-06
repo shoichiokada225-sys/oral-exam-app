@@ -326,7 +326,7 @@ async function exportBackup(){
       if(i<n-1)await new Promise(r=>setTimeout(r,400)); // 続けてのダウンロードをブラウザに止められないよう間を空ける
     }
     toast(n>1?t('bkExpParts').replace('{n}',n):t('bkExported'));
-  }catch(e){toast(t('bkExpFail')+'（'+e.message+'）',1)}
+  }catch(e){toast(t('bkExpFail')+pParen(e.message),1)}
   finally{btn.disabled=false;btn.textContent=old}
 }
 
@@ -430,6 +430,6 @@ async function importBackup(input){
     }
     buildExamCards();buildCfgUI();refreshSel();
     toast(added+t('bkImported'));
-  }catch(e){toast(t('bkFail')+'（'+e.message+'）',1)}
+  }catch(e){toast(t('bkFail')+pParen(e.message),1)}
   done();
 }

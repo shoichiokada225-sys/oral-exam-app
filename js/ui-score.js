@@ -314,7 +314,7 @@ function saveScore(){
   });
   if(miss.length){
     miss.forEach(id=>{const c=document.getElementById('sc-'+id);if(c){c.classList.add('warn');setTimeout(()=>c.classList.remove('warn'),1000)}});
-    toast(t('eScore')+'（'+miss.length+'）',1);
+    toast(t('eScore')+pParen(miss.length),1);
     const f=document.getElementById('sc-'+miss[0]);if(f)f.scrollIntoView({behavior:'smooth',block:'center'});
     return;
   }
