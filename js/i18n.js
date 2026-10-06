@@ -3,7 +3,7 @@
    多言語（UIテキストのみ。試問項目はcfgに保存）
    ============================================================== */
 const TX={
-ja:{appTitle:'口頭試問 評価システム',tabExam:'試問',tabScore:'採点',tabHi:'履歴',tabCh:'グラフ',tabCfg:'設定',
+ja:{appTitle:'口頭試問 評価システム',appTitleS:'口頭試問',tabExam:'試問',tabScore:'採点',tabHi:'履歴',tabCh:'グラフ',tabCfg:'設定',
 labelDate:'試問日',labelExaminer:'試問者名',labelExaminee:'受験者名',phEr:'例：山田太郎',phEe:'例：佐藤花子',
 recStart:'録音',recStop:'停止',recRedo:'録り直し',recReady:'未録音',recDone:'録音済み',recNow:'録音中',recPlayHint:'再生して内容を確認できます',
 howto:'受験者ごとに：質問を読み上げ→「録音」→回答が終わったら「停止」→「○合格／×不合格」を選ぶ。1人終わるたびに最下部の「試問を保存」（全問に○×を付けていれば、その場で採点も確定できます）',
@@ -50,7 +50,7 @@ thAuto:'テーマ：自動',thLight:'テーマ：ライト',thDark:'テーマ：
 tOffline:'オフラインです（記録は端末内に保存されます）',tOnline:'通信が復帰しました',
 alUp:'ひとつ上へ移動',alDown:'ひとつ下へ移動',alFilter:'絞り込み',cDelItem:'この質問を削除しますか？',navMain:'メインナビゲーション'},
 
-en:{appTitle:'Oral Exam System',tabExam:'Exam',tabScore:'Score',tabHi:'History',tabCh:'Charts',tabCfg:'Settings',
+en:{appTitle:'Oral Exam System',appTitleS:'Oral Exam',tabExam:'Exam',tabScore:'Score',tabHi:'History',tabCh:'Charts',tabCfg:'Settings',
 labelDate:'Date',labelExaminer:'Examiner',labelExaminee:'Examinee',phEr:'e.g. Taro Yamada',phEe:'e.g. Hanako Sato',
 recStart:'Record',recStop:'Stop',recRedo:'Re-record',recReady:'Not recorded',recDone:'Recorded',recNow:'Recording…',recPlayHint:'Play back to review',
 howto:'For each examinee: read the question aloud → press "Record" → press "Stop" when the answer ends → choose "○ Pass / × Fail". After each person, press "Save Exam" at the bottom (if every question has ○/×, you can confirm the scoring right there)',
@@ -97,7 +97,7 @@ thAuto:'Theme: Auto',thLight:'Theme: Light',thDark:'Theme: Dark',
 tOffline:'Offline — data is saved on this device',tOnline:'Back online',
 alUp:'Move up',alDown:'Move down',alFilter:'Filter',cDelItem:'Delete this question?',navMain:'Main navigation'},
 
-vi:{appTitle:'Hệ thống Vấn đáp',tabExam:'Vấn đáp',tabScore:'Chấm',tabHi:'Lịch sử',tabCh:'Biểu đồ',tabCfg:'Cài đặt',
+vi:{appTitle:'Hệ thống Vấn đáp',appTitleS:'Vấn đáp',tabExam:'Vấn đáp',tabScore:'Chấm',tabHi:'Lịch sử',tabCh:'Biểu đồ',tabCfg:'Cài đặt',
 labelDate:'Ngày',labelExaminer:'Người hỏi',labelExaminee:'Thí sinh',phEr:'VD: Yamada',phEe:'VD: Sato',
 recStart:'Ghi âm',recStop:'Dừng',recRedo:'Ghi lại',recReady:'Chưa ghi',recDone:'Đã ghi',recNow:'Đang ghi',recPlayHint:'Phát lại để kiểm tra',
 howto:'Với từng người thi: đọc câu hỏi → nhấn "Ghi âm" → nhấn "Dừng" khi trả lời xong → chọn "○ Đạt / × Không đạt". Xong mỗi người thì nhấn "Lưu vấn đáp" ở cuối trang (nếu mọi câu đã có ○/× thì có thể xác nhận chấm điểm ngay)',
@@ -144,7 +144,7 @@ thAuto:'Giao diện: Tự động',thLight:'Giao diện: Sáng',thDark:'Giao di�
 tOffline:'Ngoại tuyến — dữ liệu được lưu trên thiết bị',tOnline:'Đã có mạng trở lại',
 alUp:'Chuyển lên',alDown:'Chuyển xuống',alFilter:'Lọc',cDelItem:'Xóa câu hỏi này?',navMain:'Điều hướng chính'},
 
-id:{appTitle:'Sistem Ujian Lisan',tabExam:'Ujian',tabScore:'Nilai',tabHi:'Riwayat',tabCh:'Grafik',tabCfg:'Pengaturan',
+id:{appTitle:'Sistem Ujian Lisan',appTitleS:'Ujian Lisan',tabExam:'Ujian',tabScore:'Nilai',tabHi:'Riwayat',tabCh:'Grafik',tabCfg:'Pengaturan',
 labelDate:'Tanggal',labelExaminer:'Penguji',labelExaminee:'Peserta',phEr:'Cth: Yamada',phEe:'Cth: Sato',
 recStart:'Rekam',recStop:'Stop',recRedo:'Rekam ulang',recReady:'Belum',recDone:'Terekam',recNow:'Merekam…',recPlayHint:'Putar untuk memeriksa',
 howto:'Untuk setiap peserta: bacakan pertanyaan → tekan "Rekam" → tekan "Stop" setelah jawaban selesai → pilih "○ Lulus / × Tidak lulus". Setiap selesai satu orang, tekan "Simpan Ujian" di bawah (jika semua pertanyaan sudah ○/×, penilaian bisa langsung dikonfirmasi)',

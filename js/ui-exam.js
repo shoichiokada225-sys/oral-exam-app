@@ -85,7 +85,8 @@ function updateDriveUi(){
   const box=document.getElementById('examProg');
   if(box){
     let el=document.getElementById('epDrv');
-    if(!el){el=document.createElement('button');el.type='button';el.id='epDrv';el.className='epdrv';el.onclick=()=>gotoCfgPart('gUrl');box.appendChild(el)}
+    // 停止の直後（M-9：手袋の二度押し・停止で進捗パネルが現れた直後）は設定タブへ飛ばない
+    if(!el){el=document.createElement('button');el.type='button';el.id='epDrv';el.className='epdrv';el.onclick=()=>{if(Date.now()-(typeof recStopAt!=='undefined'?recStopAt:0)<1000)return;gotoCfgPart('gUrl')};box.appendChild(el)}
     el.textContent=t2(st==='on'?'drvOn':st==='off'?'drvOff':'drvNone');
     el.dataset.st=st;
   }
@@ -127,8 +128,53 @@ function toggleHowtoMore(){howtoMoreOn=!howtoMoreOn;renderHowtoMore()}
 function examRecd(it){return !!(cur&&cur.items[it.id]&&cur.items[it.id].hasAudio)}
 // 「質問しなかった」（採点画面で付けた na）は判定済み＝○×の催促に数えない（M-5）
 function examJudged(it){const r=cur&&cur.items[it.id];return !!(r&&(isPF(r.score)||r.na))}
+/* 進捗パネル（sticky）の「流れの中の高さ」。表示なし＝0（M-9/M-22：この高さが変わると下のカードが跳ぶ） */
+function progFlowH(box){
+  if(!box||box.style.display==='none'||!box.getClientRects().length)return 0;
+  const cs=getComputedStyle(box);return box.offsetHeight+(parseFloat(cs.marginTop)||0)+(parseFloat(cs.marginBottom)||0);
+}
+/* 小型表示（.mini）の間も、流れの中では元の大きさのぶんの場所を取る（下余白で埋める）＝縮んでもカードが跳ばない（M-22） */
+function syncProgComp(box){
+  box=box||document.getElementById('examProg');if(!box)return;
+  box.style.marginBottom='';
+  if(!box.classList.contains('mini')||box.style.display==='none')return;
+  box.classList.remove('mini');
+  const full=box.offsetHeight,mb=parseFloat(getComputedStyle(box).marginBottom)||0;
+  box.classList.add('mini');
+  const d=full-box.offsetHeight;
+  if(d>0)box.style.marginBottom=(mb+d)+'px';
+}
+/* 小型表示（.mini）の切り替え（M-22）：
+   ・縮めるのは、カードの上端が「小型ヒーローの下端」より上へ来てから＝元の大きさのヒーローに隠れていた所が見えるだけで、カードは動かず空白も出ない
+   ・戻すのはそこから60px下へ戻ってから（境目で行ったり来たりしない）。小型の間も流れの中の高さは元のまま（syncProgComp） */
+const PROG_MINI_H=56,PROG_MINI_HYS=60;
+function progMiniCheck(){
+  const p=document.getElementById('examProg'),c=document.getElementById('examCards');if(!p||!c)return;
+  const on=p.classList.contains('mini');
+  let want=false;
+  if(p.style.display!=='none'&&p.getClientRects().length&&c.getClientRects().length){
+    const lim=(parseFloat(getComputedStyle(p).top)||0)+PROG_MINI_H,ct=c.getBoundingClientRect().top;
+    want=on?ct<lim+PROG_MINI_HYS:ct<lim;
+  }
+  if(want===on)return;
+  p.classList.toggle('mini',want);syncProgComp(p);
+}
+/* 試問カードを触った直後（録音・停止・○×）か：進捗パネルの高さが変わったら、その分だけスクロールして触った場所を動かさない */
+let examTouchAt=0;
+document.addEventListener('pointerdown',e=>{if(e.target&&e.target.closest&&e.target.closest('#examCards,#recPill'))examTouchAt=Date.now()},true);
+document.addEventListener('keydown',e=>{if(e.target&&e.target.closest&&e.target.closest('#examCards,#recPill'))examTouchAt=Date.now()},true);
 function updateExamProg(){
   const box=document.getElementById('examProg');if(!box)return;
+  const h0=progFlowH(box);
+  updateExamProgInner(box);
+  syncProgComp(box);
+  const d=progFlowH(box)-h0;
+  const pg=document.getElementById('pgExam');
+  // 停止した瞬間に進捗パネルが現れる（初回）・合否の行が増減する：見ていたカードと停止ボタンの位置を保つ（M-9）
+  if(d&&pg&&pg.classList.contains('on')&&Date.now()-examTouchAt<5000)window.scrollBy({top:d,behavior:'instant'});
+  progMiniCheck();
+}
+function updateExamProgInner(box){
   updateDriveUi();
   const items=getItems(),secs=getSections();
   const m=items.length;
@@ -136,7 +182,7 @@ function updateExamProg(){
   // 初回（使い方カードが開いていて、まだ1問も録音していない）はヒーローを出さない：
   // 最初の画面に1問目の「録音」まで収める（ドライブの状態は初回カードの中に出る）。1件録音するか、カードを閉じたら出す
   const n0=items.filter(examRecd).length;
-  box.style.display=(!n0&&!howtoOff()&&document.getElementById('examHowto'))?'none':'block';
+  box.style.display=(!n0&&!howtoOff()&&document.getElementById('examHowto'))?'none':''; // 表示はCSSに任せる（.mini の1行表示＝flex を上書きしない）
   const done=it=>examRecd(it)&&examJudged(it);
   const n=items.filter(examRecd).length;
   box.classList.toggle('fresh',!n); // まだ1問も録音していない：スマホではセクションのチップを畳んで1問目を最初の画面に出す

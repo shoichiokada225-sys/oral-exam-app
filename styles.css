@@ -23,6 +23,8 @@
   --s5:#17802a;--s4:#2e7d32;--s3:#9a6200;--s2:#b84a00;--s1:#c62828;
   --s1-l:#fdeeee;--s2-l:#fdf1e7;--s5-l:#e9f6eb;
   --rec:#c62828;--rec-l:#fdeeee;
+  /* 白文字を載せる赤い面（録音中の停止ボタン・録音ピル・エラーのトースト）: 両テーマとも白文字 5.6:1（L-16） */
+  --rec-bg:#c62828;
   /* 選択済み採点ボタン等の文字色（ダークでは明色面に黒文字へ切替） */
   --sel-tx:#fff;--sel-sl:rgba(255,255,255,.9);--toast-ok:#66bb6a;
   /* 形状・影（3層レイヤードシャドウで奥行きを統一） */
@@ -56,7 +58,7 @@
     --chart:#7fb3d3;--chart-grid:rgba(255,255,255,.1);
     --bg:#0e141a;--card:#19232c;--card-2:#141d25;
     --txt:#e7edf2;--sub:#93a2af;--bdr:#2a3945;--bdr-s:#5f7689;
-    --s5:#3db354;--s4:#4caf50;--s3:#f0a422;--s2:#ee7b2f;--s1:#e05252;
+    --s5:#3db354;--s4:#4caf50;--s3:#f0a422;--s2:#ee7b2f;--s1:#ec6464;
     --s1-l:#3a2020;--s2-l:#3a2b1c;--s5-l:#1c3322;
     --rec:#ff6b6b;--rec-l:#3a2020;
     --sel-tx:#0e141a;--sel-sl:rgba(0,0,0,.66);--toast-ok:#2e7d32;
@@ -82,7 +84,7 @@
   --chart:#7fb3d3;--chart-grid:rgba(255,255,255,.1);
   --bg:#0e141a;--card:#19232c;--card-2:#141d25;
   --txt:#e7edf2;--sub:#93a2af;--bdr:#2a3945;--bdr-s:#5f7689;
-  --s5:#3db354;--s4:#4caf50;--s3:#f0a422;--s2:#ee7b2f;--s1:#e05252;
+  --s5:#3db354;--s4:#4caf50;--s3:#f0a422;--s2:#ee7b2f;--s1:#ec6464;
   --s1-l:#3a2020;--s2-l:#3a2b1c;--s5-l:#1c3322;
   --rec:#ff6b6b;--rec-l:#3a2020;
   --sel-tx:#0e141a;--sel-sl:rgba(0,0,0,.66);--toast-ok:#2e7d32;
@@ -141,7 +143,12 @@ body{
   box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 1px 4px rgba(0,0,0,.18);
 }
 .hdr h1{font-size:1.05rem;font-weight:700;flex:1;text-align:left;letter-spacing:.04em;text-shadow:0 1px 2px rgba(0,0,0,.18);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:2px;position:relative}
-@media(max-width:429px){.hdr h1{font-size:.9rem;letter-spacing:0}}
+/* 狭い画面は短いタイトル（言語切替・テーマに場所を取られて「口頭試問 評…」と切れるため・L-20）
+   519px以下＝短いタイトル。429px以下＝ロゴを隠し、言語切替のすき間を詰める。359px以下だけ言語ボタンを幅40px（高さは44px）にする */
+.hdr h1 .ts{display:none}
+@media(max-width:519px){.hdr h1 .tl{display:none}.hdr h1 .ts{display:inline}}
+@media(max-width:429px){.hdr h1{font-size:.9rem;letter-spacing:0}.hdr{padding-left:10px;padding-right:10px}.hdr .brand{display:none}.hdr .lsw{gap:0}}
+@media(max-width:359px){.hdr .lsw button{min-width:40px;padding:3px 4px}}
 @media(max-width:359px){.hdr h1{font-size:.82rem}}
 /* テーマ切替ボタン（自動→ライト→ダーク） */
 .thbtn{
@@ -159,7 +166,7 @@ body{
 }
 .lsw button{
   background:transparent;border:none;color:rgba(255,255,255,.78);
-  min-width:40px;min-height:44px;padding:3px 8px;border-radius:8px;font-size:.7rem;font-weight:700;cursor:pointer;
+  min-width:44px;min-height:44px;padding:3px 8px;border-radius:8px;font-size:.7rem;font-weight:700;cursor:pointer;
   transition:background .18s var(--ease),color .18s var(--ease);font-family:inherit;
 }
 .lsw button:hover{background:rgba(255,255,255,.16);color:#fff}
@@ -272,7 +279,7 @@ button.cd{font-family:inherit;font-size:inherit;color:var(--txt);line-height:inh
 .recbtn:hover{background:var(--rec-l)}
 .recbtn:active{transform:scale(.95)}
 .recbtn .dot{width:12px;height:12px;border-radius:50%;background:var(--rec);flex-shrink:0}
-.recbtn.recording{background:var(--rec);color:#fff;box-shadow:0 0 0 5px var(--rec-l);animation:recGlow 1.6s infinite}
+.recbtn.recording{background:var(--rec-bg);border-color:var(--rec-bg);color:#fff;box-shadow:0 0 0 5px var(--rec-l);animation:recGlow 1.6s infinite}
 @keyframes recGlow{0%,100%{box-shadow:0 0 0 5px var(--rec-l)}50%{box-shadow:0 0 0 9px color-mix(in srgb,var(--rec-l) 45%,transparent)}}
 .recbtn.recording .dot{background:#fff;animation:pulse 1s infinite}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.8)}}
@@ -280,7 +287,7 @@ button.cd{font-family:inherit;font-size:inherit;color:var(--txt);line-height:inh
 #recPill{
   position:fixed;right:12px;bottom:calc(var(--tabs-h) + 14px + env(safe-area-inset-bottom,0px));
   z-index:200;min-height:48px;padding:10px 18px;border:none;border-radius:24px;
-  background:var(--rec);color:#fff;font-weight:700;font-size:.95rem;cursor:pointer;
+  background:var(--rec-bg);color:#fff;font-weight:700;font-size:.95rem;cursor:pointer;
   box-shadow:var(--sh-lg);font-family:inherit;font-variant-numeric:tabular-nums;
   animation:recGlow 1.6s infinite;
 }
@@ -404,8 +411,8 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
 
 /* ---- トースト ---- */
 .toast{
-  /* savebar(実測高約102px)より上に出す: 保存ボタンをトーストが覆って押せなく見える問題の回避 */
-  position:fixed;bottom:calc(var(--tabs-h) + 112px + env(safe-area-inset-bottom,0px));left:50%;
+  /* 既定はタブのすぐ上（試問タブのカードの中ほどを覆わない・L-14）。録音中はピルの上。採点の保存バーが出ている間はその上（下の html.scoring） */
+  position:fixed;bottom:calc(var(--tabs-h) + 12px + env(safe-area-inset-bottom,0px));left:50%;
   transform:translateX(-50%) translateY(16px);
   background:var(--toast-bg);color:var(--toast-tx);padding:12px 26px;border-radius:26px;
   border:1px solid rgba(255,255,255,.08);
@@ -413,9 +420,11 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
   z-index:400;pointer-events:none;white-space:normal;max-width:92%;text-align:center;
   box-shadow:var(--sh-lg);
 }
+body:has(#recPill) .toast,body:has(#wakeNote) .toast{bottom:calc(var(--tabs-h) + 74px + env(safe-area-inset-bottom,0px))} /* 録音中は録音ピルの上 */
+html.undo-on .toast{bottom:calc(var(--tabs-h) + 18px + var(--undo-h,64px) + env(safe-area-inset-bottom,0px))} /* 「元に戻す」バーより上 */
 .toast::before{content:'✓';font-weight:900;margin-right:7px;color:var(--toast-ok)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-.toast.err{background:var(--s1);color:#fff}
+.toast.err{background:var(--rec-bg);color:#fff}
 .toast.err::before{content:'！';color:#fff}
 
 /* ---- リスト（採点待ち/履歴） ---- */
@@ -587,14 +596,21 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
   padding:13px 16px 7px;margin-bottom:var(--sp-3);
   border-radius:var(--r);border:1px solid rgba(255,255,255,.14);
   box-shadow:var(--sh-lg);overflow:hidden;
-  transition:background .45s var(--ease),padding .25s var(--ease);
+  transition:background .45s var(--ease); /* 高さ（padding）は動かさない：小型化の瞬間に流れの高さを合わせるため（M-22） */
 }
-/* スクロール中の小型化（app.jsがscrollY>240で.miniを付与。可視窓を約80px広げる） */
-.prog.mini{padding:8px 16px 6px}
+/* 試問タブの位置合わせは JS（updateExamProg）で行う。Chrome の自動の位置合わせ（scroll anchoring）と二重にならないよう、
+   ここでは使わない（iOS Safari には無い機能なので、どちらの端末でも同じ動きにする） */
+#pgExam{overflow-anchor:none}
+/* スクロール中の小型化（カードがヒーローの下へ入ったら ui-exam.js progMiniCheck が.miniを付与）。
+   1行（数・バー・「次の未判定へ」）にして見える高さを広げる（L-12）。流れの中の高さは元のまま（syncProgComp・M-22） */
+.prog.mini{padding:6px 12px 6px 16px;display:flex;align-items:center;gap:10px}
 .prog.mini .chips{display:none}
-.prog.mini .pmeta{margin-bottom:4px}
+.prog.mini .pmeta{margin:0;flex:0 0 auto}
+.prog.mini .pmeta>span:first-child{display:none}
 .prog.mini .pmeta>span:last-child{font-size:1.15rem}
-.prog.mini .pbar{height:6px}
+.prog.mini .pbar{height:6px;flex:1 1 auto;min-width:40px}
+.prog.mini .pjudge{margin:0;flex:0 0 auto}
+.prog.mini .pjudge>span{display:none}
 .prog::before{
   content:'';position:absolute;inset:0;pointer-events:none;
   background:radial-gradient(130% 170% at 10% -35%,rgba(255,255,255,.18),transparent 55%);
@@ -700,18 +716,18 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
 /* ボタン文字は1語が縦に折れないよう1行固定＋省略表示 */
 .savebar .b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .savebar .lbl-s{display:none}
-@media (max-width:600px){
-  /* 狭い画面は2段：上段＝採点を保存（全幅・主ボタン）、下段＝⏸／速度／次へ／一覧 */
-  .savebar .bg{flex-wrap:wrap;gap:6px 8px}
-  .savebar .sbsave{order:-1;flex:1 1 100%;min-height:48px;padding:10px 13px}
-  .savebar .sbsub{flex:1 1 0;min-height:44px;padding:10px 8px;font-size:.92rem}
-  .savebar .bg .sbico{min-height:44px;padding:10px 8px}
-  .savebar .lbl-l{display:none}.savebar .lbl-s{display:inline}
-  .toast{bottom:calc(var(--tabs-h) + 138px + env(safe-area-inset-bottom,0px))} /* 2段の保存バー（約128px）より上 */
-}
+/* どの幅でも2段：上段＝採点を保存（全幅・主ボタン）、下段＝⏸／速度／次へ／一覧。
+   1段だと601px以上で主ボタンの文言が「…」で切れていた（L-13）。脇の2つは狭い幅（700px以下）だけ短い文言（全文は title） */
+.savebar .bg{flex-wrap:wrap;gap:6px 8px}
+.savebar .sbsave{order:-1;flex:1 1 100%;min-height:48px;padding:10px 13px}
+.savebar .sbsub{flex:1 1 0;min-height:44px;padding:10px 8px;font-size:.92rem}
+.savebar .bg .sbico{min-height:44px;padding:10px 8px}
+html.scoring .toast{bottom:calc(var(--tabs-h) + 138px + env(safe-area-inset-bottom,0px))} /* 2段の保存バー（約128px）より上 */
+@media (max-width:700px){.savebar .lbl-l{display:none}.savebar .lbl-s{display:inline}}
 .autost{display:block;text-align:right;font-size:.74rem;font-weight:700;color:var(--s5);min-height:16px;opacity:0;transition:opacity .3s;margin-bottom:2px}
 /* savebar内のアイコンボタン（⏸/速度）: 幅を取らず主要3ボタンを圧迫しない */
 .savebar .sbico{flex:0 0 auto;min-width:52px;padding:13px 8px;font-size:.95rem;font-variant-numeric:tabular-nums}
+@media (max-width:359px){.savebar .bg .sbico{min-width:44px;padding:10px 4px}.savebar .sbsub{font-size:.82rem;padding:10px 4px}}
 
 /* ---- 履歴：検索＋月グループ ---- */
 .hsearch{
@@ -870,7 +886,6 @@ details.ans .ansb{padding:0 13px 11px;font-size:.84rem;line-height:1.75;white-sp
 .pjudge{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:7px;font-size:var(--fs-sm,.8rem);font-weight:800;color:var(--hero-tx,#fff)}
 .pjudge .pj-warn{color:#ffe08a}
 .pjudge button{min-height:36px;padding:6px 12px;border-radius:18px;border:1.5px solid rgba(255,255,255,.6);background:rgba(8,22,35,.3);color:#fff;font:inherit;font-size:.76rem;cursor:pointer}
-.prog.mini .pjudge{margin-top:4px}
 @media print{.pjudge button{display:none}}
 .dis.old{background:var(--sub);color:var(--sel-tx)} /* .old の文字色(--sub)と背景が同色になり読めなくなるのを防ぐ */
 .eenote{font-size:var(--fs-xs);color:var(--sub);font-weight:600;margin-top:4px;line-height:1.4}
@@ -903,12 +918,13 @@ html.scoring{
 .recbtn.pausebtn{border-color:var(--sub);color:var(--txt);padding:10px 14px}
 .recbtn.pausebtn .dot{display:none}
 .recbtn.pausebtn.on{background:var(--pri-l);border-color:var(--pri);color:var(--pri-d)}
-#recPill.paused{animation:none;background:var(--sub)}
+#recPill.paused{animation:none;background:var(--sub);color:var(--sel-tx)} /* ダークの --sub は明るい灰＝暗い文字（L-16） */
 /* 停止した録音の後ろに足す（誤って停止しても後半を録れる） */
 .rcont{display:inline-flex;align-items:center;min-height:44px;margin-top:8px;padding:6px 14px;font-size:.8rem;flex:0 0 auto}
 /* 画面の自動ロックを止められない端末：録音中は常に表示 */
 #wakeNote{
-  position:fixed;left:12px;right:12px;top:calc(var(--hdr-h) + 6px + env(safe-area-inset-top,0px));z-index:205;
+  /* 下側（録音ピルの上）に出す：上に出すと試問の進捗パネル（録音数）を覆う（L-26） */
+  position:fixed;left:12px;right:12px;margin:0 auto;max-width:560px;bottom:calc(var(--tabs-h) + 70px + env(safe-area-inset-bottom,0px));z-index:205;
   padding:8px 12px;border-radius:12px;background:var(--toast-bg);color:var(--toast-tx);
   font-size:.8rem;font-weight:700;line-height:1.45;text-align:center;box-shadow:var(--sh-lg);pointer-events:none;
 }
@@ -946,7 +962,7 @@ html.scoring{
 #pgExam .meta label[for="fEe"]{grid-column:2;grid-row:1}
 #pgExam .meta #fEe{grid-column:2;grid-row:2;margin-bottom:10px;min-width:0}
 #pgExam .meta .esbox{grid-column:1 / -1;grid-row:3;margin-top:10px;padding-top:8px;border-top:1px solid var(--bdr)}
-#pgExam .meta .esbox .b{min-height:40px}
+#pgExam .meta .esbox .b{min-height:44px;min-width:44px} /* 「変更」「?」も44px（L-27） */
 @media (max-width:480px){
   #pgExam .cd.meta{padding:10px 12px;margin-bottom:10px}
   #pgExam .meta label{font-size:.76rem;margin-bottom:3px}
@@ -979,9 +995,10 @@ html.scoring{
 #examHowto.howto{position:relative;padding:8px 44px 8px 12px;margin-bottom:10px;font-size:.8rem;color:var(--sub);line-height:1.6}
 .howto .hw-t{color:var(--txt);font-weight:500}
 .howto .hw-long{margin-top:6px;padding-top:6px;border-top:1px dashed var(--bdr)}
+.howto .hw-link{padding:12px 6px;margin:-12px -4px;vertical-align:baseline} /* 「詳しく」：当たり判定だけ44px（行の高さは負マージンで据え置き・L-27） */
 .howto .hw-drv{margin-top:3px;margin-right:-34px;font-size:.76rem;line-height:1.5}
-.hw-link{background:none;border:0;padding:0 2px;margin:0;font:inherit;font-weight:700;color:var(--pri);text-decoration:underline;text-underline-offset:2px;cursor:pointer;min-height:0;white-space:nowrap}
-.howto .hw-x{position:absolute;top:4px;right:4px;width:40px;height:40px;border:0;border-radius:var(--r-s);background:transparent;color:var(--sub);font-size:1.25rem;line-height:1;cursor:pointer;font-family:inherit}
+.hw-link{background:none;border:0;padding:0 2px;margin:0;font:inherit;display:inline-block;font-weight:700;color:var(--pri);text-decoration:underline;text-underline-offset:2px;cursor:pointer;min-height:0;white-space:nowrap}
+.howto .hw-x{position:absolute;top:2px;right:2px;width:44px;height:44px;border:0;border-radius:var(--r-s);background:transparent;color:var(--sub);font-size:1.25rem;line-height:1;cursor:pointer;font-family:inherit}
 .howto .hw-x:hover{background:var(--pri-l);color:var(--txt)}
 .howto .hw-x:focus-visible,.hw-link:focus-visible{outline:2px solid var(--pri);outline-offset:2px}
 .gsetup{display:inline-block;margin:0 0 12px;font-size:.82rem;font-weight:700;color:var(--pri)}

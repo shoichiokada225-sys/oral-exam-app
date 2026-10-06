@@ -269,7 +269,7 @@ function renameForm(id){
   h+=`<div class="meta"><label for="rnEe">${esc(t('labelExaminee'))}</label><input type="text" id="rnEe" list="dlEe" autocomplete="off" value="${esc(r.examinee)}">`;
   h+=`</div>`;
   if(grp.length>1||vars.length){
-    h+=`<fieldset style="border:1px solid var(--line,#ccc);border-radius:8px;margin-top:12px;padding:8px 10px;font-size:.85rem"><legend style="font-weight:700;padding:0 4px">${esc(t2('rnScope'))}</legend>
+    h+=`<fieldset style="border:1px solid var(--bdr);border-radius:8px;margin-top:12px;padding:8px 10px;font-size:.85rem"><legend style="font-weight:700;padding:0 4px">${esc(t2('rnScope'))}</legend>
       <label style="display:block;padding:4px 0"><input type="radio" name="rnScope" value="one" checked> ${esc(t2('rnOne'))}</label>
       <label style="display:block;padding:4px 0"><input type="radio" name="rnScope" value="all"> ${esc(t2('rnAll').replace('{n}',grp.length).replace('{v}',nameExact(r.examinee)))}</label>`;
     if(vars.length){

@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   // 名前の欄から直接「録音」を押した：確認ダイアログでそのタップが消えるので、切り替え後に押し直しを促す（L-2）
   document.addEventListener('pointerdown',e=>{const b=e.target&&e.target.closest&&e.target.closest('.recbtn');if(b)recTapAt=Date.now()},true);
   // 名前の入力中はドライブへ送らない（途中の名前のフォルダを作らない）。欄を離れた・確定したら待たせていた分を送る
-  fEe.addEventListener('input',()=>{eeTyping=true});
+  fEe.addEventListener('input',()=>{eeTyping=true;if(fEe.value.trim())toastClear(t2('needEe'),t2('eeEmptyRec'))}); // 名前を入れたら「名前を入力」の赤いトーストは消す（L-15）
   fEe.addEventListener('change',()=>{eeCommitted()});
   fEe.addEventListener('blur',()=>{eeCommitted()});
   // 初回（まだ1問も録音していない）に受験者名を入れ終えたら、1問目の「録音」が画面の外なら見える位置へ送る（R5b）。
@@ -189,7 +189,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   // 録音中、または端末に保存できていない録音（メモリ上だけの唯一の写し）がある間は、閉じる・再読み込みを止める
   window.addEventListener('beforeunload',e=>{if(active||pendingTakes().length){e.preventDefault();e.returnValue=''}});
   // スクロール中はsticky進捗ヒーローを小型化して可視窓を広げる（先頭へ戻るとchips付きフル表示に自動復帰）
-  addEventListener('scroll',()=>{const p=document.getElementById('examProg');if(p)p.classList.toggle('mini',window.scrollY>240)},{passive:true});
+  // スクロール中は sticky 進捗ヒーローを1行に縮めて見える高さを広げる（先頭へ戻ると元の表示）。切り替えの位置と上下の差は progMiniCheck
+  addEventListener('scroll',()=>progMiniCheck(),{passive:true});
   document.addEventListener('keydown',e=>{
     const mo=document.getElementById('modal');
     if(!mo.classList.contains('show'))return;
@@ -223,11 +224,13 @@ document.addEventListener('DOMContentLoaded',()=>{
 });
 
 /* 要素が上下の固定表示に重なっていれば、見える位置までスクロールする（モーダル内・固定表示そのものは対象外） */
+/* 画面に出ているか（position:fixed の要素は offsetParent が常に null なので getClientRects で見る・L-11） */
+function shownEl(x){return !!(x&&x.getClientRects().length&&getComputedStyle(x).visibility!=='hidden')}
 function revealFocused(el){
   if(!el||el!==document.activeElement||!el.getBoundingClientRect)return;
   if(el.closest('.hdr,.tabs,.savebar,.prog,#modal,.toast'))return;
   const r=el.getBoundingClientRect();if(!r.height&&!r.width)return;
-  const vis=x=>x&&x.offsetParent!==null&&getComputedStyle(x).position!=='static';
+  const vis=x=>shownEl(x)&&getComputedStyle(x).position!=='static';
   let top=0;const hd=document.querySelector('.hdr');if(vis(hd))top=Math.max(top,hd.getBoundingClientRect().bottom);
   const pg=document.querySelector('.pg.on .prog');if(vis(pg)&&!pg.contains(el))top=Math.max(top,pg.getBoundingClientRect().bottom);
   let bot=window.innerHeight;const tb=document.querySelector('.tabs');if(vis(tb))bot=Math.min(bot,tb.getBoundingClientRect().top);
@@ -280,10 +283,10 @@ function jumpToActiveRec(scrollOnly){
 function recBand(){
   const vh=window.innerHeight||document.documentElement.clientHeight;
   let top=0,bot=vh;
-  const fx=x=>x&&x.offsetParent!==null&&/sticky|fixed/.test(getComputedStyle(x).position);
+  const fx=x=>shownEl(x)&&/sticky|fixed/.test(getComputedStyle(x).position);
   const hd=document.querySelector('.hdr');if(fx(hd)){const r=hd.getBoundingClientRect();if(r.bottom>0)top=Math.max(top,r.bottom)}
   const pg=document.querySelector('.pg.on .prog');if(fx(pg)){const r=pg.getBoundingClientRect();if(r.top<vh/2)top=Math.max(top,r.bottom)}
-  const tb=document.querySelector('.tabs');if(tb&&tb.offsetParent!==null){const r=tb.getBoundingClientRect();if(r.top>0)bot=Math.min(bot,r.top)}
+  const tb=document.querySelector('.tabs');if(shownEl(tb)){const r=tb.getBoundingClientRect();if(r.top>0)bot=Math.min(bot,r.top)}
   return{top,bot};
 }
 function inBand(el){

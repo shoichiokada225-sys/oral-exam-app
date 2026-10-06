@@ -173,6 +173,8 @@ async function toggleRec(itemId,opt){
     tr.addEventListener('unmute',()=>clearTimeout(a._muteT));
   });
   active=a;
+  // 名前が空で止めたときの赤いトースト（needEe）は、録音が始まったら消す（L-15：録音中に「録音できない」と読める表示を残さない）
+  if(typeof toastClear==='function')toastClear(t2('needEe'));
   mr.start(1000); // 1秒ごとに取り出して一時保存（停止するまで1バイトも残らない状態をなくす）
   recCue('start');
   acquireWake();
@@ -300,8 +302,14 @@ document.addEventListener('visibilitychange',()=>{
   if(active&&!wakeLock)acquireWake(); // 画面に戻ったら取り直す（非表示でOSが解放するため）
 });
 window.addEventListener('pagehide',onHideWhileRec);
-/* 回転・幅の変化：録音中なら録音行を見える範囲へ戻す */
-window.addEventListener('resize',()=>{if(active)requestAnimationFrame(revealRecRow)});
+/* 回転・幅の変化：録音中なら録音行を見える範囲へ戻す。
+   高さだけの変化（アドレスバーの出入り・キーボード）と、文字を入力している間は動かさない（M-20：別の問の入力中に引き戻さない） */
+let recLastW=window.innerWidth;
+function typingNow(){const e=document.activeElement;return !!(e&&(e.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(e.tagName)))}
+window.addEventListener('resize',()=>{
+  const w=window.innerWidth,wc=w!==recLastW;recLastW=w;
+  if(active&&wc&&!typingNow())requestAnimationFrame(revealRecRow);
+});
 
 /* 停止した録音の後ろに続きを録る（上書きしない）。録音中に押されたら通常の録音ボタンと同じ扱い */
 function contRec(itemId){
@@ -545,8 +553,10 @@ function hideUndoBar(){
   fitUndoBar();
 }
 function updateLive(itemId,txt){const lv=document.getElementById('lv-'+itemId);if(lv)lv.querySelector('.lvtxt').textContent=txt}
+let recStopAt=0; // 最後に停止した時刻（停止直後の二度押しで別の操作に飛ばない・M-9）
 function stopRec(){
   if(!active)return Promise.resolve();
+  recStopAt=Date.now();
   const a=active;const itemId=a.itemId;
   clearInterval(a.timer);clearTimeout(a._muteT);
   // 自動文字起こしの下書きを確定（onstopが発火する前にactiveがnullになるため、ここで保存）。続きは前の下書きの後ろへ
