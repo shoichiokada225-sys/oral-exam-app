@@ -33,7 +33,7 @@ function drawCharts(){
   }
   const mine=getAll().filter(e=>e.examinee===who);
   let all=mine.filter(e=>e.status==='scored'&&!isNaN(passRate(e))); // 合否採点のある試問のみ
-  all.sort((a,b)=>(a.date||'').localeCompare(b.date||'')||(a.createdAt||'').localeCompare(b.createdAt||''));
+  all.sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))||String(a.createdAt||'').localeCompare(String(b.createdAt||'')));
   // 注記：旧5段階が混ざる試問／確定待ち（試問中の○×のみ）の試問があれば明示（黙って除外しない）
   const notes=[];
   // 出題（試問セット）で絞る（R4）：問題の違う試問を1本の線で比べない。既定は直近の試問のセット

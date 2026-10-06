@@ -466,7 +466,7 @@ function renderRecFail(itemId){
     const row=card.querySelector('.recrow');if(row&&row.nextSibling)card.insertBefore(box,row.nextSibling);else card.appendChild(box)}
   const u=URL.createObjectURL(blob);examUrls.push(u);
   const ext=audioExt(blob.type);
-  const fn=safeName((sess.examinee||'rec')+'_'+itemId+(f.dlOnly?'_cont':'')+'_'+new Date().toISOString().slice(0,19).replace(/[-:T]/g,''))+'.'+ext;
+  const fn=safeName((sess.examinee||'rec')+'_'+itemId+(f.dlOnly?'_cont':'')+'_'+localStamp())+'.'+ext;
   box.innerHTML=(f.dlOnly?'':`<button type="button" class="b b1" id="rfr-${itemId}" style="flex:0 0 auto;padding:6px 10px;font-size:.78rem">${esc(t2('recRetryStore'))}</button>`)+`<a class="b b3" id="rfd-${itemId}" style="flex:0 0 auto;padding:6px 10px;font-size:.78rem;text-decoration:none" download="${esc(fn)}" href="${u}">⬇ ${esc(t2('recDl'))}</a>`;
   const rr=document.getElementById('rfr-'+itemId);if(rr)rr.onclick=()=>retryStoreTake(sess.id,itemId);
 }

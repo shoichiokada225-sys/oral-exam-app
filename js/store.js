@@ -211,6 +211,8 @@ function pendLbl(r){
    ============================================================== */
 async function gcOrphanAudio(){
   try{
+    // 同じ端末でほかのタブが開いている間は整理しない（そのタブの未保存の試問の録音を「どこにも属さない」と誤判定するため・M-3）
+    if((await otherTabs(400)).length)return;
     const db=await openDB();
     const keys=await new Promise((res,rej)=>{const rq=db.transaction(STORE,'readonly').objectStore(STORE).getAllKeys();rq.onsuccess=()=>res(rq.result||[]);rq.onerror=()=>rej(rq.error)});
     if(!keys.length)return;
@@ -230,10 +232,51 @@ async function gcOrphanAudio(){
   }catch(e){}
 }
 
+
+/* ==============================================================
+   同じ端末の別タブ（M-3）
+   同じアプリを2つのタブで開くと、localStorage/IndexedDB を共有する。
+   BroadcastChannel で「ほかに開いているタブ」と、そのタブの試問ID・録音中かを確かめる
+   （ほかのタブが開いている間は孤児録音の整理・中断録音の片付けをしない。同じ試問を開いたら知らせる）
+   ============================================================== */
+const TAB_ID=(()=>{try{return crypto.randomUUID()}catch(e){return String(Date.now())+Math.random()}})();
+const tabPeers={}; // 別タブID → {curId, rec, at}
+let tabBC=null;
+const tabWarned=new Set(); // 同じ試問を開いたと知らせ済みの別タブ（1タブにつき1回）
+function tabCurId(){return (typeof cur!=='undefined'&&cur&&cur.id)||null}
+function tabPost(m){try{if(tabBC)tabBC.postMessage(Object.assign({from:TAB_ID,curId:tabCurId(),rec:typeof active!=='undefined'&&!!active},m))}catch(e){}}
+try{
+  tabBC=new BroadcastChannel('oral-exam-tabs');
+  tabBC.onmessage=e=>{
+    const m=e.data||{};if(!m.from||m.from===TAB_ID)return;
+    if(m.type==='bye'){delete tabPeers[m.from];return}
+    tabPeers[m.from]={curId:m.curId||null,rec:!!m.rec,at:Date.now()};
+    if(m.type==='ping'){
+      tabPost({type:'pong'});
+      // 後から開いたタブが同じ試問（下書き）を開いた：こちらでも知らせる
+      if(m.curId&&m.curId===tabCurId()&&!tabWarned.has(m.from)&&typeof toast==='function'){tabWarned.add(m.from);toast(t('tabSame'),1)}
+    }
+  };
+}catch(e){tabBC=null}
+addEventListener('pagehide',()=>tabPost({type:'bye'}));
+addEventListener('pageshow',e=>{if(e.persisted)tabPost({type:'ping'})});
+/* ほかに開いているタブ（ms ミリ秒待って返事のあったもの）。BroadcastChannel が無ければ空 */
+function otherTabs(ms){
+  return new Promise(res=>{
+    if(!tabBC)return res([]);
+    const t0=Date.now();tabPost({type:'ping'});
+    setTimeout(()=>res(Object.values(tabPeers).filter(p=>p.at>=t0)),ms||300);
+  });
+}
+
 /* ==============================================================
    データの引き継ぎ（バックアップ／復元）
-   APIキーは含めない。音声はbase64で同梱。
+   APIキーは含めない。音声はbase64で同梱。自分の質問セット（presets）も含める（L-5・追加キー）。
+   録音が多い端末でも書き出せるよう、1本の巨大な文字列を作らず部品の Blob で組み立て、
+   録音が BK_PART_BYTES を超えるときは試問単位で複数ファイルに分ける（M-19。各ファイルは単独で読み込める）
    ============================================================== */
+let BK_PART_BYTES=150*1024*1024;
+function bkStamp(){return todayStr().replace(/-/g,'')}
 
 async function exportBackup(){
   const btn=document.getElementById('bkExportBtn');const old=btn.textContent;btn.disabled=true;btn.textContent=t('bkExporting');
@@ -244,67 +287,142 @@ async function exportBackup(){
     if(typeof cur!=='undefined'&&cur&&cur.id&&!sessions.some(s=>s.id===cur.id)&&Object.values(cur.items||{}).some(x=>x&&x.hasAudio)){
       const c=JSON.parse(JSON.stringify(cur));snapMeta(c);if(!c.updatedAt)c.updatedAt=new Date().toISOString();sessions.push(c);
     }
-    const audio={};
+    // 試問ごとに録音を集め、録音の量で分ける（1つの試問は分けない）
+    const groups=[];let g={sessions:[],audio:[],bytes:0};
     for(const s of sessions){
+      const aud=[];let bytes=0;
       // cfg変更後でも旧項目の音声が漏れないよう、セッション自身のキーで走査する
       for(const key of Object.keys(s.items||{})){
         if(s.items[key]&&s.items[key].hasAudio){
           const b=await getAudio(s.id+'_'+key);
-          if(b)audio[s.id+'_'+key]={mime:b.type,data:await blobToB64(b)};
+          if(b){aud.push([s.id+'_'+key,b]);bytes+=b.size||0}
         }
       }
+      if(g.sessions.length&&g.bytes+bytes>BK_PART_BYTES){groups.push(g);g={sessions:[],audio:[],bytes:0}}
+      g.sessions.push(s);g.audio.push(...aud);g.bytes+=bytes;
     }
-    const backup={app:'oral-exam-app',version:1,exportedAt:new Date().toISOString(),cfg,sessions,audio};
-    const a=document.createElement('a');
-    a.href=URL.createObjectURL(new Blob([JSON.stringify(backup)],{type:'application/json'}));
-    a.download='oral_exam_backup_'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'.json';
-    a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-    toast(t('bkExported'));
-  }catch(e){toast(t('bkFail')+'（'+e.message+'）',1)}
+    groups.push(g);
+    const n=groups.length,at=new Date().toISOString(),presets=getQuestionSets().presets||[];
+    for(let i=0;i<n;i++){
+      const G=groups[i];
+      const head={app:'oral-exam-app',version:1,exportedAt:at};
+      if(i===0){head.cfg=cfg;head.presets=presets} // 出題と自分のセットは1つ目のファイルにだけ入れる
+      if(n>1){head.part=i+1;head.parts=n}
+      const parts=[JSON.stringify(head).slice(0,-1),',"sessions":',JSON.stringify(G.sessions),',"audio":{'];
+      G.audio.forEach(([k,b],j)=>{parts.push((j?',':'')+JSON.stringify(k)+':{"mime":'+JSON.stringify(b.type||'')+',"data":"',null,'"}')});
+      // base64 は録音ごとに作って部品として差し込む（全体を1本の文字列にしない）
+      let ai=0;for(let j=0;j<parts.length;j++)if(parts[j]===null)parts[j]=await blobToB64(G.audio[ai++][1]);
+      parts.push('}}');
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(new Blob(parts,{type:'application/json'}));
+      a.download='oral_exam_backup_'+bkStamp()+(n>1?'_'+(i+1)+'of'+n:'')+'.json';
+      a.click();const u=a.href;setTimeout(()=>URL.revokeObjectURL(u),60000);
+      if(i<n-1)await new Promise(r=>setTimeout(r,400)); // 続けてのダウンロードをブラウザに止められないよう間を空ける
+    }
+    toast(n>1?t('bkExpParts').replace('{n}',n):t('bkExported'));
+  }catch(e){toast(t('bkExpFail')+'（'+e.message+'）',1)}
   finally{btn.disabled=false;btn.textContent=old}
 }
 
-function importBackup(input){
-  const file=input.files&&input.files[0];if(!file)return;
-  const reader=new FileReader();
-  reader.onload=async()=>{
+/* 取り込む出題（cfg 形状）を無害化してコピー。形が違えば null（importBackup・自分のセットの取り込みで共用） */
+function bkCleanCfg(c){
+  if(!c||!Array.isArray(c.sections)||!Array.isArray(c.items))return null;
+  return {sections:c.sections.filter(s=>s&&typeof s==='object').map(s=>copyLocFields(s,{id:sanitizeId(s.id),name:String(s.name||'')},['name'])),
+    items:c.items.filter(it=>it&&typeof it==='object').map(it=>{
+      const o={id:sanitizeId(it.id),secId:sanitizeId(it.secId),name:String(it.name||''),desc:String(it.desc||'')};if(it.free)o.free=true;
+      if(it.ans!=null)o.ans=String(it.ans);
+      return copyLocFields(it,o,['name','desc','ans']);
+    })};
+}
+/* 取り込む試問の型をそろえる（L-7: date が数値などの壊れたバックアップでも履歴が空にならないように）。
+   正しい形のデータは値を変えない */
+function bkNormSess(s){
+  const o=Object.assign({},s);
+  ['date','examinee','examiner','overall','createdAt','updatedAt','status','setName'].forEach(f=>{if(o[f]!=null&&typeof o[f]!=='string')o[f]=typeof o[f]==='object'?'':String(o[f])});
+  if(o.setId!=null&&typeof o.setId!=='string')o.setId=String(o.setId);
+  if(!o.status)o.status='rec';
+  if(o.attempt!=null&&!isFinite(+o.attempt))delete o.attempt;
+  const items={};
+  Object.keys(o.items).forEach(k=>{
+    const x=o.items[k];if(!safeKey(k)||!x||typeof x!=='object'||Array.isArray(x))return;
+    const y=Object.assign({},x);
+    y.hasAudio=!!y.hasAudio;
+    if(y.score!=null&&!isPF(y.score)&&!isOld(y.score))y.score=null;
+    ['transcript','comment','qText'].forEach(f=>{if(y[f]!=null&&typeof y[f]!=='string')y[f]=typeof y[f]==='object'?'':String(y[f])});
+    if(y.na!=null)y.na=!!y.na;
+    items[k]=y;
+  });
+  o.items=items;
+  if(o.meta!=null){
+    if(typeof o.meta!=='object'||Array.isArray(o.meta))delete o.meta;
+    else{const m={};Object.keys(o.meta).forEach(k=>{const v=o.meta[k];if(safeKey(k)&&v&&typeof v==='object')m[k]={name:String(v.name==null?'':v.name),sec:String(v.sec==null?'':v.sec)}});o.meta=m}
+  }
+  return o;
+}
+function bkReadText(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>rej(r.error||new Error('read'));r.readAsText(file)})}
+
+/* バックアップの読み込み（複数ファイルを一度に選べる＝分けて書き出したもの）。旧形式（presets なし・1ファイル）もそのまま読める */
+async function importBackup(input){
+  const files=[...((input&&input.files)||[])];if(!files.length)return;
+  const done=()=>{try{input.value=''}catch(e){}};
+  const bks=[];
+  for(const f of files){
     let bk;
-    try{bk=JSON.parse(reader.result)}catch(e){toast(t('bkBadFile'),1);input.value='';return}
-    if(!bk||bk.app!=='oral-exam-app'||!Array.isArray(bk.sessions)){toast(t('bkBadFile'),1);input.value='';return}
-    if(!confirm(t('bkConfirm'))){input.value='';return}
-    try{
-      // 音声を復元（キー形式を検証してから書き込む）
-      if(bk.audio){for(const k in bk.audio){if(!/^[\w-]+_[\w-]+$/.test(k))continue;const a=bk.audio[k];await putAudio(k,b64ToBlob(a.data,a.mime))}}
+    try{bk=JSON.parse(await bkReadText(f))}catch(e){toast(t('bkBadFile'),1);done();return}
+    if(!bk||bk.app!=='oral-exam-app'||!Array.isArray(bk.sessions)){toast(t('bkBadFile'),1);done();return}
+    bks.push(bk);
+  }
+  if(!confirm(t('bkConfirm'))){done();return}
+  let added=0;
+  try{
+    for(const bk of bks){
       // セッションを統合（idで突き合わせ、updatedAtが新しい方を採用）
       // idはonclick属性に埋め込まれるため、不正な形式のセッションは取り込まない
       const okSess=s=>s&&typeof s==='object'&&typeof s.id==='string'&&/^[\w-]+$/.test(s.id)&&s.items&&typeof s.items==='object';
-      const cur2=getAll();const map={};cur2.forEach(s=>map[s.id]=s);
-      let added=0;
-      bk.sessions.filter(okSess).forEach(s=>{
+      const inc=bk.sessions.filter(okSess).map(bkNormSess);
+      const map={};getAll().forEach(s=>map[s.id]=s);
+      const adopted=new Set();
+      inc.forEach(s=>{
         const ex=map[s.id];
-        if(!ex){map[s.id]=s;added++;}
-        else if((s.updatedAt||'')>(ex.updatedAt||'')){map[s.id]=s;added++;}
+        if(!ex||(s.updatedAt||'')>(String(ex.updatedAt||''))){map[s.id]=s;adopted.add(s.id);added++}
       });
-      if(!saveAll(Object.values(map))){input.value='';return} // 保存失敗（storeFail表示済み）＝取り込み件数を偽って出さない
-      // 試問項目はインポート側を採用（採点との整合のため）。ID・文字列を無害化して取り込む
-      if(bk.cfg&&Array.isArray(bk.cfg.sections)&&Array.isArray(bk.cfg.items)){
-        cfg={sections:bk.cfg.sections.map(s=>copyLocFields(s,{id:sanitizeId(s.id),name:String(s.name||'')},['name'])),
-             items:bk.cfg.items.map(it=>{
-               const o={id:sanitizeId(it.id),secId:sanitizeId(it.secId),name:String(it.name||''),desc:String(it.desc||'')};if(it.free)o.free=true;
-               if(it.ans!=null)o.ans=String(it.ans);
-               return copyLocFields(it,o,['name','desc','ans']);
-             })};
+      if(!saveAll(Object.values(map))){done();return} // 保存失敗（storeFail表示済み）＝取り込み件数を偽って出さない・録音も書かない
+      // 音声：採用した試問（新規、またはバックアップ側が新しい）の録音だけを書く（H-1）。
+      // 採用しなかった試問は、端末に録音が無いときだけ補う（端末の新しい録り直しを古い録音で上書きしない）
+      if(bk.audio&&typeof bk.audio==='object'){
+        for(const k in bk.audio){
+          if(!/^[\w-]+_[\w-]+$/.test(k))continue;
+          const s=inc.find(x=>k.startsWith(x.id+'_')&&safeKey(k.slice(x.id.length+1)));if(!s)continue;
+          const a=bk.audio[k];if(!a||typeof a.data!=='string')continue;
+          if(!adopted.has(s.id)&&await getAudio(k))continue;
+          await putAudio(k,b64ToBlob(a.data,typeof a.mime==='string'?a.mime:''));
+        }
+      }
+      // 自分の質問セット（L-5）：端末に無いものだけ追加（同じ名前・同じ中身は重ねない。端末のセットは消さない）
+      if(Array.isArray(bk.presets)&&bk.presets.length){
+        const qs=getQuestionSets();let pa=0;
+        bk.presets.forEach(p=>{
+          const c=p&&bkCleanCfg(p.cfg);if(!c)return;
+          const name=String(p.name||'').trim();if(!name)return;
+          if(qs.presets.some(x=>x.name===name&&JSON.stringify(bkCleanCfg(x.cfg))===JSON.stringify(c)))return;
+          let id=sanitizeId(p.id||'set');if(qs.presets.some(x=>x.id===id))id=id+'_'+Date.now()+pa;
+          qs.presets.push({id,name,cfg:c});pa++;
+        });
+        if(pa){saveQuestionSets(qs);if(typeof renderQsetUI==='function')renderQsetUI();if(typeof renderExamSetSel==='function')renderExamSetSel()}
+      }
+      // 出題（試問項目）：今の出題と違えば、置き換えるかを別に聞く（L-5。キャンセル＝今の出題のまま）。ID・文字列は無害化
+      const nc=bkCleanCfg(bk.cfg);
+      if(nc&&JSON.stringify(nc)!==JSON.stringify(bkCleanCfg(cfg))&&confirm(t('bkCfgAsk'))){
+        cfg=nc;
         localStorage.setItem(CKEY,JSON.stringify(cfg));
         // 取り込んだ構成は使用中セットの中身ではない：activeIdを外す（resetCfg・項目の置き換えと同じ）。
         // 外さないと次の「項目を保存」(syncActiveSet)で保存済みセットが黙って上書きされる。presets自体は触らない
         const qs=getQuestionSets();if(qs.activeId||qs.activeTpl){qs.activeId=null;delete qs.activeTpl;saveQuestionSets(qs)} // 使用中テンプレートの記憶も外す（R4）
         if(typeof renderQsetUI==='function')renderQsetUI();if(typeof renderExamSetSel==='function')renderExamSetSel();
       }
-      buildExamCards();buildCfgUI();refreshSel();
-      toast(added+t('bkImported'));
-    }catch(e){toast(t('bkFail')+'（'+e.message+'）',1)}
-    input.value='';
-  };
-  reader.onerror=()=>{toast(t('bkFail'),1);input.value=''};
-  reader.readAsText(file);
+    }
+    buildExamCards();buildCfgUI();refreshSel();
+    toast(added+t('bkImported'));
+  }catch(e){toast(t('bkFail')+'（'+e.message+'）',1)}
+  done();
 }

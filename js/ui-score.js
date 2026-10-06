@@ -7,7 +7,7 @@ function drawScoreList(){
   const fil=document.getElementById('scFil').value;
   let all=getAll();
   if(fil!=='all')all=all.filter(s=>s.status!=='scored');
-  all.sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.createdAt||'').localeCompare(a.createdAt||''));
+  all.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
   const c=document.getElementById('scList');
   document.getElementById('scDetail').style.display='none';
   syncScoringClass();
@@ -27,7 +27,7 @@ function drawScoreList(){
    ============================================================== */
 async function openScore(id){
   const r=getAll().find(s=>s.id===id);if(!r)return;
-  curScore=r;
+  curScore=r;scBase=JSON.stringify(r);
   await renderScoreDetail(r,{focus:true});
 }
 /* 採点画面を開いている間だけ html.scoring（scroll-padding で保存バー・タブ・ヘッダーの下にフォーカスを隠さない） */
@@ -61,15 +61,27 @@ function captureScoreForm(){
 }
 /* 採点の途中経過を自動保存（statusは変えない＝タブ移動・中断・誤操作で入力が消えない） */
 let scSaveTimer=null;
+let scBase=null; // 採点画面を開いた（または最後に保存した）時点の保存済みの版（JSON）。ほかのタブの変更を見分ける（M-3）
 function queueScoreDraft(){clearTimeout(scSaveTimer);scSaveTimer=setTimeout(()=>persistScoreDraft(true),800)}
-function persistScoreDraft(showHint){
+/* 保存済みの版が、この画面で開いた後にほかのタブで変わっていたら、こちらで変えた欄だけを重ねる（丸ごと上書きしない）。
+   戻り値: 画面の内容が変わった（＝描き直しが要る）か */
+function mergeScoreOther(stored){
+  if(!curScore||!stored||scBase==null||JSON.stringify(stored)===scBase||typeof mergeResumed!=='function')return false;
+  const before=JSON.stringify(curScore);
+  mergeResumed(curScore,stored,JSON.parse(scBase));
+  return JSON.stringify(curScore)!==before;
+}
+function persistScoreDraft(showHint,hiding){
   clearTimeout(scSaveTimer);
   if(!curScore)return;
   captureScoreForm();
   const all=getAll();const idx=all.findIndex(s=>s.id===curScore.id);
   if(idx<0)return;
+  const other=mergeScoreOther(all[idx]);
   all[idx]=curScore;
   if(!saveAll(all))return; // 保存失敗（storeFail表示済み）＝「下書き保存」の表示を出さない
+  scBase=JSON.stringify(curScore);
+  if(other){toast(t('tabMerged'));if(!hiding)renderScoreDetail(curScore);return}
   if(showHint){const el=document.getElementById('scAutoSt');if(el){el.textContent=t('draftSaved');el.style.opacity='1';setTimeout(()=>{el.style.opacity='0'},1600)}}
 }
 function updateScoreProg(){
@@ -221,7 +233,7 @@ function pickNA(id,checked){
     // ドライブ上の名前（合格/不合格）も「未判定」に付け直す（合否があった時だけ）
     if(prevSc!=null&&typeof resyncDriveName==='function')resyncDriveName(curScore,id);
   }
-  updateScoreProg();queueScoreDraft();
+  updateScoreProg();persistScoreDraft(true);
 }
 /* 次の未採点項目のid（なければnull） */
 function findUnscoredId(){
@@ -262,7 +274,7 @@ function pickScore(id,s,btn){
   // 押した瞬間にcurScoreへ反映（進捗カウンタの分母・分子がDOM選択と一致する）
   if(curScore){curScore.items[id]=curScore.items[id]||{};curScore.items[id].score=s}
   if(curScore&&typeof resyncDriveName==='function')resyncDriveName(curScore,id); // ドライブのファイル名の合否も付け直す
-  btn.parentElement.querySelectorAll('.sb').forEach(b=>{b.classList.remove('sel');b.setAttribute('aria-checked','false')});btn.classList.add('sel');btn.setAttribute('aria-checked','true');const sp=document.getElementById('sp-'+id);if(sp)sp.textContent=pfLabel(s);const c=document.getElementById('sc-'+id);if(c){c.classList.add('scored');c.classList.toggle('v-pass',s==='pass');c.classList.toggle('v-fail',s==='fail')}const na=document.querySelector('.nachk[data-id="'+id+'"]');if(na&&na.checked){na.checked=false;if(curScore&&curScore.items[id])curScore.items[id].na=false}updateScoreProg();queueScoreDraft();queueAutoNext()}
+  btn.parentElement.querySelectorAll('.sb').forEach(b=>{b.classList.remove('sel');b.setAttribute('aria-checked','false')});btn.classList.add('sel');btn.setAttribute('aria-checked','true');const sp=document.getElementById('sp-'+id);if(sp)sp.textContent=pfLabel(s);const c=document.getElementById('sc-'+id);if(c){c.classList.add('scored');c.classList.toggle('v-pass',s==='pass');c.classList.toggle('v-fail',s==='fail')}const na=document.querySelector('.nachk[data-id="'+id+'"]');if(na&&na.checked){na.checked=false;if(curScore&&curScore.items[id])curScore.items[id].na=false}updateScoreProg();persistScoreDraft(true);queueAutoNext()} // 合否は押した時点で保存（直後にアプリを閉じても残す・M-18）
 function backToScoreList(){clearTimeout(autoNextTimer);persistScoreDraft(false);const sid=curScore&&curScore.id;curScore=null;releaseScoreUrls();document.getElementById('scDetail').style.display='none';drawScoreList();focusScoreRow(sid)}
 function releaseScoreUrls(){curScoreUrls.forEach(u=>{try{URL.revokeObjectURL(u)}catch(e){}});curScoreUrls=[]}
 
@@ -270,6 +282,8 @@ function releaseScoreUrls(){curScoreUrls.forEach(u=>{try{URL.revokeObjectURL(u)}
 function saveScore(){
   clearTimeout(scSaveTimer);
   const r=curScore;if(!r)return;
+  // ほかのタブで同じ試問が変わっていた：上書きせず、統合した内容を描き直して知らせる（確かめてからもう一度保存）
+  {const sv=getAll().find(s=>s.id===r.id);captureScoreForm();if(mergeScoreOther(sv)){scBase=JSON.stringify(sv);toast(t('tabMerged'),1);renderScoreDetail(r);return}}
   const ids=sessItemIds(r); // 現在のcfg ∪ セッション自身の項目（過去項目も採点対象）
   const isNA=id=>{const na=document.querySelector('.nachk[data-id="'+id+'"]');return na?na.checked:!!(r.items[id]&&r.items[id].na)};
   const miss=[];
@@ -303,6 +317,7 @@ function saveScore(){
   const all=getAll();const idx=all.findIndex(s=>s.id===r.id);if(idx>=0)all[idx]=r;else all.push(r);
   // 保存に失敗したら（容量不足等）採点画面を閉じない＝入力した合否・文字起こし・コメントを画面に残す
   if(!saveAll(all)){r.status=prevStatus;return}
+  scBase=null;
   toast(t('tScored'));
   curScore=null;releaseScoreUrls();
   document.getElementById('scDetail').style.display='none';
@@ -311,3 +326,8 @@ function saveScore(){
   drawScoreList();refreshSel();
   focusScoreRow(r.id); // 保存して一覧へ戻ったら、いま採点した行へフォーカスを戻す
 }
+
+/* 画面が隠れる・閉じる直前に、採点の途中経過をすぐ保存する（自動保存の0.8秒待ちの間に閉じても失わない・M-18） */
+function flushScoreDraft(){const d=document.getElementById('scDetail');if(curScore&&d&&d.style.display!=='none')persistScoreDraft(false,true)}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flushScoreDraft()});
+addEventListener('pagehide',flushScoreDraft);

@@ -10,7 +10,7 @@ function eeSummary(){
   const map={};
   getAll().filter(s=>s.status==='scored').forEach(s=>{(map[s.examinee]=map[s.examinee]||[]).push(s)});
   return Object.keys(map).sort().map(n=>{
-    const arr=map[n].sort((a,b)=>(a.date||'').localeCompare(b.date||'')||(a.createdAt||'').localeCompare(b.createdAt||''));
+    const arr=map[n].sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))||String(a.createdAt||'').localeCompare(String(b.createdAt||'')));
     // 合否採点のある試問だけで比較（旧5段階のみの試問は合格率を出せない）
     const pf=arr.filter(x=>!isNaN(passRate(x)));
     // 旧5段階のみの受験者もカードは出す（合格率の対象外と明示）
@@ -42,7 +42,7 @@ function drawHist(){
   const f=document.getElementById('hFil').value;let all=getAll();if(f)all=all.filter(e=>e.examinee===f);
   const q=(document.getElementById('hQ').value||'').trim().toLowerCase();
   if(q)all=all.filter(e=>((e.examinee||'')+' '+(e.examiner||'')).toLowerCase().includes(q));
-  all.sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.createdAt||'').localeCompare(a.createdAt||''));
+  all.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
   const c=document.getElementById('hList');
   const none=!getAll().length; // データ0件（新しい端末など）→CSVは押せなくし、次の手を示す
   const cb=document.getElementById('hCsv');if(cb){cb.disabled=none;cb.setAttribute('aria-disabled',none?'true':'false')}
@@ -50,7 +50,7 @@ function drawHist(){
   if(!all.length){c.innerHTML=`<div class="nd">${t('noData')}</div>`;return}
   let h=q?'':eeSummaryHtml(f),pm='';
   all.forEach(r=>{
-    const ym=(r.date||'').slice(0,7);
+    const ym=String(r.date||'').slice(0,7);
     if(ym&&ym!==pm){h+=`<div class="mgrp">${esc(fmtMonth(ym))}</div>`;pm=ym}
     const x=rowRes(r);
     h+=`<button type="button" class="hi" onclick="showDet('${sanitizeId(r.id)}')"><span class="hii"><span class="hid">${esc(r.date)} · <span class="hset">${esc(setLbl(r))}</span></span><span class="hin">${esc(r.examinee)}</span>${x.badge}</span><span class="hia ${x.cls}">${esc(x.lbl)}</span></button>`;
@@ -165,6 +165,6 @@ function doCSV(){
     csv+=row.map(cell).join(',')+'\n';
   });
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
-  a.download='oral_exam_'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'.csv';a.click();
+  a.download='oral_exam_'+todayStr().replace(/-/g,'')+'.csv';a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href),1000); // 書き出しの度にBlobが端末メモリへ残るのを防ぐ（exportBackupと同じ後始末）
 }

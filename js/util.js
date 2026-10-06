@@ -14,3 +14,5 @@ function safeName(s){return String(s||'').replace(/[\\/:*?"<>|]+/g,'_').replace(
 function sanitizeId(s){return String(s).replace(/[^a-zA-Z0-9_\-]/g,'_')}
 /* 端末の現地時刻での今日（YYYY-MM-DD）。toISOString()はUTC基準で、日本の0:00〜9:00は前日になるため使わない */
 function todayStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+/* 端末の現地時刻の日時（YYYYMMDDHHMMSS）。ファイル名用（toISOString() の UTC だと日本の朝は前日の日付になる） */
+function localStamp(){const d=new Date(),p=n=>String(n).padStart(2,'0');return todayStr().replace(/-/g,'')+p(d.getHours())+p(d.getMinutes())+p(d.getSeconds())}

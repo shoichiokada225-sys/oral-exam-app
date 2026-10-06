@@ -178,7 +178,10 @@ document.addEventListener('DOMContentLoaded',()=>{
   // 孤児音声GC（どのセッションにも属さない録音を検出→件数確認のうえ削除）
   setTimeout(()=>gcOrphanAudio(),2500);
   // 前回、録音の途中で端末が落ちた・タブが閉じられた：一時保存から「中断された録音を復元」を出す
-  setTimeout(()=>{if(typeof checkLiveTakes==='function')checkLiveTakes()},600);
+  //（ほかのタブが録音中なら、その一時保存を「中断された録音」と取り違えないよう見送る・M-3）
+  setTimeout(()=>{if(typeof checkLiveTakes==='function')otherTabs(300).then(ps=>{if(!ps.some(p=>p.rec))checkLiveTakes()})},600);
+  // 同じ試問（下書き）をほかのタブでも開いている：片方だけで操作するよう知らせる（保存時は上書きせず統合する）
+  otherTabs(300).then(ps=>{if(cur&&ps.some(p=>p.curId===cur.id))toast(t('tabSame'),1)});
   // 前回ドライブへ届かなかった録音（送信失敗・送信中に終了）を、電波があれば起動時にまとめて再送
   setTimeout(()=>{if(navigator.onLine!==false&&typeof resendAllUnsent==='function')resendAllUnsent()},4000);
   // 録音中、または端末に保存できていない録音（メモリ上だけの唯一の写し）がある間は、閉じる・再読み込みを止める
@@ -318,7 +321,13 @@ async function saveSession(opt){
   if(typeof alignNames==='function')alignNames(cur);
   // 「続ける」で開いた保存済みの試問：開いている間に採点タブなどで保存された合否・文字起こし・コメント・状態を
   // 古い写しで上書きしない（続きで変えた所だけを、いま保存されている版へ重ねる）
-  let resumeSv=null;
+  let resumeSv=null,otherTab=false;
+  // 同じ試問をほかのタブが先に保存していた（同じ下書きを2つのタブで開いた・M-3）：丸ごと上書きせず、
+  // そのタブで録った問・付けた合否を残して統合する（こちらで空の欄だけ保存済みの値で埋める）
+  if(!cur._resume&&typeof mergeResumed==='function'){
+    const sv0=getAll().find(s=>s.id===cur.id);
+    if(sv0){mergeResumed(cur,sv0,null);otherTab=true}
+  }
   if(cur._resume&&typeof mergeResumed==='function'){
     const sv0=getAll().find(s=>s.id===cur.id);
     if(sv0){resumeSv=JSON.parse(JSON.stringify(sv0));mergeResumed(cur,sv0,cur._base||null)}
@@ -394,7 +403,7 @@ async function saveSession(opt){
   // 採点まで確定した試問は採点タブの既定表示（採点待ち）に出ないため、履歴タブへ案内する
   const scored=tgt.status==='scored';
   const quiet=opt&&(opt.switching||opt.quiet);
-  toast((merged?t2('savedMerged').replace('{e}',tgt.examinee):retakeMsg||(scored?t2('savedScored'):t('tSaved')))+(quiet?'':' · '+t2('nextEe')));
+  toast((otherTab?t('tabMerged')+' · ':'')+(merged?t2('savedMerged').replace('{e}',tgt.examinee):retakeMsg||(scored?t2('savedScored'):t('tSaved')))+(quiet?'':' · '+t2('nextEe')));
   const sb=document.querySelector('.tabs button[data-pg="'+(scored?'pgHi':'pgScore')+'"]');
   if(sb){sb.classList.add('attn');setTimeout(()=>sb.classList.remove('attn'),5000)}
   const saved=tgt;

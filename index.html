@@ -146,7 +146,7 @@ try{var _th=localStorage.getItem('oral_exam_theme');if(_th==='light'||_th==='dar
     <button class="b b1 wfull" id="bkExportBtn" onclick="exportBackup()" data-t="bkExport">バックアップを書き出す</button>
     <button class="b b3 wfull mt10" id="bkImportBtn" onclick="document.getElementById('bkFile').click()" data-t="bkImport">バックアップを読み込む</button>
     <div id="bkPersist" class="gstat" role="status" style="display:none;margin-top:10px;color:var(--s1)"></div>
-    <input type="file" id="bkFile" accept="application/json,.json" class="file-hidden" onchange="importBackup(this)">
+    <input type="file" id="bkFile" accept="application/json,.json" multiple class="file-hidden" onchange="importBackup(this)">
     </div>
   </details>
   <details class="acc">
