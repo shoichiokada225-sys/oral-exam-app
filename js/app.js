@@ -238,6 +238,10 @@ function swSafeToReload(){
   if(typeof active!=='undefined'&&active)return false;
   if(typeof pendingTakes==='function'&&pendingTakes().length)return false;
   if(typeof cfgDirty!=='undefined'&&cfgDirty)return false;
+  // ドライブへ送信中・送信待ち（停止直後の1.5秒・名前の確定待ち）：途中で読み直すと同じ録音を次回もう一度丸ごと送ってしまう（G-sw-R1）
+  if(typeof upBusy!=='undefined'&&Object.values(upBusy).some(Boolean))return false;
+  if(typeof vdTimers!=='undefined'&&Object.keys(vdTimers).length)return false;
+  if(typeof eeWaitQ!=='undefined'&&eeWaitQ.length)return false;
   const mo=document.getElementById('modal');if(mo&&mo.classList.contains('show'))return false;
   const ae=document.activeElement;if(ae&&(ae.tagName==='TEXTAREA'||(ae.tagName==='INPUT'&&!/^(button|checkbox|radio|range|file|submit|reset)$/i.test(ae.type||''))))return false;
   return true;
@@ -247,7 +251,8 @@ function swUpdReady(){
   if(swSafeToReload()){swUpdDone=true;location.reload();return}
   if(!swUpdPending){swUpdPending=true;toast(t('tUpdate'))}
 }
-document.addEventListener('visibilitychange',()=>{if(swUpdPending&&document.visibilityState==='visible')swUpdReady()});
+function swUpdRetry(){if(swUpdPending&&!swUpdDone&&document.visibilityState==='visible')swUpdReady()}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')swUpdRetry()});
 
 /* 要素が上下の固定表示に重なっていれば、見える位置までスクロールする（モーダル内・固定表示そのものは対象外） */
 /* 画面に出ているか（position:fixed の要素は offsetParent が常に null なので getClientRects で見る・L-11） */

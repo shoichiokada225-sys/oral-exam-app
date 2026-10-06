@@ -4,7 +4,10 @@
    [1] M-21: CDN に届かなくても SW が入り、サーバーが落ちても（圏外相当）アプリが開ける。初回インストールでは再読み込みしない
    [2] L-10: 電波が弱く HTML の応答が 8 秒かかっても、キャッシュがあれば 5 秒以内に開ける。遅れて届いた HTML でキャッシュは更新される
    [3] M-23: 新しい版を置いて1回開き直すだけで、新しい JS で動く（2回目を待たない）
-   [4] M-23: 録音中に新しい版が入ってもページは勝手に再読み込みされず、短い案内だけ出る。録音が終わって画面に戻ったら新しい版になる */
+   [4] M-23: 録音中に新しい版が入ってもページは勝手に再読み込みされず、短い案内だけ出る。録音が終わって画面に戻ったら新しい版になる
+   [5] G-sw-R1: ドライブへ録音を送っている最中に新しい版が入っても読み直さない（同じ録音を2回送らない）。送り終えたら新しい版へ
+   [6] G-sw-R1: 画面を離れた時に送信が始まり（flushDrive）、すぐ戻っても読み直さない。送り終えたら新しい版へ
+   [5][6] の GAS は代役（context.route で script.google.com への要求を受け、6秒後に応答する）。本物には届かない */
 'use strict';
 const env = require('./_env');
 const http = require('http'), fs = require('fs'), os = require('os'), path = require('path');
@@ -167,6 +170,92 @@ const loads = page => page.evaluate(() => +sessionStorage.getItem('__loads') || 
       await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange'))).catch(() => {});
       const got = await waitEval(page, () => window.__V === 'upd2', 10000);
       T.ok('録音が終わって画面に戻ったら新しい版になる', got);
+      T.ok(`ページエラーなし${errors.length ? ' ' + errors.join(' | ') : ''}`, errors.length === 0);
+      await c.close();
+    }
+
+    /* 代役 GAS つきの文脈（送信の中身は記録するだけ。応答は6秒後） */
+    const gasCtx = async () => {
+      const x = await newCtx(); const posts = [];
+      await x.c.route(/^https:\/\/script\.google(usercontent)?\.com\//, async route => {
+        const req = route.request();
+        if (req.method() !== 'POST') return route.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' });
+        let j = {}; try { j = JSON.parse(req.postData() || '{}'); } catch (e) { /* 無視 */ }
+        if (j.ping) return route.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true,"ping":true}' }).catch(() => {});
+        posts.push({ name: j.name, full: !!j.dataB64 });
+        await sleep(6000);
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, id: 'F' + posts.length, url: 'https://drive/F' }) }).catch(() => {});
+      });
+      await x.c.addInitScript(g => { try { if (!localStorage.getItem('oral_exam_google_v1')) localStorage.setItem('oral_exam_google_v1', g); } catch (e) { /* 無視 */ } },
+        JSON.stringify({ url: 'https://script.google.com/macros/s/X/exec', token: 'T', folder: 'f', auto: true, autoSet: true }));
+      x.posts = posts; return x;
+    };
+    const draftDrive = page => page.evaluate(() => { const d = JSON.parse(localStorage.getItem(DRAFTKEY) || 'null'); const r = d && d.items && Object.values(d.items).find(v => v.hasAudio); return r ? { st: r.driveSt || '', id: r.driveFileId || '' } : null; }).catch(() => null);
+    const setVis = (page, v) => page.evaluate(v => { Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => v }); document.dispatchEvent(new Event('visibilitychange')); }, v).catch(() => {});
+
+    console.log('[5] G-sw-R1: ドライブへ送信中に新しい版が入っても読み直さない');
+    {
+      root = copies[copies.push(stripCdn(makeCopy())) - 1]; down = false; slowMs = 0; slowHtml = null;
+      const { c, page, errors, posts } = await gasCtx();
+      await page.goto(BASE, { waitUntil: 'load' });
+      T.ok('SW が入る', await swReady(page, 15000));
+      await page.reload({ waitUntil: 'load' });
+      await sleep(800);
+      await page.fill('#fEe', '山田'); await page.press('#fEe', 'Tab');
+      await page.click('body', { position: { x: 5, y: 5 } }).catch(() => {});
+      await page.click('#rb-q1'); await sleep(2000); await page.click('#rb-q1');
+      for (let i = 0; i < 40 && !posts.length; i++) await sleep(250);
+      T.ok('録音の送信が始まった（代役 GAS が受信・応答待ち）', posts.length === 1 && await page.evaluate(() => Object.values(upBusy).some(Boolean)).catch(() => false));
+      await page.evaluate(() => { window.__mark = 'keep'; });
+      const before = await loads(page);
+      deploy(root, 'up5');
+      await page.evaluate(() => navigator.serviceWorker.getRegistration().then(r => r && r.update())).catch(() => {});
+      const toastOk = await waitEval(page, () => { const el = document.getElementById('toast'); return el.classList.contains('show') && el.textContent === t('tUpdate'); }, 10000);
+      T.ok('送信中は読み直さず案内だけ出す', toastOk && (await loads(page)) === before && await page.evaluate(() => window.__mark === 'keep' && !window.__V).catch(() => false));
+      const got = await waitEval(page, () => window.__V === 'up5', 15000);
+      T.ok('送り終えたら新しい版になる', got);
+      await sleep(3000);
+      T.ok(`同じ録音を2回送らない（GAS への送信 ${posts.length} 回）`, posts.length === 1);
+      const dd = await draftDrive(page);
+      T.ok(`下書きは送信済み（driveFileId=F1・送信中の印なし）: ${JSON.stringify(dd)}`, !!dd && dd.id === 'F1' && !dd.st);
+      T.ok(`ページエラーなし${errors.length ? ' ' + errors.join(' | ') : ''}`, errors.length === 0);
+      await c.close();
+    }
+
+    console.log('[6] G-sw-R1: 画面を離れて送信が始まり、すぐ戻っても読み直さない');
+    {
+      root = copies[copies.push(stripCdn(makeCopy())) - 1]; down = false; slowMs = 0; slowHtml = null;
+      const { c, page, errors, posts } = await gasCtx();
+      await page.goto(BASE, { waitUntil: 'load' });
+      T.ok('SW が入る', await swReady(page, 15000));
+      await page.reload({ waitUntil: 'load' });
+      await sleep(800);
+      await page.fill('#fEe', '山田'); await page.press('#fEe', 'Tab');
+      await page.click('body', { position: { x: 5, y: 5 } }).catch(() => {});
+      await page.click('#rb-q1'); await sleep(1200);
+      deploy(root, 'up6');
+      await page.evaluate(() => navigator.serviceWorker.getRegistration().then(r => r && r.update())).catch(() => {});
+      await waitEval(page, () => { const el = document.getElementById('toast'); return el.textContent === t('tUpdate'); }, 10000);
+      await page.evaluate(() => { window.__mark = 'keep'; });
+      const before = await loads(page);
+      await page.click('#rb-q1');
+      const waiting = await waitEval(page, () => !active && Object.keys(vdTimers).length > 0, 3000);
+      T.ok('停止直後は送信待ち（1.5秒）', waiting && posts.length === 0);
+      await setVis(page, 'visible'); // 送信待ちの間に画面に戻った
+      await sleep(300);
+      T.ok('送信待ちの間は画面に戻っても読み直さない', (await loads(page)) === before && await page.evaluate(() => window.__mark === 'keep').catch(() => false));
+      await setVis(page, 'hidden');
+      for (let i = 0; i < 40 && !posts.length; i++) await sleep(100);
+      T.ok('画面を離れたら送信が始まる', posts.length === 1);
+      await setVis(page, 'visible');
+      await sleep(1500);
+      T.ok('すぐ戻っても送信中は読み直さない', (await loads(page)) === before && await page.evaluate(() => window.__mark === 'keep' && !window.__V).catch(() => false));
+      const got = await waitEval(page, () => window.__V === 'up6', 15000);
+      T.ok('送り終えたら新しい版になる', got);
+      await sleep(3000);
+      T.ok(`同じ録音を2回送らない（GAS への送信 ${posts.length} 回）`, posts.length === 1);
+      const dd = await draftDrive(page);
+      T.ok(`下書きは送信済み: ${JSON.stringify(dd)}`, !!dd && dd.id === 'F1' && !dd.st);
       T.ok(`ページエラーなし${errors.length ? ' ' + errors.join(' | ') : ''}`, errors.length === 0);
       await c.close();
     }

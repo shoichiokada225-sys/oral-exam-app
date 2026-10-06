@@ -270,6 +270,8 @@ async function maybeAutoUpload(itemId,opt,sessArg){
     if(p||p2)maybeAutoUpload(itemId,mergeDriveOpt(p,p2),arg);
     else if(okDone&&s2.items[itemId]&&s2.items[itemId].driveFileId&&!drivePending(s2,itemId)&&
       (driveNameStale(s2,itemId)||(s2!==cur&&driveFolderStale(s2,itemId))))maybeAutoUpload(itemId,{nameOnly:true},arg);
+    // 送信中に新しい版が入って読み直しを待っていた：送り終えたら（続きの送信が無ければ）新しい版へ（G-sw-R1）
+    if(typeof swUpdRetry==='function')setTimeout(swUpdRetry,0);
   }
 }
 function copyDriveFields(src,dst){
