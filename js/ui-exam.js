@@ -19,7 +19,7 @@ function buildExamCards(){
       const ansTxt=loc(it,'ans');
       h+=`<div class="cd qc${has&&isPF(rec.score)?' done':''}" id="q-${iid}">
         <div class="en">${esc(secName.charAt(0))}-${ii+1}</div>
-        ${it.free?`<textarea class="qtx" id="qt-${iid}" rows="2" placeholder="${esc(t2('freePh'))}" aria-label="${esc(freeLbl(ii+1))}" oninput="setQText('${iid}',this.value)" onchange="qTextDone('${iid}')">${esc(rec&&rec.qText||'')}</textarea>`
+        ${it.free?`<textarea class="qtx" id="qt-${iid}" rows="2" placeholder="${esc(t2('freePh'))}" aria-label="${esc(freeLbl(ii+1))}" oninput="setQText('${iid}',this.value);fitQtx(this)" onchange="qTextDone('${iid}')">${esc(rec&&rec.qText||'')}</textarea>`
           :`<div class="enm">${esc(loc(it,'name'))}</div>
         <div class="ed">${esc(loc(it,'desc'))}</div>`}
         ${ansTxt?`<details class="ans"><summary>${t('ansLbl')}${lang!=='ja'&&ansTxt===it.ans?' '+esc(t('ansJaNote')):''}</summary><div class="ansb">${esc(ansTxt)}</div></details>`:''}
@@ -46,6 +46,7 @@ function buildExamCards(){
       <button type="button" class="b b4" id="emPickSet" style="flex:1 1 160px" onclick="gotoCfgPart('qsetArea')">${esc(t2('pickSet'))}</button>
     </div></div>`;
   el.innerHTML=h;
+  el.querySelectorAll('textarea.qtx').forEach(fitQtx);
   // 旧ObjectURLを解放してから既存録音の再生用URLを復元
   examUrls.forEach(u=>{try{URL.revokeObjectURL(u)}catch(e){}});examUrls=[];
   if(cur)getItems().forEach(async it=>{
@@ -144,17 +145,20 @@ function syncProgComp(box){
   const d=full-box.offsetHeight;
   if(d>0)box.style.marginBottom=(mb+d)+'px';
 }
-/* 小型表示（.mini）の切り替え（M-22）：
-   ・縮めるのは、カードの上端が「小型ヒーローの下端」より上へ来てから＝元の大きさのヒーローに隠れていた所が見えるだけで、カードは動かず空白も出ない
-   ・戻すのはそこから60px下へ戻ってから（境目で行ったり来たりしない）。小型の間も流れの中の高さは元のまま（syncProgComp） */
-const PROG_MINI_H=56,PROG_MINI_HYS=60;
+/* 小型表示（.mini）の切り替え（M-22・V-1）：
+   ・縮めるのは、ヒーローが上に貼り付いた瞬間（流れの中の本来の位置が貼り付き位置より上へ行った）＝カードがヒーローの下へ潜る前。
+     元の大きさのまま貼り付くと 1問目のラベルと1行目を隠す（V-1）。流れの中の高さは元のまま（syncProgComp）なのでカードは跳ばない
+   ・戻すのは本来の位置が貼り付き位置より PROG_MINI_HYS 下へ戻ってから（境目で行ったり来たりしない）。戻した時点で貼り付いていない＝隠さない */
+const PROG_MINI_HYS=24;
 function progMiniCheck(){
   const p=document.getElementById('examProg'),c=document.getElementById('examCards');if(!p||!c)return;
   const on=p.classList.contains('mini');
   let want=false;
   if(p.style.display!=='none'&&p.getClientRects().length&&c.getClientRects().length){
-    const lim=(parseFloat(getComputedStyle(p).top)||0)+PROG_MINI_H,ct=c.getBoundingClientRect().top;
-    want=on?ct<lim+PROG_MINI_HYS:ct<lim;
+    const cs=getComputedStyle(p),top=parseFloat(cs.top)||0;
+    // 流れの中の本来の上端＝カードの上端−（今の高さ＋今の下余白）。小型の間も下余白で元の高さを保つので、どちらの状態でも同じ値
+    const nat=c.getBoundingClientRect().top-p.offsetHeight-(parseFloat(cs.marginBottom)||0);
+    want=on?nat<top+PROG_MINI_HYS:nat<top-0.5;
   }
   if(want===on)return;
   p.classList.toggle('mini',want);syncProgComp(p);
@@ -294,6 +298,12 @@ function storageOnRec(){askPersist();checkStorage()}
 
 /* その場で出題：問題文を試問ごとに保存（入力のたびに下書きへ）。録音済みならドライブのファイル名は欄を離れた時に付け直す（qTextDone・M-16） */
 let qtTimer=null;
+/* その場で出題の問題文欄を中身の行数に合わせて伸ばす（V-3：2行のまま中でスクロールし1行目が切れて見える） */
+function fitQtx(el){
+  if(!el||!el.getClientRects().length)return;
+  const cs=getComputedStyle(el),bd=(parseFloat(cs.borderTopWidth)||0)+(parseFloat(cs.borderBottomWidth)||0);
+  el.style.height='auto';el.style.height=Math.ceil(el.scrollHeight+bd)+'px';
+}
 function setQText(itemId,v){
   if(!cur)return;
   cur.items[itemId]=cur.items[itemId]||{};

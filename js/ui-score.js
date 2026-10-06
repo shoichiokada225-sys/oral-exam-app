@@ -139,7 +139,7 @@ function scoreCardHtml(r,id,en,name,desc,ans,ansJa){
     <textarea class="trta" id="tr-${id}" aria-label="${esc(name)} ${esc(t('trLbl'))}" placeholder="${t('phTr')}">${esc(rec.transcript!=null?rec.transcript:(rec.draft||''))}</textarea>
     <div class="tlbl">${t('scoreLbl')}</div>
     <div class="sr" role="radiogroup" aria-label="${esc(name)} ${esc(t2('pfLbl'))}">${['pass','fail'].map(s=>`<button class="sb pf${sc===s?' sel':''}" role="radio" aria-checked="${sc===s?'true':'false'}" data-id="${id}" data-s="${s}" onclick="pickScore('${id}','${s}',this)">${s==='pass'?'○':'×'}<span class="sl">${esc(t2(s))}</span></button>`).join('')}</div>
-    <div class="spick" id="sp-${id}">${isPF(sc)?esc(t2(sc)):(sc!=null?esc(t2('oldScore'))+': '+esc(pfLabel(sc)):'')}</div>
+    <div class="spick" id="sp-${id}">${isPF(sc)?esc(t2(sc)):(sc!=null&&String(sc).trim()!==''?esc(t2('oldScore'))+': '+esc(pfLabel(sc)):'')}</div>
     ${rec.hasAudio?`<div class="cloud" id="scl-${id}" role="status" style="font-size:.78rem;font-weight:700;margin-top:6px;display:none"></div>`:''}
     ${rec.hasAudio?`<label class="nalbl"><input type="checkbox" class="nachk" data-id="${id}" ${rec.na?'checked':''} onchange="pickNA('${id}',this.checked)"> ${esc(t2('naLbl'))}</label>`:''}
     <div class="clbl">${t('cmtLbl')}</div>

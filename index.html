@@ -14,6 +14,7 @@
 <meta name="theme-color" content="#132c3d" media="(prefers-color-scheme: dark)">
 <script>/* 手動テーマの初回ペイント前適用（FOUC防止・CSSより先に実行） */
 try{var _th=localStorage.getItem('oral_exam_theme');if(_th==='light'||_th==='dark')document.documentElement.dataset.theme=_th}catch(e){}</script>
+<style>/* 短い題名（X-3：更新直後に古い styles.css が残っても題名が二重にならないよう、ここに置く） */.hdr h1 .ts{display:none}@media(max-width:519px){.hdr h1 .tl{display:none}.hdr h1 .ts{display:inline}}</style>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>口頭試問 評価システム</title>
@@ -30,7 +31,7 @@ try{var _th=localStorage.getItem('oral_exam_theme');if(_th==='light'||_th==='dar
   <div class="brand" aria-hidden="true">
     <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z"/><path stroke-linecap="round" stroke-linejoin="round" d="M18 11a6 6 0 0 1-12 0M12 17v3"/></svg>
   </div>
-  <h1><span class="tl" data-t="appTitle">口頭試問 評価システム</span><span class="ts" data-t="appTitleS">口頭試問</span></h1>
+  <h1><span class="tl" data-t="appTitle">口頭試問 評価システム</span><span class="ts" id="appTitleS">口頭試問</span></h1>
   <button class="thbtn" id="thBtn" onclick="cycleTheme()" aria-label="Theme" title="Theme"></button>
   <div class="lsw" role="group" aria-label="Language">
     <button class="on" onclick="setLang('ja')" aria-pressed="true" lang="ja">JP</button>

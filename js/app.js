@@ -23,6 +23,8 @@ function setLang(l){
 function applyT(){
   document.querySelectorAll('[data-t]').forEach(el=>{el.textContent=t(el.dataset.t)});
   document.querySelectorAll('[data-ph]').forEach(el=>{el.placeholder=t(el.dataset.ph)});
+  // 短い題名は data-t にしない（X-3：更新直後の古い JS が data-t のキー名をそのまま出すため）。新しい JS だけがここで訳す
+  const ats=document.getElementById('appTitleS');if(ats)ats.textContent=t('appTitleS');
   // 言語に追従するアクセシブルネーム
   const nav=document.getElementById('mainNav');if(nav)nav.setAttribute('aria-label',t('navMain'));
   const bl=document.getElementById('beepLbl');if(bl)bl.textContent=t2('beepOpt');
@@ -585,7 +587,7 @@ function refreshSel(){
 }
 
 let cur=null;            // 現在編集中の試問セッション（試問タブ）
-let active=null;         // 録音中の状態 {itemId,mr,stream,chunks,rec,draft,timer,t0}
+/* active（録音中の状態）は media.js で宣言（X-1：読み込み途中の resize 等で未宣言参照にしない） */
 let curScore=null;       // 採点中のセッション
 let curScoreUrls=[];     // 採点画面で作成したObjectURL（破棄用）
 let examUrls=[];         // 試問画面で作成したObjectURL（破棄用）

@@ -64,8 +64,8 @@ function drawCharts(){
   // 塗りは上→下へ消えるグラデーション（面の主張を抑えて線を立てる）
   const g=document.getElementById('cvL').getContext('2d').createLinearGradient(0,0,0,280);
   g.addColorStop(0,th.acc+'4d');g.addColorStop(1,th.acc+'05');
-  // x.offset：点が1つでも左の軸に重ならないよう両端に余白（L-19）
-  cL=new Chart(document.getElementById('cvL'),{type:'line',data:{labels:all.map(e=>e.date),datasets:[{label:t2('chRate'),data:all.map(e=>passRate(e)),borderColor:th.acc,borderWidth:2.5,backgroundColor:g,fill:true,tension:.3,pointRadius:5,pointHoverRadius:7,pointBackgroundColor:th.acc,pointBorderColor:'#fff',pointBorderWidth:1.5}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{offset:true},y:{min:0,max:100,ticks:{stepSize:25}}},plugins:{legend:{display:false}}}});
+  // x.offset：点が1つでも左の軸に重ならないよう両端に余白（L-19）。clip:false＋上の余白：100%の点が上端で半分に欠けない（V-5）
+  cL=new Chart(document.getElementById('cvL'),{type:'line',data:{labels:all.map(e=>e.date),datasets:[{label:t2('chRate'),data:all.map(e=>passRate(e)),borderColor:th.acc,borderWidth:2.5,backgroundColor:g,fill:true,tension:.3,pointRadius:5,pointHoverRadius:7,pointBackgroundColor:th.acc,pointBorderColor:'#fff',pointBorderWidth:1.5,clip:false}]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:8}},scales:{x:{offset:true},y:{min:0,max:100,ticks:{stepSize:25}}},plugins:{legend:{display:false}}}});
   const lat=all[all.length-1];
   // 軸・分野は「その試問が受けた出題と問題文」で作る（今の出題を切り替えても過去の試問のグラフは変わらない・M-10）
   const axes=sessAxes(lat);

@@ -401,7 +401,9 @@ async function importBackup(input){
           if(!/^[\w-]+_[\w-]+$/.test(k))continue;
           const s=inc.find(x=>k.startsWith(x.id+'_')&&safeKey(k.slice(x.id.length+1)));if(!s)continue;
           const a=bk.audio[k];if(!a||typeof a.data!=='string')continue;
-          if(!adopted.has(s.id)&&await getAudio(k))continue;
+          // 今開いている試問（下書き）と同じ ID：下書きの録音とキーを共有している＝端末の録音（取り込み後の録り直しかもしれない）を上書きしない（X-2）
+          const curNow=typeof cur!=='undefined'&&cur&&cur.id===s.id;
+          if((!adopted.has(s.id)||curNow)&&await getAudio(k))continue;
           await putAudio(k,b64ToBlob(a.data,typeof a.mime==='string'?a.mime:''));
         }
       }
@@ -427,6 +429,13 @@ async function importBackup(input){
         const qs=getQuestionSets();if(qs.activeId||qs.activeTpl){qs.activeId=null;delete qs.activeTpl;saveQuestionSets(qs)} // 使用中テンプレートの記憶も外す（R4）
         if(typeof renderQsetUI==='function')renderQsetUI();if(typeof renderExamSetSel==='function')renderExamSetSel();
       }
+    }
+    // 今の下書きと同じ ID の試問が保存済みに入った（この端末で書き出したバックアップを同じ端末へ戻した等・X-2）：
+    // 別のタブの保存ではない。下書きを「保存済みの試問の続き」に切り替え、取り込んだ版を起点（_base）にする
+    //＝保存のときは取り込み後に下書きで変えた所（○を取り消した等）だけを重ね、取り込んだ版の残りもそのまま残す（3方向マージ）
+    if(typeof cur!=='undefined'&&cur&&cur.id&&!cur._resume){
+      const sv=getAll().find(s=>s.id===cur.id);
+      if(sv){cur._resume=true;cur._base=JSON.parse(JSON.stringify(sv));if(typeof saveDraft==='function')saveDraft()}
     }
     buildExamCards();buildCfgUI();refreshSel();
     toast(added+t('bkImported'));

@@ -28,6 +28,10 @@ function recCue(kind){
   }catch(e){}
 }
 
+/* 録音中の状態 {itemId,mr,stream,chunks,rec,draft,timer,t0}。このファイルの resize/visibilitychange が
+   app.js より先に発火しても参照できるよう、使う側（ここ）で宣言する（X-1） */
+let active=null;
+
 /* 画面の自動ロック対策（Wake Lock）。使えない端末では「画面を消さないで」を録音中ずっと出す */
 let wakeLock=null;
 async function acquireWake(){
@@ -202,6 +206,7 @@ async function toggleRec(itemId,opt){
   let pill=document.getElementById('recPill');
   if(!pill){pill=document.createElement('button');pill.type='button';pill.id='recPill';pill.onclick=()=>jumpToActiveRec();document.body.appendChild(pill)}
   pill.textContent='● 00:00 '+t('recStop');
+  document.documentElement.style.setProperty('--recpill-w',pill.offsetWidth+'px');
   // 録音行が固定表示（ヘッダー・ヒーロー・タブ）に隠れていれば見える範囲の中央へ（横向きのスマホ）
   revealRecRow();
   a.timer=setInterval(()=>recTick(a),250);
@@ -234,6 +239,7 @@ function recTick(a){
     const inV=!!rb&&(typeof inBand==='function'?inBand(rb):true);
     p.textContent=(a.paused?'⏸ ':silent?'⚠ ':'● ')+mm+' '+(inV?t('recStop'):t('recJump'));
     p.classList.toggle('paused',!!a.paused);
+    document.documentElement.style.setProperty('--recpill-w',p.offsetWidth+'px'); // 録音中の文字起こし欄の右の空き（V-2）
   }
 }
 /* 自動文字起こし（ベストエフォート。Web Speech API対応ブラウザのみ） */
@@ -577,6 +583,7 @@ function stopRec(){
   if(btn){btn.classList.remove('recording');btn.querySelector('.rlab').textContent=t('recRedo')}
   const rt=document.getElementById('rt-'+itemId);if(rt)rt.textContent='';
   const pill=document.getElementById('recPill');if(pill)pill.remove();
+  document.documentElement.style.removeProperty('--recpill-w');
   // ステータスを保存済み状態に合わせて戻す（onstop成功時は「録音済み」で上書きされる。失敗時のフォールバック）
   const rs=document.getElementById('rs-'+itemId);
   if(rs){const has=cur&&cur.items[itemId]&&cur.items[itemId].hasAudio;rs.textContent=has?('● '+t('recDone')):t('recReady');rs.classList.toggle('ok',!!has)}

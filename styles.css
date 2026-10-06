@@ -146,7 +146,7 @@ body{
 /* 狭い画面は短いタイトル（言語切替・テーマに場所を取られて「口頭試問 評…」と切れるため・L-20）
    519px以下＝短いタイトル。429px以下＝ロゴを隠し、言語切替のすき間を詰める。359px以下だけ言語ボタンを幅40px（高さは44px）にする */
 .hdr h1 .ts{display:none}
-@media(max-width:519px){.hdr h1 .tl{display:none}.hdr h1 .ts{display:inline}}
+@media(max-width:519px){.hdr h1 .tl{display:none}.hdr h1 .ts{display:inline}} /* index.html にも同じ規則（X-3） */
 @media(max-width:429px){.hdr h1{font-size:.9rem;letter-spacing:0}.hdr{padding-left:10px;padding-right:10px}.hdr .brand{display:none}.hdr .lsw{gap:0}}
 @media(max-width:359px){.hdr .lsw button{min-width:40px;padding:3px 4px}}
 @media(max-width:359px){.hdr h1{font-size:.82rem}}
@@ -998,9 +998,9 @@ html.scoring{
 .howto .hw-link{vertical-align:baseline}
 /* 当たり判定だけ44px（行の高さは負マージンで据え置き・L-27）。「詳しく」は上へ、「ドライブを設定」は下へ広げ、
    2行の間を14pxあけて、互いの判定が重ならないようにする（重なると後ろの行が下端を奪う）。右端は×に掛けない */
-.howto #howtoMore{padding:19px 2px 5px 10px;margin:-19px 0 -5px -6px}
+.howto #howtoMore{padding:24px 2px 0 10px;margin:-24px 0 0 -6px} /* 当たり判定は上へ広げる＝下の行との間を詰められる（V-6） */
 .howto #drvHintGo{padding:8px 2px 18px 6px;margin:-8px 0 -18px -4px}
-.howto .hw-drv{margin-top:14px;margin-right:-34px;font-size:.76rem;line-height:1.5}
+.howto .hw-drv{margin-top:9px;margin-right:-34px;font-size:.76rem;line-height:1.5}
 .hw-link{background:none;border:0;padding:0 2px;margin:0;font:inherit;display:inline-block;font-weight:700;color:var(--pri);text-decoration:underline;text-underline-offset:2px;cursor:pointer;min-height:0;white-space:nowrap}
 .howto .hw-x{position:absolute;top:2px;right:2px;width:44px;height:44px;border:0;border-radius:var(--r-s);background:transparent;color:var(--sub);font-size:1.25rem;line-height:1;cursor:pointer;font-family:inherit}
 .howto .hw-x:hover{background:var(--pri-l);color:var(--txt)}
@@ -1015,3 +1015,14 @@ html.scoring{
 
 /* その場で出題：問題文の入力欄（カード見出しの位置） */
 #examCards .qc .qtx{display:block;width:100%;box-sizing:border-box;margin:4px 0 10px;font-size:1rem;font-weight:700;line-height:1.5;min-height:52px;resize:vertical}
+
+/* V-2：狭い画面の録音中は、固定の録音ピル（右下）が録音中の問の文字起こし欄の右側に重なる→欄の右にピルの幅だけ空ける（文字が隠れない） */
+@media (max-width:600px){
+  body:has(#recPill) #examCards .qc:has(.recbtn.recording) .live{padding-right:calc(var(--recpill-w,120px) - 6px)}
+}
+/* V-4：360px 前後では試問日の数字とカレンダーの印が密着する→左右の余白と字を少し詰め、印との間を空ける */
+@media (max-width:400px){
+  #pgExam .meta #fDate{padding-left:7px;padding-right:6px;font-size:.88rem;letter-spacing:0}
+  #pgExam .meta #fDate::-webkit-calendar-picker-indicator{margin-left:6px;padding:0}
+  #pgExam .meta #fDate::-webkit-datetime-edit{padding:0}
+}

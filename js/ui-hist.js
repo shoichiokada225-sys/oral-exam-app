@@ -70,7 +70,7 @@ async function showDet(id){
     if(!rec.hasAudio&&rec.score==null&&!rec.transcript)return;
     const sc=rec.score;
     const m=itemMeta(r,iid);
-    h+=`<div class="di"><div class="dih"><span class="din">${esc(m.name)}</span>${sc!=null?`<span class="dis ${isPF(sc)?'pf-'+sc:'old'}">${esc(scoreTxt(sc))}</span>`:''}</div>`;
+    h+=`<div class="di"><div class="dih"><span class="din">${esc(m.name)}</span>${sc!=null&&String(sc).trim()!==''?`<span class="dis ${isPF(sc)?'pf-'+sc:'old'}">${esc(scoreTxt(sc))}</span>`:''}</div>`;
     if(rec.hasAudio)h+=`<audio id="da-${iid}" controls></audio>`;
     // ドライブへ届いていない録音：履歴からも分かり・再送できるように
     if(rec.hasAudio&&typeof isUnsent==='function'&&isUnsent(r,iid))h+=`<button type="button" class="cloud" id="dcl-${sanitizeId(iid)}" data-sid="${esc(r.id)}" onclick="resendDrive('${sanitizeId(r.id)}','${sanitizeId(iid)}')" style="display:block;background:none;border:0;padding:0;margin-top:6px;font:inherit;font-size:.78rem;font-weight:700;color:${driveNoAudio(rec)?'var(--sub)':'var(--s1)'};cursor:${driveNoAudio(rec)?'default':'pointer'};text-align:left"${driveNoAudio(rec)?' disabled':''} title="${esc(driveErrText(rec))}">${unsentHtml(rec,t2('drvUnsent'))}</button>`;
