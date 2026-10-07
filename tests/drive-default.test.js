@@ -26,7 +26,11 @@ const st = p => p.evaluate(() => ({ cfg: JSON.parse(localStorage.getItem('oral_e
     await p.goto(env.URL); await p.waitForTimeout(400);
     const s = await st(p);
     T.ok('保存先が入る ' + JSON.stringify(s.cfg), s.cfg && /^https:\/\/script\.google\.com\/macros\/s\/AKfycbxup.+\/exec$/.test(s.cfg.url));
-    T.ok('合言葉・フォルダが入る', s.cfg && s.cfg.token === 'OOIRI' && s.cfg.folder === '口頭試問音声');
+    T.ok('合言葉なし（2026-10-07〜）・フォルダが入る', s.cfg && !s.cfg.token && s.cfg.folder === '口頭試問音声');
+    T.ok('合言葉の欄は出さない（display:none）', await p.evaluate(() => document.getElementById('gToken').style.display === 'none' && document.querySelector('label[for="gToken"]').style.display === 'none'));
+    // 古い合言葉 OOIRI が残る端末：外れる／別の GAS を設定した端末：欄を出し合言葉も残す
+    const r = await p.evaluate(() => { const K = 'oral_exam_google_v1'; const g0 = JSON.parse(localStorage.getItem(K)); localStorage.setItem(K, JSON.stringify(Object.assign({}, g0, { token: 'OOIRI' }))); syncTokenField(); const a = JSON.parse(localStorage.getItem(K)).token; localStorage.setItem(K, JSON.stringify(Object.assign({}, g0, { url: 'https://script.google.com/macros/s/OTHER/exec', token: 'x' }))); syncTokenField(); const b = document.getElementById('gToken').style.display, c = JSON.parse(localStorage.getItem(K)).token; localStorage.setItem(K, JSON.stringify(g0)); syncTokenField(); return { a, b, c }; });
+    T.ok('古い合言葉は外れる・別の GAS なら欄を出して合言葉も残す ' + JSON.stringify(r), r.a === '' && r.b === '' && r.c === 'x');
     T.ok('自動保存ON（driveState=on） ' + s.state, s.cfg && s.cfg.auto === true && s.state === 'on');
     T.ok('ドライブ未設定の案内は出ない', !(await p.isVisible('#drvHint')));
     T.ok('JSエラーなし ' + errors.join('|'), !errors.length);

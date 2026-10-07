@@ -116,7 +116,7 @@ const HIRANO = ['AKfycbxupXbLNCzUGtwr2D2sWQfozP0u4bFitbqyiIk_efuUdpPzE-EaVdCI4nJ
     r.errors = errors; await ctx.close(); return r;
   };
   const def = await cfgOf(env.URL), ra = await cfgOf(pathToFileURL(path.join(A, 'index.html')).href), rb = await cfgOf(pathToFileURL(path.join(B, 'index.html')).href);
-  T.ok('既定はヒラノの保存先のまま ' + (def.gUrl || '').slice(0, 60), /AKfycbxup/.test(def.gUrl) && def.ls.token === 'OOIRI' && def.ls.auto === true);
+  T.ok('既定はヒラノの保存先のまま ' + (def.gUrl || '').slice(0, 60), /AKfycbxup/.test(def.gUrl) && !def.ls.token && def.ls.auto === true);  // ヒラノ版は 2026-10-07 から合言葉なし運用
   T.ok('A の端末は A の保存先・合言葉だけ ' + ra.gUrl.slice(-30), ra.gUrl.includes('DEMOFARMdemofarm') && ra.ls.token === 'tokenAAA-1234567890' && ra.ls.folder === 'デモ農場_口頭試問音声' && !JSON.stringify(ra.ls).includes('AKfycbxup'));
   T.ok('B の端末は B の保存先・合言葉だけ ' + rb.gUrl.slice(-30), rb.gUrl.includes('DEMOBdemoB') && rb.ls.token === 'tokenBBB-0987654321' && !JSON.stringify(rb.ls).includes('DEMOFARM'));
   T.ok('題名が農場別 ' + ra.title + '/' + rb.title, ra.title === 'デモ農場 口頭試問' && rb.title === 'デモB農場 口頭試問' && def.title === '口頭試問 評価システム');
@@ -154,9 +154,9 @@ const HIRANO = ['AKfycbxupXbLNCzUGtwr2D2sWQfozP0u4bFitbqyiIk_efuUdpPzE-EaVdCI4nJ
   const gasT2 = props => { const ctx = { PropertiesService: { getScriptProperties: () => ({ getProperty: k => props[k] || null }) }, CacheService: { getScriptCache: () => ({ get: () => null, put() {} }) }, DriveApp: {}, LockService: {}, Utilities: {}, ContentService: { MimeType: { JSON: 'json' }, createTextOutput: s => ({ s, setMimeType() { return this; } }) } }; vm.createContext(ctx); vm.runInContext(SRC_T, ctx); return body => JSON.parse(ctx.doPost({ postData: { contents: JSON.stringify(body) } }).s); };
   T.ok('農場用 GAS: プロパティ TOKEN を入れ忘れると、合言葉なしでも OOIRI でも全拒否（fail-closed）', gasT2({})({ ping: true }).error === 'bad-token' && gasT2({})({ token: 'OOIRI', ping: true }).error === 'bad-token' && gasT2({})({ token: '', ping: true }).error === 'bad-token');
   T.ok('農場用 GAS: プロパティ TOKEN（16字以上）を入れれば通る', gasT2({ TOKEN: 'tokenXYZ-1234567890' })({ token: 'tokenXYZ-1234567890', ping: true }).ok === true);
-  // リポの既定 GAS（ヒラノ）: プロパティが無くても貼り直しで無防備にならない（既定 OOIRI）
+  // リポの既定 GAS（ヒラノ）: 2026-10-07 社長指示で合言葉なし運用。合言葉なしでも、古い端末が送る OOIRI でも通る（農場用は上のとおり fail-closed のまま）
   const gOld = gas({}, {});
-  T.ok('既定 GAS: プロパティ無しでも合言葉 OOIRI が必要（貼り直しても無防備にならない）・OOIRI なら従来どおり通る', gOld({ ping: true }).error === 'bad-token' && gOld({ token: 'OOIRI', ping: true }).ok === true);
+  T.ok('既定 GAS（ヒラノ）: 合言葉なしでも・古い合言葉 OOIRI 付きでも通る', gOld({ ping: true }).ok === true && gOld({ token: 'OOIRI', ping: true }).ok === true);
 
   fs.rmSync(tmp, { recursive: true, force: true });
   T.done();

@@ -7,7 +7,7 @@ window.TENANT = {
   id: 'default',
   gas: {
     url: 'https://script.google.com/macros/s/AKfycbxupXbLNCzUGtwr2D2sWQfozP0u4bFitbqyiIk_efuUdpPzE-EaVdCI4nJCOYIbUzBuLA/exec',
-    token: 'OOIRI',
+    token: '',   // 合言葉なし運用（2026-10-07 社長指示：みなで改善案を出し合うためログインの手間を省く）。GAS 側も TOKEN='' で v8 デプロイ済み
     folder: '口頭試問音声'
   },
   examples: { setName: '棚倉農場' },   // 画面の入力例の農場名（セット名の例文）

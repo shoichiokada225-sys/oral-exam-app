@@ -10,7 +10,7 @@ let gConnected=false;
 
 function saveGoogleCfg(){
   const prev=getGoogleCfg();
-  const g=Object.assign({},prev,{url:document.getElementById('gUrl').value.trim(),token:document.getElementById('gToken').value.trim(),folder:document.getElementById('gFolder').value.trim()||'口頭試問音声',auto:document.getElementById('gAuto').checked});
+  const g=Object.assign({},prev,{url:document.getElementById('gUrl').value.trim(),token:(typeof noTokenFor==='function'&&noTokenFor(document.getElementById('gUrl').value.trim()))?'':document.getElementById('gToken').value.trim(),folder:document.getElementById('gFolder').value.trim()||'口頭試問音声',auto:document.getElementById('gAuto').checked});
   // 初めてURLを保存するとき（チェックを自分で触っていない・自動保存が未設定）は、続けて接続テストを行い、
   // つながったら自動保存を既定ONにする（gasTest）。URLを入れて接続OKなのに1件も送られない事故を防ぎつつ、
   // 間違ったURLのまま全録音が送信失敗になるのも避ける。自分でOFFにした人＝autoSet・既存の auto:false は変えない
@@ -446,6 +446,20 @@ function syncExamineeOnSave(saved,opt){
 // 既定の保存先は tenant-config.js（window.TENANT.gas）から来る。農場ごとの配布物ではその農場の GAS に差し替わる。url が空なら何も入れない
 const GDEF=(()=>{const g=(typeof window!=='undefined'&&window.TENANT&&window.TENANT.gas)||{};return {url:String(g.url||''),token:String(g.token||''),folder:String(g.folder||'口頭試問音声')}})();
 const GDEFKEY='oral_exam_gdefault_v1';
+// 合言葉なし運用（2026-10-07 社長指示：みなで改善案を出し合うため入力の手間を省く）。既定の保存先に合言葉が無い版だけ。
+// その保存先を使う端末では合言葉欄を出さず、端末に残る古い合言葉も外す（GAS は合言葉を見ないので送らなくてよい）。別の GAS を設定した端末は従来どおり欄を出す
+const NOTOKEN=!!(GDEF.url&&!GDEF.token);
+function noTokenFor(url){return NOTOKEN&&String(url||'')===GDEF.url}
+function syncTokenField(){
+  try{
+    const g=getGoogleCfg();
+    if(noTokenFor(g.url)&&g.token){g.token='';localStorage.setItem(GKEY,JSON.stringify(g))}
+    const show=!noTokenFor(g.url);
+    const inp=document.getElementById('gToken'),lb=document.querySelector('label[for="gToken"]');
+    if(inp){inp.style.display=show?'':'none';if(!show)inp.value=''}
+    if(lb)lb.style.display=show?'':'none';
+  }catch(e){}
+}
 function applyDefaultDrive(){
   try{
     if(localStorage.getItem(GDEFKEY))return false;

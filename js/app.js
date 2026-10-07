@@ -171,6 +171,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('sttModel').value=s.model||'';
   document.getElementById('sttKey').value=s.key||'';
   applyDefaultDrive(); // 既定の保存先（未設定の端末だけ・一度だけ）
+  syncTokenField(); // 合言葉なし運用の保存先なら欄を隠し、古い合言葉を外す
   const gImported=applyUrlConfig();
   setLang(lang);
   if(typeof stoInit==='function')stoInit(); // 端末ストレージの永続化状態・残り容量
@@ -575,7 +576,7 @@ function swTab(btn){
   }
   if(btn.dataset.pg==='pgHi'){refreshSel();drawHist()}
   if(btn.dataset.pg==='pgCh'){refreshSel();drawCharts()}
-  if(btn.dataset.pg==='pgCfg'){buildCfgUI();const s=getStt();document.getElementById('sttEndpoint').value=s.endpoint||'';document.getElementById('sttModel').value=s.model||'';document.getElementById('sttKey').value=s.key||'';const g=getGoogleCfg();document.getElementById('gUrl').value=g.url||'';document.getElementById('gToken').value=g.token||'';document.getElementById('gFolder').value=g.folder||'';document.getElementById('gAuto').checked=!!g.auto;updateGoogleStatus()}
+  if(btn.dataset.pg==='pgCfg'){buildCfgUI();const s=getStt();document.getElementById('sttEndpoint').value=s.endpoint||'';document.getElementById('sttModel').value=s.model||'';document.getElementById('sttKey').value=s.key||'';const g=getGoogleCfg();document.getElementById('gUrl').value=g.url||'';document.getElementById('gToken').value=g.token||'';document.getElementById('gFolder').value=g.folder||'';document.getElementById('gAuto').checked=!!g.auto;syncTokenField();updateGoogleStatus()}
 }
 function refreshSel(){
   if(typeof refreshNameLists==='function')refreshNameLists(); // 受験者名・試問者名の候補も最新に
