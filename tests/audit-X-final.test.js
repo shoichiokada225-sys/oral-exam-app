@@ -22,7 +22,7 @@ const { pathToFileURL } = require('url');
 const c = env.counter();
 const SK = 'oral_exam_sessions_v1';
 // 公開中の旧版（sw oral-exam-v42 の main）。X-3 の「古い JS」に使う
-const OLD_REF = process.env.OLD_REF || 'main';
+const OLD_REF = process.env.OLD_REF || 'b5bdd6b'; // 監査前の本番(sw v42)。main は修正後に進むので固定のコミットで比べる
 
 const sessions = p => p.evaluate(k => (JSON.parse(localStorage.getItem(k) || 'null') || { sessions: [] }).sessions, SK);
 const toastTxt = p => p.evaluate(() => document.getElementById('toast').textContent);
