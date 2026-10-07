@@ -54,3 +54,5 @@
 - 出力は2フォルダ: 公開用 `dist/<id>/`（これだけをホスティングする）と、非公開 `dist/<id>.setup/`（農場の GAS に貼る `Code.gs`＋README）。`Code.gs` を公開ディレクトリに置かない。
 - セット名入力の例文の農場名（旧ハードコードの実顧客農場名）は `tenant-config.js` の `examples.setName` に移した（ヒラノ既定は従来の文言のまま、他農場は `tenants/<id>.json` の `examples.setName`・未指定は「A農場」）。
 - 合言葉（TOKEN）は配布物の `tenant-config.js` に平文で入る（サイトを開ける人は全員持つ）。守りは「URL を知る人」だけで、合言葉の強さが効くのは GAS への総当たりに対してだけ。
+- 題名（`brand.title`）は HTML にエスケープして入れ、`String.replace` は関数置換（題名に `$'` `$&` `$1` `&` があっても index.html は壊れない・`tests/tenant-isolation.test.js` [2c]）。
+- 印のあるフォルダは丸ごと作り直す＝その中へ後から足したファイル（例: ホスティング CLI の `.vercel`）も消える。出力フォルダの中には何も足さない。

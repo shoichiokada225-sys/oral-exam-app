@@ -18,6 +18,7 @@ const EXCLUDE = [/^tests\//, /^tools\//, /^tenants\//, /^docs\//, /^gas\//, /^di
 // 他農場に出さない固有表現（画面・コードの出典表記）
 const SCRUB = [['（睦沢pptx由来）', ''], ['睦沢農場「業務の目的と注意点」pptx', '作業手順資料（pptx）'], ['睦沢pptx由来', 'pptx由来']];
 
+const escHtml = v => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');   // 題名を HTML に入れる前のエスケープ
 function die(m) { console.error('NG: ' + m); process.exit(2); }
 
 // ---- 出力先の安全確認（既存フォルダを黙って消さない）----
@@ -91,8 +92,8 @@ export function build(id, outDir) {
       if (f === 'tenant-config.js') s = '/* 農場別ビルドが生成（tools/build-tenant.mjs）。直接編集しない */\nwindow.TENANT = ' + JSON.stringify(cfg, null, 2) + ';\n';
       for (const [a, b] of SCRUB) s = s.split(a).join(b);
       if (f === 'index.html') {
-        s = s.replace(/<title>[^<]*<\/title>/, '<title>' + t.brand.title + '</title>')
-             .replace(/<meta property="og:title" content="[^"]*">/, '<meta property="og:title" content="' + t.brand.title + '">')
+        s = s.replace(/<title>[^<]*<\/title>/, () => '<title>' + escHtml(t.brand.title) + '</title>')   // 関数置換（題名の $' $& $1 を置換記法として解釈させない）
+             .replace(/<meta property="og:title" content="[^"]*">/, () => '<meta property="og:title" content="' + escHtml(t.brand.title) + '">')
              .replace(/<meta property="og:(url|image)" content="https:\/\/[^"]*">\n?/g, '');
       }
       if (f === 'manifest.webmanifest') { const m = JSON.parse(s); m.name = t.brand.title; m.short_name = t.brand.title.slice(0, 12); s = JSON.stringify(m, null, 2) + '\n'; }

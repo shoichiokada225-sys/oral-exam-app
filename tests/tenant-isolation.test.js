@@ -87,6 +87,22 @@ const HIRANO = ['AKfycbxupXbLNCzUGtwr2D2sWQfozP0u4bFitbqyiIk_efuUdpPzE-EaVdCI4nJ
     fs.rmSync(fake, { recursive: true, force: true });
   }
 
+  console.log('[2c] 題名の特殊文字で index.html が壊れない');
+  {
+    const tf = path.join(env.ROOT, 'tenants', 'zz-dollar.json');
+    const title = "価格$'円$&$1 & 'q'";
+    try {
+      fs.writeFileSync(tf, JSON.stringify({ id: 'zz-dollar', brand: { title }, copyright: { mode: 'hide' } }));
+      process.env.TENANT_GAS_TOKEN = 'tokenDollar-1234567890';
+      const o = build('zz-dollar', path.join(tmp, 'dollar')).out;
+      const base = fs.readFileSync(path.join(env.ROOT, 'index.html'), 'utf8'), html = fs.readFileSync(path.join(o, 'index.html'), 'utf8');
+      T.ok('index.html のサイズがほぼ同じ（文書が複製されていない） ' + base.length + '→' + html.length, Math.abs(html.length - base.length) < 400);
+      T.ok('<title> は1つで、題名がそのまま（& は &amp; にエスケープ）', (html.match(/<title>/g) || []).length === 1 && html.includes("<title>価格$'円$&amp;$1 &amp; 'q'</title>"));
+      T.ok('og:title も同じ', html.includes("<meta property=\"og:title\" content=\"価格$'円$&amp;$1 &amp; 'q'\">"));
+      T.ok('manifest の name は生の題名', JSON.parse(fs.readFileSync(path.join(o, 'manifest.webmanifest'), 'utf8')).name === title);
+    } finally { fs.rmSync(tf, { force: true }); }
+  }
+
   console.log('[3] 実ブラウザ');
   const b = await env.launch({ driveDefault: true });
   const cfgOf = async url => {
