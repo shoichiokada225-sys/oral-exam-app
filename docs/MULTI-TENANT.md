@@ -16,7 +16,7 @@
 | SW のキャッシュ名 | `oral-exam-vNN` | `oral-exam-vNN-<id>`（同じ場所に置いても混ざらない） |
 
 ## 新しい農場を1つ追加する（コマンド1本）
-1. （1回だけ）その農場の Google アカウントで GAS を作る: **`node tools/build-tenant.mjs <id>` が作る `dist/<id>/gas/Code.gs`**（リポの `gas/Code.gs` ではない）を貼る → 「プロジェクトの設定」→「スクリプト プロパティ」に `TOKEN`（農場の合言葉）を入れる。値は `node tools/gen-tokens.mjs` が24字の乱数で作る（16字未満は GAS が全拒否） → ウェブアプリとして「全員」で公開 → `/exec` URL を控える。詳細は `SETUP-GOOGLE-DRIVE.md`。
+1. （1回だけ）その農場の Google アカウントで GAS を作る: **`node tools/build-tenant.mjs <id>` が作る `dist/<id>.setup/Code.gs`**（公開しない別フォルダ。リポの `gas/Code.gs` ではない）を貼る → 「プロジェクトの設定」→「スクリプト プロパティ」に `TOKEN`（農場の合言葉）を入れる。値は `node tools/gen-tokens.mjs` が24字の乱数で作る（16字未満は GAS が全拒否） → ウェブアプリとして「全員」で公開 → `/exec` URL を控える。詳細は `SETUP-GOOGLE-DRIVE.md`。
 2. `cp tenants/demo-farm.json tenants/<id>.json` して `id`・`brand.title`・`gas.url`・`gas.folder` を書く（合言葉はここに書かない。書くとビルドが止まる）。
 3. `TENANT_GAS_TOKEN='<GASのTOKENと同じ値>' node tools/build-tenant.mjs <id>`
    （または git に入れない `tenants/<id>.secret.json` に `{"gasToken":"…"}`。`.gitignore` 済み）
@@ -32,7 +32,7 @@
   「間違いが多いと全員拒否」の全体ロックは**入れていない**（GAS は接続元 IP を見られず、誰でも利用者全員を締め出せるため）。間違いは数えるだけで、`/exec?token=…&stat=1` の `authFails`（直近10分）で見られる。
 - 反映手順（社長作業・任意）: GAS エディタに `gas/Code.gs` を貼り直す → 「デプロイを管理」→ 鉛筆 →「新バージョン」。
   ヒラノの既存 GAS に貼り直しても、既定の `var TOKEN = 'OOIRI'`（現行の合言葉）が効くので、プロパティを入れ忘れても無防備にならない（貼る前に現行 GAS の TOKEN 行を控えておくこと）。
-  他農場用の `dist/<id>/gas/Code.gs` は既定の合言葉が空で `TENANT_MODE = true`＝プロパティ `TOKEN`（16字以上）を入れ忘れると**全拒否**（fail-closed）。リポの `gas/Code.gs` を他農場に貼らないこと（既定 OOIRI は公開値）。
+  他農場用の `dist/<id>.setup/Code.gs` は既定の合言葉が空で `TENANT_MODE = true`＝プロパティ `TOKEN`（16字以上）を入れ忘れると**全拒否**（fail-closed）。リポの `gas/Code.gs` を他農場に貼らないこと（既定 OOIRI は公開値）。
 
 ## 契約書の合格条件との対応
 | # | 条件 | 状態 |
@@ -48,3 +48,9 @@
 ## 限界
 - 端末内データはオリジン単位。農場ごとに別オリジンで配ること（上記）。
 - 出題の作業カタログ（44作業・出典=睦沢の手順資料）の内容はヒラノの現場由来。ビルドは出典表記の農場名だけ中立にする（内容の差し替えは別作業）。
+
+## 出力先の安全・配布物の分離（V5 検証対応 2026-10-07）
+- `--out <dir>`: 既存フォルダは「前回このツールが作った印ファイル `.tenant-build`（同じ id）」がある場合だけ消して作り直す。印が無い空でないフォルダ・ファイル・`/`・ホーム・リポ・リポの親・一時フォルダ・リポ内（`dist/` 以外）は**拒否して何も消さない**（`tests/tenant-isolation.test.js` に破壊テスト）。
+- 出力は2フォルダ: 公開用 `dist/<id>/`（これだけをホスティングする）と、非公開 `dist/<id>.setup/`（農場の GAS に貼る `Code.gs`＋README）。`Code.gs` を公開ディレクトリに置かない。
+- セット名入力の例文の農場名（旧ハードコードの実顧客農場名）は `tenant-config.js` の `examples.setName` に移した（ヒラノ既定は従来の文言のまま、他農場は `tenants/<id>.json` の `examples.setName`・未指定は「A農場」）。
+- 合言葉（TOKEN）は配布物の `tenant-config.js` に平文で入る（サイトを開ける人は全員持つ）。守りは「URL を知る人」だけで、合言葉の強さが効くのは GAS への総当たりに対してだけ。

@@ -7,6 +7,7 @@
    ・本番には何も送らない（公開は社長が dist/<id>/ を農場専用のホスティングに置く） */
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
@@ -18,6 +19,34 @@ const EXCLUDE = [/^tests\//, /^tools\//, /^tenants\//, /^docs\//, /^gas\//, /^di
 const SCRUB = [['（睦沢pptx由来）', ''], ['睦沢農場「業務の目的と注意点」pptx', '作業手順資料（pptx）'], ['睦沢pptx由来', 'pptx由来']];
 
 function die(m) { console.error('NG: ' + m); process.exit(2); }
+
+// ---- 出力先の安全確認（既存フォルダを黙って消さない）----
+// 消してよいのは「前回このツールが作った印ファイル（.tenant-build）がある」フォルダだけ。
+// 印が無い既存の空でないフォルダ・ファイル・シンボリックリンク・/・ホーム・リポ・リポの親・一時フォルダそのもの・リポ内（dist/ 以外）は拒否する
+const MARK = '.tenant-build';
+function prepareOut(out, id) {
+  const real = p => { try { return fs.realpathSync(p); } catch { return p; } };
+  const o = path.resolve(out);
+  const ro = fs.existsSync(o) ? real(o) : path.join(real(path.dirname(o)), path.basename(o));
+  const home = real(os.homedir()), root = real(ROOT), tmp = real(os.tmpdir());
+  const dangerous = [path.parse(ro).root, home, root, tmp];
+  if (dangerous.includes(ro)) die('出力先が危険です（/・ホーム・リポ・一時フォルダそのもの）: ' + o);
+  if (root.startsWith(ro + path.sep) || home.startsWith(ro + path.sep)) die('出力先がリポまたはホームの親フォルダです: ' + o);
+  if (ro.startsWith(root + path.sep) && !ro.startsWith(path.join(root, 'dist') + path.sep)) die('リポ内への出力は dist/ 配下だけ: ' + o);
+  if (fs.existsSync(o)) {
+    if (fs.lstatSync(o).isSymbolicLink() || !fs.statSync(o).isDirectory()) die('出力先がフォルダではありません: ' + o);
+    const entries = fs.readdirSync(o);
+    if (entries.length) {
+      const mk = path.join(o, MARK);
+      if (!fs.existsSync(mk) || !fs.readFileSync(mk, 'utf8').startsWith('tenant-build:' + id)) die('出力先は空でなく、前回このツールが作った印（' + MARK + '）もありません。消さずに中止します: ' + o);
+      fs.rmSync(o, { recursive: true, force: true }); // 印のある前回の出力だけを作り直す
+    }
+  }
+  fs.mkdirSync(o, { recursive: true });
+  fs.writeFileSync(path.join(o, MARK), 'tenant-build:' + id + '\n');
+  return o;
+}
+
 
 export function loadTenant(id) {
   if (!/^[a-z0-9][a-z0-9-]{1,30}$/.test(id || '')) die('テナントIDは英小文字・数字・ハイフン（2〜31字）');
@@ -41,15 +70,15 @@ export function loadTenant(id) {
 
 export function build(id, outDir) {
   const { t, token } = loadTenant(id);
-  const out = path.resolve(outDir || path.join(ROOT, 'dist', id));
-  if (!out.startsWith(ROOT + path.sep) && !outDir) die('出力先が不正');
-  fs.rmSync(out, { recursive: true, force: true }); // dist/<id>/ だけを作り直す（元のファイルには触れない）
-  fs.mkdirSync(out, { recursive: true });
+  const out0 = path.resolve(outDir || path.join(ROOT, 'dist', id));
+  const out = prepareOut(out0, id);              // 公開用（配る一式）
+  const setup = prepareOut(out0 + '.setup', id);  // 非公開（農場の GAS に貼る Code.gs）。公開ディレクトリには置かない
   const files = execFileSync('git', ['ls-files', '-co', '--exclude-standard'], { cwd: ROOT, encoding: 'utf8' }).split('\n').filter(Boolean)
     .filter(f => !EXCLUDE.some(r => r.test(f))).filter(f => fs.existsSync(path.join(ROOT, f)));
   const cfg = {
     id,
     gas: { url: (t.gas && t.gas.url) || '', token: (t.gas && t.gas.url) ? token : '', folder: (t.gas && t.gas.folder) || '口頭試問音声' },
+    examples: { setName: ((t.examples && t.examples.setName) || 'A農場') },
     brand: { title: t.brand.title },
     copyright: { mode: (t.copyright && t.copyright.mode) === 'show' ? 'show' : 'hide' } // 他農場は既定で非表示
   };
@@ -72,7 +101,7 @@ export function build(id, outDir) {
     }
     fs.writeFileSync(dst, buf);
   }
-  // 農場専用の GAS（dist/<id>/gas/Code.gs）: 既定の合言葉を空にして TENANT_MODE を有効にする
+  // 農場専用の GAS（dist/<id>.setup/Code.gs＝公開しない別フォルダ）: 既定の合言葉を空にして TENANT_MODE を有効にする
   // ＝プロパティ TOKEN（16字以上）を入れ忘れると全拒否（fail-closed）。ヒラノの既定の合言葉・名称は消す
   {
     let g = fs.readFileSync(path.join(ROOT, 'gas', 'Code.gs'), 'utf8');
@@ -80,22 +109,23 @@ export function build(id, outDir) {
     g = g.replace("var TOKEN = 'OOIRI';", "var TOKEN = '';").replace('var TENANT_MODE = false;', 'var TENANT_MODE = true;');
     if (!/var TENANT_MODE = true;/.test(g) || !/var TOKEN = '';/.test(g)) die('gas/Code.gs の TOKEN / TENANT_MODE の行が見つかりません');
     g = g.split('OOIRI').join('（既定値）').split('ヒラノ版').join('既存の本番').split('ヒラノ').join('既存');
-    const gd = path.join(out, 'gas'); fs.mkdirSync(gd, { recursive: true });
-    fs.writeFileSync(path.join(gd, 'Code.gs'), g);
+    fs.writeFileSync(path.join(setup, 'Code.gs'), g);
+    fs.writeFileSync(path.join(setup, 'README.txt'), '非公開フォルダ。公開（ホスティング）しないこと。Code.gs を農場の Google Apps Script に貼り、スクリプトプロパティ TOKEN（16字以上）を入れてウェブアプリとして公開する。公開するのは隣の ' + path.basename(out) + '/ だけ。\n');
   }
   // 検査: 既定（ヒラノ）の保存先・合言葉・公開URLが出力に1つも残っていない
   const bad = [];
-  (function walk(d) {
+  const walkDir = function walk(d) {
     for (const n of fs.readdirSync(d)) {
       const p = path.join(d, n);
       if (fs.statSync(p).isDirectory()) { walk(p); continue; }
       if (!/\.(js|html|webmanifest|json|css|gs)$/.test(n)) continue;
       const s = fs.readFileSync(p, 'utf8');
       for (const k of Object.values(HIRANO)) if (s.includes(k)) bad.push(path.relative(out, p) + ' に "' + k.slice(0, 12) + '…"');
-      if (/睦沢|ヒラノ/.test(s)) bad.push(path.relative(out, p) + ' に固有名');
+      if (/睦沢|ヒラノ|棚倉/.test(s)) bad.push(path.relative(out, p) + ' に固有名');
     }
-  })(out);
-  if (bad.length) { fs.rmSync(out, { recursive: true, force: true }); die('ヒラノ固有の値が残っています: ' + bad.join(' / ')); }
+  };
+  walkDir(out); walkDir(setup);
+  if (bad.length) { fs.rmSync(out, { recursive: true, force: true }); fs.rmSync(setup, { recursive: true, force: true }); die('ヒラノ固有の値が残っています: ' + bad.join(' / ')); }
   return { out, files: files.length, hasToken: !!cfg.gas.token };
 }
 

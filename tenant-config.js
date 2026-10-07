@@ -10,6 +10,7 @@ window.TENANT = {
     token: 'OOIRI',
     folder: '口頭試問音声'
   },
+  examples: { setName: '棚倉農場' },   // 画面の入力例の農場名（セット名の例文）
   brand: { title: '口頭試問 評価システム' },
   copyright: { mode: 'show' }
 };

@@ -9,7 +9,7 @@ const fs = require('fs'), os = require('os'), path = require('path'), vm = requi
 const { pathToFileURL } = require('url');
 const env = require('./_env');
 const T = env.counter();
-const HIRANO = ['AKfycbxupXbLNCzUGtwr2D2sWQfozP0u4bFitbqyiIk_efuUdpPzE-EaVdCI4nJCOYIbUzBuLA', 'OOIRI', '睦沢', 'ヒラノ'];
+const HIRANO = ['AKfycbxupXbLNCzUGtwr2D2sWQfozP0u4bFitbqyiIk_efuUdpPzE-EaVdCI4nJCOYIbUzBuLA', 'OOIRI', '睦沢', 'ヒラノ', '棚倉'];
 
 (async () => {
   const { build } = await import(pathToFileURL(path.join(env.ROOT, 'tools', 'build-tenant.mjs')).href);
@@ -29,9 +29,9 @@ const HIRANO = ['AKfycbxupXbLNCzUGtwr2D2sWQfozP0u4bFitbqyiIk_efuUdpPzE-EaVdCI4nJ
   T.ok('A/B にヒラノの値・固有名が無い ' + HIRANO.filter(k => sa.includes(k) || sb.includes(k)).join(','), HIRANO.every(k => !sa.includes(k) && !sb.includes(k)));
   T.ok('合言葉は tenants/*.json に書かれていない', !fs.readFileSync(path.join(env.ROOT, 'tenants', 'demo-farm.json'), 'utf8').includes('tokenAAA'));
   T.ok('SW のキャッシュ名が農場別', /oral-exam-v\d+-demo-farm'/.test(fs.readFileSync(path.join(A, 'sw.js'), 'utf8')) && /-demo-farm-b'/.test(fs.readFileSync(path.join(B, 'sw.js'), 'utf8')));
-  T.ok('配布物に tests/tools/tenants/*.md が入らない（gas/ は農場用 Code.gs だけ）', ['tests', 'tools', 'tenants', 'README.md'].every(n => !fs.existsSync(path.join(A, n))) && fs.readdirSync(path.join(A, 'gas')).join() === 'Code.gs');
+  T.ok('配布物（公開用）に tests/tools/tenants/*.md/gas が入らない（農場用 Code.gs は別フォルダ <out>.setup/）', ['tests', 'tools', 'tenants', 'README.md'].every(n => !fs.existsSync(path.join(A, n))) && !fs.existsSync(path.join(A, 'gas')) && fs.readdirSync(A + '.setup').sort().join() === '.tenant-build,Code.gs,README.txt');
 
-  const gasT = fs.readFileSync(path.join(A, 'gas', 'Code.gs'), 'utf8');
+  const gasT = fs.readFileSync(path.join(A + '.setup', 'Code.gs'), 'utf8');
   T.ok('農場用 GAS: 既定の合言葉は空・TENANT_MODE=true・OOIRI/ヒラノの文字なし', /var TOKEN = '';/.test(gasT) && /var TENANT_MODE = true;/.test(gasT) && !/OOIRI|ヒラノ/.test(gasT));
 
   console.log('[2] ヒラノの値は他農場に使えない');
@@ -51,6 +51,41 @@ const HIRANO = ['AKfycbxupXbLNCzUGtwr2D2sWQfozP0u4bFitbqyiIk_efuUdpPzE-EaVdCI4nJ
     T.ok('ヒラノの保存先を指定すると作らない', code === 2 && !fs.existsSync(path.join(tmp, 'X')));
     T.ok('ヒラノの合言葉を指定すると作らない', code2 === 2 && !fs.existsSync(path.join(tmp, 'X2')));
   } finally { fs.rmSync(tmpT, { force: true }); }
+
+  console.log('[2b] 出力先の安全（既存フォルダを消さない）');
+  {
+    const { spawnSync } = require('child_process');
+    const cli = (args, extraEnv, cwd) => spawnSync('node', [path.join(env.ROOT, 'tools', 'build-tenant.mjs'), 'demo-farm', ...args], { cwd: cwd || env.ROOT, env: Object.assign({}, process.env, { TENANT_GAS_TOKEN: 'tokenCLI-1234567890' }, extraEnv || {}), encoding: 'utf8' });
+    const fake = fs.mkdtempSync(path.join(os.tmpdir(), 'oral-safe-'));
+    const mk = (name, files) => { const d = path.join(fake, name); fs.mkdirSync(d, { recursive: true }); for (const [f, c] of Object.entries(files)) { fs.mkdirSync(path.dirname(path.join(d, f)), { recursive: true }); fs.writeFileSync(path.join(d, f), c); } return d; };
+    const victim = mk('victim', { 'important.txt': 'precious' });
+    const r1 = cli(['--out', victim]);
+    T.ok('印の無い既存フォルダは拒否し、中身を消さない（exit 2）', r1.status === 2 && fs.readFileSync(path.join(victim, 'important.txt'), 'utf8') === 'precious');
+    const fakeHome = mk('home', { 'Desktop/keep.txt': 'x', '.hidden': 'y' });
+    const r2 = cli(['--out', fakeHome], { HOME: fakeHome });
+    T.ok('ホームそのものは拒否し、何も消さない', r2.status === 2 && fs.existsSync(path.join(fakeHome, 'Desktop', 'keep.txt')) && fs.existsSync(path.join(fakeHome, '.hidden')));
+    const r2b = cli(['--out', path.join(fakeHome, 'Desktop')], { HOME: fakeHome });
+    T.ok('ホーム直下の既存フォルダ（印なし）も拒否', r2b.status === 2 && fs.existsSync(path.join(fakeHome, 'Desktop', 'keep.txt')));
+    const gitLike = mk('repo-like', { '.git/HEAD': 'ref', 'src/a.js': '1' });
+    const r3 = cli(['--out', '.'], {}, gitLike);
+    T.ok('--out . （カレントがリポ風フォルダ）は拒否し .git ごと残る', r3.status === 2 && fs.existsSync(path.join(gitLike, '.git', 'HEAD')) && fs.existsSync(path.join(gitLike, 'src', 'a.js')));
+    const r4 = cli(['--out', env.ROOT]);
+    T.ok('--out リポ自身は拒否', r4.status === 2 && fs.existsSync(path.join(env.ROOT, '.git')));
+    const r5 = cli(['--out', path.join(env.ROOT, 'tests')]);
+    T.ok('--out リポ内（dist 以外）は拒否', r5.status === 2 && fs.existsSync(path.join(env.ROOT, 'tests', 'tenant-isolation.test.js')));
+    const r6 = cli(['--out', path.dirname(env.ROOT)]);
+    T.ok('--out リポの親フォルダは拒否', r6.status === 2 && fs.existsSync(env.ROOT));
+    const fileTarget = path.join(fake, 'afile'); fs.writeFileSync(fileTarget, 'f');
+    T.ok('--out がファイルなら拒否', cli(['--out', fileTarget]).status === 2 && fs.readFileSync(fileTarget, 'utf8') === 'f');
+    const ok1 = cli(['--out', path.join(fake, 'newout')]);
+    T.ok('存在しない出力先には作れる（印ファイルが付く）', ok1.status === 0 && fs.existsSync(path.join(fake, 'newout', '.tenant-build')) && fs.existsSync(path.join(fake, 'newout.setup', 'Code.gs')));
+    fs.writeFileSync(path.join(fake, 'newout', 'stale.txt'), 's');
+    const ok2 = cli(['--out', path.join(fake, 'newout')]);
+    T.ok('印のある前回の出力は作り直せる（古いファイルは消える）', ok2.status === 0 && !fs.existsSync(path.join(fake, 'newout', 'stale.txt')));
+    const emptyDir = mk('empty', {});
+    T.ok('空のフォルダには作れる', cli(['--out', emptyDir]).status === 0);
+    fs.rmSync(fake, { recursive: true, force: true });
+  }
 
   console.log('[3] 実ブラウザ');
   const b = await env.launch({ driveDefault: true });

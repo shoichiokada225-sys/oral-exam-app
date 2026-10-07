@@ -26,7 +26,7 @@ stPartial:'採点途中',partLbl:'合格{p}・判定{j}/録音{m}',chPartial:'�
 pfProg:'合否 {j} / 録音 {n}',pfMiss:'○×未入力 {n}問',nextUnjudged:'次の未判定へ',allJudged:'録音した問はすべて○×済みです',
 savedScored:'試問と採点を保存しました。結果は「履歴」タブで確認できます',cfgSavedSet:'項目を保存しました（セット「{n}」にも反映）',
 qsTitle:'試問セット',qsCur:'現在のセット',qsNone:'（セット未保存の構成）',qsSaveNew:'名前を付けて別のセットに保存',qsApply:'切替',qsRen:'名前変更',qsDel:'削除',
-qsNamePrompt:'セット名を入力してください（例：新人向け／繁殖担当／棚倉農場）',
+qsNamePrompt:'セット名を入力してください（例：新人向け／繁殖担当／'+((window.TENANT&&window.TENANT.examples&&window.TENANT.examples.setName)||'A農場')+'）',
 qsSwConfirm:'セット「{n}」の保存済みの内容に切り替えます。「項目を保存」していない編集は失われます（保存済みの試問は消えません）。よろしいですか？',
 qsDelConfirm:'セット「{n}」を削除しますか？（保存済みの試問は消えません）',
 qsSaved:'セットを保存しました',qsApplied:'セットに切り替えました',qsDeleted:'セットを削除しました',

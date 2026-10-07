@@ -36,7 +36,7 @@ const srv = http.createServer((q, s) => {
 function makeCopy() {
   const d = fs.mkdtempSync(path.join(os.tmpdir(), 'oral-sw-'));
   for (const f of fs.readdirSync(env.ROOT)) {
-    if (/^(index\.html|sw\.js|styles\.css|manifest\.webmanifest|icon-.*\.png)$/.test(f)) fs.copyFileSync(path.join(env.ROOT, f), path.join(d, f));
+    if (/^(index\.html|sw\.js|styles\.css|manifest\.webmanifest|tenant-config\.js|icon-.*\.png)$/.test(f)) fs.copyFileSync(path.join(env.ROOT, f), path.join(d, f));
   }
   fs.mkdirSync(path.join(d, 'js'));
   for (const f of fs.readdirSync(path.join(env.ROOT, 'js'))) if (f.endsWith('.js')) fs.copyFileSync(path.join(env.ROOT, 'js', f), path.join(d, 'js', f));
