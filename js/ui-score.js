@@ -188,7 +188,7 @@ async function renderScoreDetail(r,opt){
   }
   h+=`<div class="cd oasec"><h2>${t('overall')}</h2><textarea id="scOv" class="oata" rows="4" placeholder="${t('phOv')}">${esc(r.overall||'')}</textarea></div>`;
   // savebar: 進捗+平均の常時表示（sbCnt）と再生停止/速度（sbPause/sbSpd）— 長い採点画面のどこにいても操作・確認できる
-  h+=`<div class="savebar"><div class="sbhead"><span id="sbCnt"></span><span class="autost" id="scAutoSt" role="status" style="flex:1"></span></div><div class="bg" style="margin:0"><button type="button" class="b b3 sbico" id="sbPause" onclick="pauseAllAudio()" aria-label="${esc(t2('pauseAll'))}" title="${esc(t2('pauseAll'))}">⏸</button><button type="button" class="b b3 sbico" id="sbSpd" onclick="cycleSpeed()" aria-label="${esc(t2('spd'))}" title="${esc(t2('spd'))}">${playRate}x</button><button class="b b4 sbsub" onclick="nextUnscored()" title="${esc(t2('nextUnscored'))}"><span class="lbl-l">${esc(t2('nextUnscored'))}</span><span class="lbl-s" aria-hidden="true">${esc(t2('nextUnscoredS'))}</span></button><button class="b b1 sbsave" onclick="saveScore()">${esc(t2(r.status==='scored'?'btnSaveConfirmed':'btnConfirmScore'))}</button><button class="b b3 sbsub" onclick="backToScoreList()" title="${esc(t('btnBack'))}"><span class="lbl-l">${t('btnBack')}</span><span class="lbl-s" aria-hidden="true">${esc(t2('backS'))}</span></button></div></div>`;
+  h+=`<div class="savebar"><div class="sbhead"><span id="sbCnt"></span><span class="autost" id="scAutoSt" role="status" style="flex:1"></span></div><div class="bg" style="margin:0"><button type="button" class="b b3 sbico" id="sbPause" onclick="pauseAllAudio()" aria-label="${esc(t2('pauseAll'))}" title="${esc(t2('pauseAll'))}">⏸</button><button type="button" class="b b3 sbico" id="sbSpd" onclick="cycleSpeed()" aria-label="${esc(t2('spd'))}" title="${esc(t2('spd'))}">${playRate}x</button><button class="b b4 sbsub" onclick="nextUnscored()" title="${esc(t2('nextUnscored'))}"><span class="lbl-l">${esc(t2('nextUnscored'))}</span><span class="lbl-s" aria-hidden="true">${esc(t2('nextUnscoredS'))}</span></button><button class="b b1 sbsave" onclick="saveScore()"><span class="sbl">${esc(t2(r.status==='scored'?'btnSaveConfirmed':'btnConfirmScore'))}</span></button><button class="b b3 sbsub" onclick="backToScoreList()" title="${esc(t('btnBack'))}"><span class="lbl-l">${t('btnBack')}</span><span class="lbl-s" aria-hidden="true">${esc(t2('backS'))}</span></button></div></div>`;
   det.innerHTML=h;
   det.querySelectorAll('textarea').forEach(el=>el.addEventListener('input',queueScoreDraft));
   // ドライブへ届いていない録音に「☁未送信（タップで再送）」を出す
@@ -351,3 +351,12 @@ function saveScore(){
 function flushScoreDraft(){const d=document.getElementById('scDetail');if(curScore&&d&&d.style.display!=='none')persistScoreDraft(false,true)}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flushScoreDraft()});
 addEventListener('pagehide',flushScoreDraft);
+
+/* 表示のみ：固定の保存ボタンの実際の高さ（長い言語の折り返し・文字の拡大）を CSS 変数 --dock-real に渡し、
+   本文の下余白・トーストの位置をボタンの上にそろえる（保存・採点のデータには触れない） */
+(function(){
+  const det=document.getElementById('scDetail');
+  if(!det||!window.ResizeObserver||!window.MutationObserver)return;
+  const ro=new ResizeObserver(es=>{for(const e of es){const h=e.target.offsetHeight;if(h)document.body.style.setProperty('--dock-real',h+'px')}});
+  new MutationObserver(()=>{ro.disconnect();const sv=det.querySelector('.sbsave');if(sv)ro.observe(sv)}).observe(det,{childList:true});
+})();

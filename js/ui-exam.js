@@ -315,3 +315,15 @@ function qTextDone(itemId){
   if(!cur||!cur.items[itemId])return;
   if(cur.items[itemId].hasAudio&&typeof resyncDriveName==='function')resyncDriveName(cur,itemId);
 }
+
+/* ワイド(>=1000px)の左列：入力カードの高さを CSS 変数 --side-h に渡し、進捗パネルの貼り付き位置を入力カードの下にする（表示のみ） */
+(function(){
+  function wire(){
+    const side=document.querySelector('#pgExam .exam-side'),pg=document.getElementById('pgExam');
+    if(!side||!pg)return;
+    const set=()=>pg.style.setProperty('--side-h',Math.round(side.getBoundingClientRect().height)+'px');
+    set();
+    if(window.ResizeObserver)new ResizeObserver(set).observe(side);else window.addEventListener('resize',set);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',wire);else wire();
+})();

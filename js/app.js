@@ -59,8 +59,8 @@ function applyTheme(mode){
   // アドレスバー色をテーマに追従
   const dark=mode==='dark'||(mode==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);
   document.querySelectorAll('meta[name="theme-color"]').forEach(m=>{
-    if(mode==='auto')m.content=(m.media||'').includes('dark')?'#132c3d':'#2e5d7d';
-    else m.content=dark?'#132c3d':'#2e5d7d';
+    if(mode==='auto')m.content=(m.media||'').includes('dark')?'#0b1118':'#0b1020';
+    else m.content=dark?'#0b1118':'#0b1020';
   });
   // グラフはCSS変数を描画時に読むため引き直す
   if(document.getElementById('pgCh').classList.contains('on'))drawCharts();

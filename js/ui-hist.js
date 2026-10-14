@@ -53,7 +53,7 @@ function drawHist(){
     const ym=String(r.date||'').slice(0,7);
     if(ym&&ym!==pm){h+=`<div class="mgrp">${esc(fmtMonth(ym))}</div>`;pm=ym}
     const x=rowRes(r);
-    h+=`<button type="button" class="hi" onclick="showDet('${sanitizeId(r.id)}')"><span class="hii"><span class="hid">${esc(r.date)}${(r.setId==null&&r.setName==null)?'':' · <span class="hset">'+esc(setLbl(r))+'</span>'}</span><span class="hin">${esc(r.examinee)}</span>${x.badge}</span><span class="hia ${x.cls}">${esc(x.lbl)}</span></button>`;
+    h+=`<button type="button" class="hi" onclick="showDet('${sanitizeId(r.id)}')"><span class="hii"><span class="hid">${esc(r.date)} · <span class="hset">${esc(setLbl(r))}</span></span><span class="hin">${esc(r.examinee)}</span>${x.badge}</span><span class="hia ${x.cls}">${esc(x.lbl)}</span></button>`;
   });
   c.innerHTML=h;
 }

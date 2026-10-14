@@ -21,7 +21,7 @@ oldReplace:'旧5段階評価（{v}）を合否に置き換えますか？（元�
 confirmScored:'録音した全問に合否が付いています。採点も確定しますか？\n（キャンセルすると録音のみで保存し、あとで採点タブから確定できます）',
 oldOnly:'旧5段階評価の記録のみです（合格率の対象外）。履歴タブで点数を確認できます',
 mixNote:'※旧5段階評価が混ざる試問は、合否を付けた設問だけで合格率を計算しています（旧評価の設問は含みません）',
-chFew:'データが少ないため参考値です',chPending:'判定済み・確定待ちの試問があります。「採点」タブで開いて「採点を保存して確定する」を押すとグラフに表示されます',
+chPending:'判定済み・確定待ちの試問があります。「採点」タブで開いて「採点を保存して確定する」を押すとグラフに表示されます',
 stPartial:'採点途中',partLbl:'合格{p}・判定{j}/録音{m}',chPartial:'○×が途中までの試問（採点途中）があります。「採点」タブで残りの合否を付けて「採点を保存して確定する」を押すとグラフに表示されます',
 pfProg:'合否 {j} / 録音 {n}',pfMiss:'○×未入力 {n}問',nextUnjudged:'次の未判定へ',allJudged:'録音した問はすべて○×済みです',
 savedScored:'試問と採点を保存しました。結果は「履歴」タブで確認できます',cfgSavedSet:'項目を保存しました（セット「{n}」にも反映）',
@@ -58,7 +58,7 @@ oldReplace:'Replace the old 5-level score ({v}) with Pass/Fail? (the old score w
 confirmScored:'Every recorded question has Pass/Fail. Confirm the scoring too?\n(Cancel = save as recorded only; you can confirm later in the "Score" tab)',
 oldOnly:'Only old 5-level scores (not included in pass rate). See the History tab for the scores',
 mixNote:'* For exams that include old 5-level scores, the pass rate uses only the Pass/Fail questions',
-chFew:'Few data points - for reference only',chPending:'There are judged exams waiting for confirmation. Open them in the "Score" tab and press "Save and confirm score" to show them here',
+chPending:'There are judged exams waiting for confirmation. Open them in the "Score" tab and press "Save and confirm score" to show them here',
 stPartial:'Partly judged',partLbl:'Pass {p} · judged {j}/rec {m}',chPartial:'Some exams are only partly judged. Open them in the "Score" tab, judge the rest and press "Save and confirm score" to show them here',
 pfProg:'Pass/Fail {j} / Rec {n}',pfMiss:'{n} without ○/×',nextUnjudged:'Next unjudged',allJudged:'Every recorded question has ○/×',
 savedScored:'Exam and scores saved. See the result in the "History" tab',cfgSavedSet:'Items saved (also to set "{n}")',
@@ -95,7 +95,7 @@ oldReplace:'Thay điểm cũ 5 mức ({v}) bằng Đạt/Không đạt? (điểm
 confirmScored:'Tất cả câu đã ghi âm đều có Đạt/Không đạt. Xác nhận chấm điểm luôn?\n(Hủy = chỉ lưu ghi âm, có thể xác nhận sau ở thẻ "Chấm")',
 oldOnly:'Chỉ có điểm cũ 5 mức (không tính tỷ lệ đạt). Xem điểm ở tab Lịch sử',
 mixNote:'* Bài thi có điểm cũ 5 mức: tỷ lệ đạt chỉ tính các câu Đạt/Không đạt',
-chFew:'Ít dữ liệu nên chỉ để tham khảo',chPending:'Có bài thi đã đánh giá đang chờ xác nhận. Mở ở thẻ "Chấm" và nhấn "Lưu và xác nhận điểm" để hiển thị',
+chPending:'Có bài thi đã đánh giá đang chờ xác nhận. Mở ở thẻ "Chấm" và nhấn "Lưu và xác nhận điểm" để hiển thị',
 stPartial:'Đang chấm dở',partLbl:'Đạt {p} · đã đánh giá {j}/ghi âm {m}',chPartial:'Có bài thi mới đánh giá một phần. Mở ở thẻ "Chấm", đánh giá các câu còn lại và nhấn "Lưu và xác nhận điểm" để hiển thị',
 pfProg:'Đạt/Không {j} / Ghi âm {n}',pfMiss:'{n} câu chưa chọn ○/×',nextUnjudged:'Câu chưa đánh giá tiếp theo',allJudged:'Tất cả câu đã ghi âm đều đã có ○/×',
 savedScored:'Đã lưu bài thi và điểm. Xem kết quả ở thẻ "Lịch sử"',cfgSavedSet:'Đã lưu (cũng lưu vào bộ "{n}")',
@@ -132,7 +132,7 @@ oldReplace:'Ganti nilai lama 5 tingkat ({v}) dengan Lulus/Tidak lulus? (nilai la
 confirmScored:'Semua pertanyaan yang direkam sudah Lulus/Tidak lulus. Konfirmasi penilaian juga?\n(Batal = simpan rekaman saja; bisa dikonfirmasi nanti di tab "Nilai")',
 oldOnly:'Hanya nilai lama 5 tingkat (tidak dihitung tingkat lulus). Lihat nilai di tab Riwayat',
 mixNote:'* Untuk ujian dengan nilai lama 5 tingkat, tingkat lulus hanya dari pertanyaan Lulus/Tidak lulus',
-chFew:'Data sedikit, hanya sebagai acuan',chPending:'Ada ujian yang sudah dinilai dan menunggu konfirmasi. Buka di tab "Nilai" lalu tekan "Simpan & konfirmasi nilai"',
+chPending:'Ada ujian yang sudah dinilai dan menunggu konfirmasi. Buka di tab "Nilai" lalu tekan "Simpan & konfirmasi nilai"',
 stPartial:'Penilaian belum selesai',partLbl:'Lulus {p} · dinilai {j}/rekam {m}',chPartial:'Ada ujian yang baru sebagian dinilai. Buka di tab "Nilai", nilai sisanya, lalu tekan "Simpan & konfirmasi nilai" agar tampil di sini',
 pfProg:'Lulus/Tidak {j} / Rekam {n}',pfMiss:'{n} belum ○/×',nextUnjudged:'Belum dinilai berikutnya',allJudged:'Semua yang direkam sudah ○/×',
 savedScored:'Ujian dan nilai tersimpan. Lihat hasil di tab "Riwayat"',cfgSavedSet:'Tersimpan (juga ke set "{n}")',
@@ -268,7 +268,7 @@ async function attachAudio(key,au,urls){
   const mid=au.id+'-miss';const old=document.getElementById(mid);
   if(!b){
     au.removeAttribute('src');au.style.display='none';
-    if(!old)au.insertAdjacentHTML('afterend',`<div class="recmiss" id="${esc(mid)}" role="status" style="font-size:.8rem;color:var(--s1);font-weight:700;margin:6px 0">${esc('⚠ '+t2('drvErrNoAudio'))}</div>`);
+    if(!old)au.insertAdjacentHTML('afterend',`<div class="recmiss" id="${esc(mid)}" role="status"><i class="ic ic-warn" aria-hidden="true"></i>${esc(t2('drvErrNoAudio'))}</div>`);
     return false;
   }
   if(old)old.remove();

@@ -141,8 +141,7 @@ const T = env.counter();
     T.ok('既存の保存形式は不変（items/status/examinee…）', s && s.items.q1.score === 'pass' && s.items.q4.score === 'fail' && typeof s.createdAt === 'string');
     await tab(p, 'pgHi');
     const rowsTxt = await p.evaluate(() => [...document.querySelectorAll('#hList .hi')].map(x => x.querySelector('.hid').textContent));
-    T.ok('履歴の行に出題名: ' + rowsTxt.join(' / '), rowsTxt.some(x => x.includes('標準の3問（母豚の健康観察ほか）')) && rowsTxt.some(x => x.includes('新人基礎')) && rowsTxt.some(x => !x.includes('（セット不明）') && /^\d{4}-\d{2}-\d{2}$/.test(x.trim())));
-    // R2-X: 旧データ（セット不明）の行は日付だけにして「（セット不明）」を全件に繰り返さない。CSV側には残る（下の検査）
+    T.ok('履歴の行に出題名: ' + rowsTxt.join(' / '), rowsTxt.some(x => x.includes('標準の3問（母豚の健康観察ほか）')) && rowsTxt.some(x => x.includes('新人基礎')) && rowsTxt.some(x => x.includes('（セット不明）')));
     const card = await p.textContent('#hList .eelast');
     T.ok('受験者カードは「○1 ×1（2問中）」＋未実施・「合格 1/2」と出さない: ' + card, card.includes('○1 ×1（2問中）') && card.includes('1問未実施') && !card.includes('合格 1/2'));
     T.ok('前回比は同じ出題どうしだけ（別セットの100%と比べて▼にしない）', !card.includes('▼'));

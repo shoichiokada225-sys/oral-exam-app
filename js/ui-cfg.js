@@ -26,9 +26,9 @@ function buildCfgUI(){
     h+=`<div class="cfg-sec-hdr">
       <input type="text" value="${esc(sec.name)}" aria-label="${t('secName')}" onchange="cfgSecName('${sid}',this.value)" placeholder="${t('secName')}">
       <div class="ci-btns">
-        ${si>0?`<button aria-label="${t('alUp')}: ${sn}" onclick="moveSec('${sid}',-1)">&#9650;</button>`:'<button style="visibility:hidden" aria-hidden="true">&#9650;</button>'}
-        ${si<secs.length-1?`<button aria-label="${t('alDown')}: ${sn}" onclick="moveSec('${sid}',1)">&#9660;</button>`:'<button style="visibility:hidden" aria-hidden="true">&#9660;</button>'}
-        <button class="del" aria-label="${t('btnDel')}: ${sn}" onclick="delSec('${sid}')">&#10005;</button>
+        ${si>0?`<button aria-label="${t('alUp')}: ${sn}" onclick="moveSec('${sid}',-1)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg></button>`:'<button style="visibility:hidden" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg></button>'}
+        ${si<secs.length-1?`<button aria-label="${t('alDown')}: ${sn}" onclick="moveSec('${sid}',1)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`:'<button style="visibility:hidden" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>'}
+        <button class="del" aria-label="${t('btnDel')}: ${sn}" onclick="delSec('${sid}')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
     </div>`;
     secItems.forEach((it,ii)=>{
@@ -38,9 +38,9 @@ function buildCfgUI(){
         <div class="ci-row">
           <input type="text" value="${esc(it.name)}" aria-label="${t('itemName')}" onchange="cfgItemName('${iid}',this.value)" placeholder="${t('itemName')}">
           <div class="ci-btns">
-            ${ii>0?`<button aria-label="${t('alUp')}: ${inm}" onclick="moveItem('${iid}',-1)">&#9650;</button>`:'<button style="visibility:hidden" aria-hidden="true">&#9650;</button>'}
-            ${ii<secItems.length-1?`<button aria-label="${t('alDown')}: ${inm}" onclick="moveItem('${iid}',1)">&#9660;</button>`:'<button style="visibility:hidden" aria-hidden="true">&#9660;</button>'}
-            <button class="del" aria-label="${t('btnDel')}: ${inm}" onclick="delItem('${iid}')">&#10005;</button>
+            ${ii>0?`<button aria-label="${t('alUp')}: ${inm}" onclick="moveItem('${iid}',-1)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg></button>`:'<button style="visibility:hidden" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg></button>'}
+            ${ii<secItems.length-1?`<button aria-label="${t('alDown')}: ${inm}" onclick="moveItem('${iid}',1)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`:'<button style="visibility:hidden" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>'}
+            <button class="del" aria-label="${t('btnDel')}: ${inm}" onclick="delItem('${iid}')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
           </div>
         </div>
         <textarea aria-label="${inm} ${t('itemDesc')}" onchange="cfgItemDesc('${iid}',this.value)" placeholder="${t('itemDesc')}">${esc(it.desc)}</textarea>

@@ -16,8 +16,8 @@ function chartTheme(){
   // 評価5段階の色（セクション別バーを点数で色分けするために使う）
   const sc=[1,2,3,4,5].map(i=>(cs.getPropertyValue('--s'+i)||'#888').trim());
   const pick=v=>v>=100?sc[4]:v>=50?sc[2]:sc[0]; // 合格率(%)→色：全問合格=緑/半分以上=黄/それ未満=赤
-  const selTx=(cs.getPropertyValue('--sel-tx')||'#fff').trim(),ink=(cs.getPropertyValue('--txt')||'#000').trim();
-  return{acc,fill:acc+'26',grid,txt,pick,selTx,ink}; // fill=アクセントの15%透過（8桁hex）
+  const selTx=(cs.getPropertyValue('--sel-tx')||'#fff').trim(),ink=(cs.getPropertyValue('--txt')||'#000').trim(),card=(cs.getPropertyValue('--card')||'#fff').trim();
+  return{acc,fill:acc+'26',grid,txt,pick,selTx,ink,card}; // fill=アクセントの15%透過（8桁hex）
 }
 /* Chart.js の読み込みが終わった（成功・失敗とも）：グラフタブを開いていれば描き直す */
 function chartReady(){const pg=document.getElementById('pgCh');if(pg&&pg.classList.contains('on')&&typeof drawCharts==='function')drawCharts()}
@@ -46,7 +46,6 @@ function drawCharts(){
   const unc=mine.filter(e=>e.status!=='scored'&&hasPF(e));
   const pendMsg=[unc.some(e=>judgeState(e).full)?t2('chPending'):'',unc.some(e=>!judgeState(e).full)?t2('chPartial'):''].filter(Boolean);
   notes.push(...pendMsg);
-  if(all.length&&all.length<3)notes.push(t2('chFew'));
   if(!all.length){
     area.style.display='none';none.style.display='block';
     const oldOnly=mine.some(e=>e.status==='scored'&&oldCount(e));
@@ -58,7 +57,8 @@ function drawCharts(){
   area.style.display='block';none.style.display='none';
   let nt=document.getElementById('chNote');
   if(!nt){nt=document.createElement('div');nt.id='chNote';nt.className='eenote';area.insertBefore(nt,area.firstChild)}
-  nt.textContent=notes.join('\n');nt.style.whiteSpace='pre-line';nt.style.display=notes.length?'block':'none';
+  nt.textContent='';notes.forEach(m=>{const d=document.createElement('div');d.className='chn'+(pendMsg.includes(m)?' pri':'');d.textContent=m;nt.appendChild(d)}); // 確定待ちの案内を主・他の注記を従に（表示のみ）
+  nt.style.display=notes.length?'block':'none';
   const th=chartTheme();
   // スクリーンリーダー向けのテキスト代替（描画データの要約）
   document.getElementById('cvL').setAttribute('aria-label',t2('chRate')+': '+all.map(e=>e.date+' '+passRate(e)+'%').join(', '));
@@ -66,7 +66,10 @@ function drawCharts(){
   // 塗りは上→下へ消えるグラデーション（面の主張を抑えて線を立てる）
   const g=c=>{const a=c.chart.chartArea;if(!a)return th.acc+'00';const gr=c.chart.ctx.createLinearGradient(0,a.top,0,a.bottom);gr.addColorStop(0,th.acc+'2e');gr.addColorStop(1,th.acc+'00');return gr}; // 面=アクセント18%→0%
   // x.offset：点が1つでも左の軸に重ならないよう両端に余白（L-19）。clip:false＋上の余白：100%の点が上端で半分に欠けない（V-5）
-  cL=new Chart(document.getElementById('cvL'),{type:'line',data:{labels:all.map(e=>e.date),datasets:[{label:t2('chRate'),data:all.map(e=>passRate(e)),borderColor:th.acc,borderWidth:2,borderJoinStyle:'round',borderCapStyle:'round',backgroundColor:g,fill:true,tension:.25,pointRadius:3,pointHoverRadius:5,pointBackgroundColor:th.acc,pointBorderColor:th.acc,pointBorderWidth:1,clip:false}]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:8}},scales:{x:{offset:true,grid:{display:false},ticks:{font:{size:12}}},y:{min:0,max:100,ticks:{stepSize:25,font:{size:12}}}},plugins:{legend:{display:false}}}});
+  cL=new Chart(document.getElementById('cvL'),{type:'line',data:{labels:all.map(e=>e.date),datasets:[{label:t2('chRate'),data:all.map(e=>passRate(e)),borderColor:th.acc,borderWidth:2,borderJoinStyle:'round',borderCapStyle:'round',backgroundColor:g,fill:all.length>=3,tension:.25,pointRadius:5,pointHoverRadius:7,pointBackgroundColor:th.acc,pointBorderColor:th.card,pointBorderWidth:2,clip:false}]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:24}},scales:{x:{offset:true,grid:{display:false},ticks:{font:{size:12}}},y:{min:0,max:100,ticks:{stepSize:25,font:{size:12}}}},plugins:{legend:{display:false}}},plugins:[{id:'ptVals',afterDatasetsDraw(ch){ // 値ラベル：各点の上に％（点が多いときは出さない＝重ならない）
+    const m=ch.getDatasetMeta(0),d=ch.data.datasets[0].data;if(m.data.length>12)return;
+    const c=ch.ctx;c.save();c.font='700 12px '+Chart.defaults.font.family;c.textAlign='center';c.textBaseline='bottom';c.fillStyle=th.ink;
+    m.data.forEach((p,i)=>{if(d[i]!=null)c.fillText(d[i]+'%',p.x,p.y-9)});c.restore()}}]});
   const lat=all[all.length-1];
   // 軸・分野は「その試問が受けた出題と問題文」で作る（今の出題を切り替えても過去の試問のグラフは変わらない・M-10）
   const axes=sessAxes(lat);
