@@ -348,7 +348,7 @@ function driveErrText(r){return r&&r.driveErr?gasErrMsg(r.driveErr):''}
 function unsentHtml(r,label){
   if(driveNoAudio(r))return esc('⚠ '+t2('drvErrNoAudio'));
   const why=driveErrText(r);
-  return esc(label)+(why?`<span class="drverr" style="display:block;font-weight:500;font-size:.74rem;color:var(--sub);margin-top:2px">${esc(why)}</span>`:'');
+  return esc(label)+(why?`<span class="drverr" style="display:block;font-weight:500;font-size:.75rem;color:var(--sub);margin-top:2px">${esc(why)}</span>`:'');
 }
 /* セッションidから「いま画面が持っている実体」を引く（採点中の curScore と保存値を二重に持って上書きし合わないため） */
 function sessById(sid){

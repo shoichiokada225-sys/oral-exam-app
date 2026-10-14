@@ -380,7 +380,7 @@ async function checkLiveTakes(){
   const msg=t2('liveFound').replace('{e}',r.examinee||'—').replace('{q}',qn).replace('{s}',secs).replace('{t}',ts);
   const u=URL.createObjectURL(r.blob);examUrls.push(u);
   const fn=safeName((r.examinee||'rec')+'_'+r.itemId+'_'+ts.replace(/[-: ]/g,''))+'.'+audioExt(r.blob.type);
-  box.innerHTML=`<div class="lrmsg">⚠ ${esc(msg)}${keys.length>1?' '+esc(t2('liveMore').replace('{n}',keys.length-1)):''}</div>
+  box.innerHTML=`<div class="lrmsg"><i class="ic ic-warn" aria-hidden="true"></i>${esc(msg)}${keys.length>1?' '+esc(t2('liveMore').replace('{n}',keys.length-1)):''}</div>
     <div class="lrbtns"><button type="button" class="b b1" id="lrRestore">${esc(t2('liveRestore'))}</button><a class="b b3" id="lrDl" download="${esc(fn)}" href="${u}">⬇ ${esc(t2('recDl'))}</a><button type="button" class="b b4" id="lrDiscard">${esc(t2('liveDiscard'))}</button></div>`;
   document.getElementById('lrRestore').onclick=()=>restoreLive(k);
   document.getElementById('lrDiscard').onclick=async()=>{if(!confirm(t2('liveDiscardQ')))return;await delLive(k);checkLiveTakes()};

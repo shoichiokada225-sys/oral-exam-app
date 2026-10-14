@@ -1,380 +1,309 @@
 /* ==============================================================
-   口頭試問 評価システム — デザインシステム
-   方針: ビジネス調 / 視認性最優先 / 高コントラスト / タップ44px+
-   ライト・ダーク両対応（prefers-color-scheme）
+   口頭試問 評価システム — デザインシステム R2-X「ミッドナイト精密」
+   面3段(bg/card/card-2)・文字3段・アクセント1色(操作できるものだけ)・合否色は意味にだけ。
+   ヘアライン1px・影は浮くもの(固定バー/モーダル/トースト)だけ。システムフォント＋tabular-nums。
+   ライト/ダーク両対応（prefers-color-scheme と :root[data-theme]）
    ============================================================== */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
-/* ---- デザイントークン ---- */
+/* ---- デザイントークン（ライト） ---- */
 :root{
   color-scheme:light dark;
-  /* ブランド（--pri はテキスト/線にも使うため、テーマごとに明度を調整） */
-  --pri:#2e5d7d;          /* アクセント（テキスト・境界・アイコン） */
-  --pri-l:#e7f0f6;        /* アクセント淡色面 */
-  --pri-d:#1b3e57;        /* アクセント濃色（見出し） */
-  --btn-pri:#2e5d7d;      /* 主ボタン面（白文字が乗る） */
-  --btn-pri-h:#24506e;    /* 主ボタン hover */
-  --chart:#2e5d7d;        /* グラフ主色（ui.jsが参照） */
-  --chart-grid:rgba(0,0,0,.08);
-  /* 面・文字 */
-  --bg:#f2f5f8;--card:#ffffff;--card-2:#f8fafb;
-  --txt:#1a222b;--sub:#5b6773;--bdr:#dde4ea;--bdr-s:#78909c;
-  /* 評価スケール（5→1）: 全色とも白文字で4.5:1以上（WCAG AA） */
+  --pri:#0b5fd9;--pri-l:#e6effd;--pri-d:#083f91;
+  --btn-pri:#0b5fd9;--btn-pri-h:#094db3;
+  --chart:#0b5fd9;--chart-grid:rgba(0,0,0,.07);
+  --bg:#f4f6fa;--card:#ffffff;--card-2:#eef1f6;
+  --txt:#0b1020;--sub:#4a5568;--bdr:#dfe4ee;--bdr-s:#8d97b0;
+  /* 評価スケール(5→1): 白文字4.5:1以上。意味にだけ使う */
   --s5:#17802a;--s4:#2e7d32;--s3:#9a6200;--s2:#b84a00;--s1:#c62828;
-  --s1-l:#fdeeee;--s2-l:#fdf1e7;--s5-l:#e9f6eb;
-  --rec:#c62828;--rec-l:#fdeeee;
-  /* 白文字を載せる赤い面（録音中の停止ボタン・録音ピル・エラーのトースト）: 両テーマとも白文字 5.6:1（L-16） */
-  --rec-bg:#c62828;
-  /* 選択済み採点ボタン等の文字色（ダークでは明色面に黒文字へ切替） */
-  --sel-tx:#fff;--sel-sl:rgba(255,255,255,.9);--toast-ok:#66bb6a;
-  /* 形状・影（3層レイヤードシャドウで奥行きを統一） */
-  --r:16px;--r-s:11px;
-  --sh:0 1px 1px rgba(16,32,46,.04),0 2px 6px rgba(16,32,46,.05),0 6px 18px rgba(16,32,46,.06);
-  --sh-hover:0 2px 4px rgba(16,32,46,.06),0 6px 14px rgba(16,32,46,.09),0 14px 34px rgba(16,32,46,.10);
-  --sh-lg:0 4px 12px rgba(16,32,46,.10),0 16px 48px rgba(16,32,46,.20);
-  --hdr-h:52px;
-  --tabs-h:60px;
-  --toast-bg:#242c34;--toast-tx:#fff;
+  --s1-l:#fdeeee;--s2-l:#fdf1e7;--s5-l:#e9f6eb;--s3-l:#fdf3d8;--s4-l:#e8f5e9;
+  --rec:#c62828;--rec-l:#fdeeee;--rec-bg:#c62828;
+  --sel-tx:#fff;--sel-sl:#fff;--toast-ok:#66bb6a;
+  --r-card:14px;--r-ctl:10px;--r-pill:999px;--r:var(--r-ctl);--r-s:var(--r-ctl);--sh:none;--sh-card:0 1px 2px rgba(16,24,40,.06),0 4px 12px rgba(16,24,40,.04);--card-edge:none;
+  --sh-lg:0 6px 20px rgba(11,16,32,.16),0 20px 48px rgba(11,16,32,.22);
+  --hdr-h:56px;--tabs-h:60px;
+  --toast-bg:#0b1020;--toast-tx:#fff;
   --ease:cubic-bezier(.33,1,.68,1);
-  /* 余白スケール・文字階調（新規トークン。既存直値は退行ゼロで段階置換） */
   --sp-1:4px;--sp-2:8px;--sp-3:12px;--sp-4:16px;--sp-5:24px;
-  --fs-xs:.72rem;--fs-sm:.82rem;--fs-md:.95rem;--fs-lg:1.1rem;--fs-xl:1.5rem;--fs-num:1.9rem;
-  /* ヒーロー面（進捗コックピット）: 白文字4.5:1以上を両端色で担保 */
-  --hero-grad:linear-gradient(135deg,#16354a,#2e5d7d 55%,#3a729a);
-  --hero-grad-ok:linear-gradient(135deg,#0e5420,#17802a 60%,#2e7d32);
-  /* 入力完了（合否とは無関係）＝濃紺。全問合格=緑(ok)・全問不合格=赤(ng)は res-a5/res-a1 で上書き */
-  --hero-grad-done:linear-gradient(135deg,#101c3a,#23336b 60%,#2f428a);
-  --hero-grad-ng:linear-gradient(135deg,#5c1010,#8e1c1c 60%,#a82424);
-  --hero-tx:#fff;--hero-dim:rgba(255,255,255,.78);
+  --fs-xs:.75rem;--fs-sm:.82rem;--fs-md:.95rem;--fs-lg:1.1rem;--fs-xl:1.5rem;--fs-num:3rem;
+  /* ヒーロー面（数字のコックピット）: 両テーマ共通の暗面。白文字4.5:1以上 */
+  --hero-bg:#0b2f78;--hero-base:linear-gradient(135deg,#0a2a6b 0%,#0d3a91 58%,#1250b8 100%);--sh-hero:0 8px 24px rgba(11,58,143,.18);--hero-line:#5cc8ff;--hero-ok:#4ade80;--hero-ng:#ff7b7b;
+  --hero-grad:linear-gradient(180deg,rgba(92,200,255,.10),transparent 24px);
+  --hero-grad-ok:linear-gradient(180deg,rgba(74,222,128,.12),transparent 24px);
+  --hero-grad-done:linear-gradient(180deg,rgba(92,200,255,.10),transparent 24px);
+  --hero-grad-ng:linear-gradient(180deg,rgba(255,123,123,.12),transparent 24px);
+  --hero-tx:#fff;--hero-dim:rgba(255,255,255,.82);--hero-acc:#5cc8ff;--hero-acc-d:#a8e0ff;
   --pill-bg:rgba(255,255,255,.94);
+  --hdr-bg:#0b2f78;--hdr-line:rgba(255,255,255,.18);
+  --chev:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%234a5568" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>');
 }
-/* 手動テーマ切替（data-theme）: light固定はOSダークでも常にライト */
 :root[data-theme=light]{color-scheme:light}
 :root[data-theme=dark]{color-scheme:dark}
 @media(prefers-color-scheme:dark){
   :root:not([data-theme=light]){
-    --pri:#7fb3d3;--pri-l:#12303f;--pri-d:#a8cde3;
-    --btn-pri:#2e6a92;--btn-pri-h:#397da9;
-    --chart:#7fb3d3;--chart-grid:rgba(255,255,255,.1);
-    --bg:#0e141a;--card:#19232c;--card-2:#141d25;
-    --txt:#e7edf2;--sub:#93a2af;--bdr:#2a3945;--bdr-s:#5f7689;
-    --s5:#3db354;--s4:#4caf50;--s3:#f0a422;--s2:#ee7b2f;--s1:#ec6464;
-    --s1-l:#3a2020;--s2-l:#3a2b1c;--s5-l:#1c3322;
-    --rec:#ff6b6b;--rec-l:#3a2020;
-    --sel-tx:#0e141a;--sel-sl:rgba(0,0,0,.66);--toast-ok:#2e7d32;
-    --sh:0 1px 1px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.3),0 6px 18px rgba(0,0,0,.28);
-    --sh-hover:0 2px 4px rgba(0,0,0,.35),0 6px 14px rgba(0,0,0,.35),0 14px 34px rgba(0,0,0,.32);
-    --sh-lg:0 4px 12px rgba(0,0,0,.4),0 16px 48px rgba(0,0,0,.55);
-    --toast-bg:#e7edf2;--toast-tx:#141d25;
-    --hero-grad:linear-gradient(135deg,#0d2330,#1b3e57 55%,#2e6a92);
-    --hero-grad-ok:linear-gradient(135deg,#0d3a17,#1e6b2d 60%,#2e7d32);
-    --hero-grad-done:linear-gradient(135deg,#0a1328,#1a2752 60%,#26377a);
-    --hero-grad-ng:linear-gradient(135deg,#420b0b,#701616 60%,#8a1d1d);
-    --hero-dim:rgba(255,255,255,.72);
-    --pill-bg:rgba(5,13,20,.78); /* ヒーローグラデ上でも --s1/--s2 文字がAA(4.5:1)を満たす濃度 */
-  }
-  :root:not([data-theme=light]) .nd::before{
-    background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%237fb3d3" opacity=".65"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-8 14H7v-6h4v6zm6 0h-4V7h4v10z"/></svg>');
+  --pri:#5cc8ff;--pri-l:#16283d;--pri-d:#a8e0ff;
+  --btn-pri:#1f6feb;--btn-pri-h:#1a5fd0;
+  --chart:#5cc8ff;--chart-grid:rgba(255,255,255,.07);
+  --bg:#0b1118;--card:#131b25;--card-2:#0f161e;
+  --txt:#e8ecf4;--sub:#a3adc2;--bdr:#2a3646;--bdr-s:#46546c;
+  --s5:#3db354;--s4:#4caf50;--s3:#f0a422;--s2:#ee7b2f;--s1:#ec6464;
+  --s1-l:#2e1a20;--s2-l:#2e2314;--s5-l:#12291f;--s3-l:#2e2812;--s4-l:#14291a;
+  --rec:#ff6b6b;--rec-l:#2e1a20;
+  --sel-tx:#0b1118;--sel-sl:#0b1118;--toast-ok:#2e7d32;
+  --sh-lg:0 6px 20px rgba(0,0,0,.5),0 20px 48px rgba(0,0,0,.6);
+  --toast-bg:#e8ecf4;--toast-tx:#0a0d14;
+  --pill-bg:rgba(5,8,14,.82);
+  --hdr-bg:#0b1118;--hdr-line:rgba(92,200,255,.25);--hero-bg:#0f1b30;--hero-base:linear-gradient(135deg,#0d1829 0%,#132a52 60%,#17356b 100%);--sh-hero:0 8px 24px rgba(0,0,0,.45);--card-edge:inset 0 1px 0 rgba(255,255,255,.04);--sh-card:none;
+  --chev:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%239aa4b9" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>');
   }
 }
 /* ※上のダークブロックと同内容（手動でダーク固定した場合用） */
 :root[data-theme=dark]{
-  --pri:#7fb3d3;--pri-l:#12303f;--pri-d:#a8cde3;
-  --btn-pri:#2e6a92;--btn-pri-h:#397da9;
-  --chart:#7fb3d3;--chart-grid:rgba(255,255,255,.1);
-  --bg:#0e141a;--card:#19232c;--card-2:#141d25;
-  --txt:#e7edf2;--sub:#93a2af;--bdr:#2a3945;--bdr-s:#5f7689;
+  --pri:#5cc8ff;--pri-l:#16283d;--pri-d:#a8e0ff;
+  --btn-pri:#1f6feb;--btn-pri-h:#1a5fd0;
+  --chart:#5cc8ff;--chart-grid:rgba(255,255,255,.07);
+  --bg:#0b1118;--card:#131b25;--card-2:#0f161e;
+  --txt:#e8ecf4;--sub:#a3adc2;--bdr:#2a3646;--bdr-s:#46546c;
   --s5:#3db354;--s4:#4caf50;--s3:#f0a422;--s2:#ee7b2f;--s1:#ec6464;
-  --s1-l:#3a2020;--s2-l:#3a2b1c;--s5-l:#1c3322;
-  --rec:#ff6b6b;--rec-l:#3a2020;
-  --sel-tx:#0e141a;--sel-sl:rgba(0,0,0,.66);--toast-ok:#2e7d32;
-  --sh:0 1px 1px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.3),0 6px 18px rgba(0,0,0,.28);
-  --sh-hover:0 2px 4px rgba(0,0,0,.35),0 6px 14px rgba(0,0,0,.35),0 14px 34px rgba(0,0,0,.32);
-  --sh-lg:0 4px 12px rgba(0,0,0,.4),0 16px 48px rgba(0,0,0,.55);
-  --toast-bg:#e7edf2;--toast-tx:#141d25;
-  --hero-grad:linear-gradient(135deg,#0d2330,#1b3e57 55%,#2e6a92);
-  --hero-grad-ok:linear-gradient(135deg,#0d3a17,#1e6b2d 60%,#2e7d32);
-  --hero-grad-done:linear-gradient(135deg,#0a1328,#1a2752 60%,#26377a);
-  --hero-grad-ng:linear-gradient(135deg,#420b0b,#701616 60%,#8a1d1d);
-  --hero-dim:rgba(255,255,255,.72);
-  --pill-bg:rgba(5,13,20,.78); /* ヒーローグラデ上でも --s1/--s2 文字がAA(4.5:1)を満たす濃度 */
+  --s1-l:#2e1a20;--s2-l:#2e2314;--s5-l:#12291f;--s3-l:#2e2812;--s4-l:#14291a;
+  --rec:#ff6b6b;--rec-l:#2e1a20;
+  --sel-tx:#0b1118;--sel-sl:#0b1118;--toast-ok:#2e7d32;
+  --sh-lg:0 6px 20px rgba(0,0,0,.5),0 20px 48px rgba(0,0,0,.6);
+  --toast-bg:#e8ecf4;--toast-tx:#0a0d14;
+  --pill-bg:rgba(5,8,14,.82);
+  --hdr-bg:#0b1118;--hdr-line:rgba(92,200,255,.25);--hero-bg:#0f1b30;--hero-base:linear-gradient(135deg,#0d1829 0%,#132a52 60%,#17356b 100%);--sh-hero:0 8px 24px rgba(0,0,0,.45);--card-edge:inset 0 1px 0 rgba(255,255,255,.04);--sh-card:none;
+  --chev:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%239aa4b9" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>');
 }
-:root[data-theme=dark] .nd::before{
-  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%237fb3d3" opacity=".65"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-8 14H7v-6h4v6zm6 0h-4V7h4v10z"/></svg>');
-}
+
 
 /* ---- ベース ---- */
 html{font-size:16px;-webkit-text-size-adjust:100%}
 body{
-  font-family:"Noto Sans JP",-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic UI",Meiryo,sans-serif;
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic UI","Noto Sans JP",Meiryo,"Segoe UI",system-ui,sans-serif;
   background:var(--bg);color:var(--txt);line-height:1.65;min-height:100vh;
   padding-bottom:calc(var(--tabs-h) + 28px + env(safe-area-inset-bottom,0px));
-  font-feature-settings:"palt";
+  font-feature-settings:"palt";font-variant-numeric:tabular-nums;
   -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
   accent-color:var(--btn-pri);
 }
+/* 採点詳細：固定の保存バー(約128px)＋タブの高さぶん、最下部の内容がバーの下へ潜らないよう余白を足す */
+body.has-fixbar{--fixbar-h:132px;padding-bottom:calc(var(--tabs-h) + var(--fixbar-h) + 12px + env(safe-area-inset-bottom,0px))}
 ::selection{background:var(--pri-l);color:var(--txt)}
 
-/* ---- ヘッダー ---- */
+/* ---- ヘッダー：単色＋下ヘアライン ---- */
 .hdr{
-  background:linear-gradient(150deg,#234d69,#2e5d7d 55%,#376c8f);
-  color:#fff;min-height:var(--hdr-h);padding:8px 14px;
+  background:var(--hdr-bg);color:#fff;min-height:var(--hdr-h);padding:6px 14px;
   display:flex;align-items:center;justify-content:space-between;gap:6px;
   position:sticky;top:0;z-index:100;
-  box-shadow:0 2px 10px rgba(10,30,45,.28);
-  padding-top:max(8px,env(safe-area-inset-top,0px));
-  position:sticky;overflow:hidden;
+  border-bottom:1px solid var(--hdr-line);
+  padding-top:max(6px,env(safe-area-inset-top,0px));
 }
-.hdr::before{
-  content:'';position:absolute;inset:0;pointer-events:none;
-  background:radial-gradient(140% 180% at 8% -40%,rgba(255,255,255,.16),transparent 55%);
-}
-.hdr::after{
-  content:'';position:absolute;left:0;right:0;bottom:0;height:1px;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);
-}
-@media(prefers-color-scheme:dark){:root:not([data-theme=light]) .hdr{background:linear-gradient(150deg,#132c3d,#1b3e57 55%,#234d69)}}
-:root[data-theme=dark] .hdr{background:linear-gradient(150deg,#132c3d,#1b3e57 55%,#234d69)}
-.brand{display:flex;align-items:center;flex-shrink:0;position:relative}
-.brand svg{
-  width:28px;height:28px;fill:none;stroke:#fff;stroke-width:1.8;padding:5px;
-  background:linear-gradient(160deg,rgba(255,255,255,.24),rgba(255,255,255,.08));
-  border:1px solid rgba(255,255,255,.28);border-radius:10px;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 1px 4px rgba(0,0,0,.18);
-}
-.hdr h1{font-size:1.05rem;font-weight:700;flex:1;text-align:left;letter-spacing:.04em;text-shadow:0 1px 2px rgba(0,0,0,.18);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:2px;position:relative}
-/* 狭い画面は短いタイトル（言語切替・テーマに場所を取られて「口頭試問 評…」と切れるため・L-20）
-   519px以下＝短いタイトル。429px以下＝ロゴを隠し、言語切替のすき間を詰める。359px以下だけ言語ボタンを幅40px（高さは44px）にする */
+.brand{display:flex;align-items:center;flex-shrink:0}
+.brand{width:24px;height:24px;justify-content:center;margin-right:2px}
+.brand svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.hdr h1{font-size:1.05rem;font-weight:700;flex:1;text-align:left;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:2px}
+/* 狭い画面は短いタイトル。429px以下＝ロゴを隠す。359px以下だけ言語ボタンを幅40px（高さは44px） */
 .hdr h1 .ts{display:none}
 @media(max-width:519px){.hdr h1 .tl{display:none}.hdr h1 .ts{display:inline}} /* index.html にも同じ規則（X-3） */
 @media(max-width:429px){.hdr h1{font-size:.9rem;letter-spacing:0}.hdr{padding-left:10px;padding-right:10px}.hdr .brand{display:none}.hdr .lsw{gap:0}}
-@media(max-width:359px){.hdr .lsw button{min-width:40px;padding:3px 4px}}
+@media(max-width:359px){.hdr .lsw button{padding:3px 2px}}
 @media(max-width:359px){.hdr h1{font-size:.82rem}}
-/* テーマ切替ボタン（自動→ライト→ダーク） */
 .thbtn{
   flex-shrink:0;min-width:44px;min-height:44px;padding:0;
   display:flex;align-items:center;justify-content:center;
-  background:rgba(0,0,0,.16);border:1px solid rgba(255,255,255,.22);border-radius:10px;
-  color:rgba(255,255,255,.85);cursor:pointer;position:relative;
-  transition:background .18s var(--ease),color .18s var(--ease);
+  background:transparent;border:1px solid rgba(255,255,255,.18);border-radius:var(--r);
+  color:rgba(255,255,255,.88);cursor:pointer;
+  transition:background .15s var(--ease),border-color .15s var(--ease),color .15s var(--ease);
 }
-.thbtn:hover{background:rgba(255,255,255,.16);color:#fff}
+.thbtn:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.34);color:#fff}
 .thbtn svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
-.lsw{
-  display:flex;gap:4px;flex-shrink:0;position:relative;
-  background:rgba(0,0,0,.16);border:1px solid rgba(255,255,255,.22);border-radius:10px;padding:2px;
-}
+.lsw{display:flex;gap:2px;flex-shrink:0;border:1px solid rgba(255,255,255,.18);border-radius:var(--r);padding:2px}
 .lsw button{
-  background:transparent;border:none;color:rgba(255,255,255,.78);
-  min-width:44px;min-height:44px;padding:3px 8px;border-radius:8px;font-size:.7rem;font-weight:700;cursor:pointer;
-  transition:background .18s var(--ease),color .18s var(--ease);font-family:inherit;
+  background:transparent;border:none;color:#fff;opacity:.8;
+  min-width:44px;min-height:44px;padding:3px 8px;border-radius:var(--r-s);font-size:.75rem;font-weight:700;letter-spacing:.04em;cursor:pointer;
+  transition:background .15s var(--ease),color .15s var(--ease);font-family:inherit;
 }
-.lsw button:hover{background:rgba(255,255,255,.16);color:#fff}
-.lsw button.on{background:#fff;color:#1b3e57;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+.lsw button:hover{background:rgba(255,255,255,.14);opacity:1}
+.lsw button.on:hover{background:#fff}
+.lsw button.on{background:#fff;color:#0b2f78;opacity:1}
 
-/* ---- 下部タブ ---- */
+/* ---- 下部タブ：面 --card＋上ヘアライン。選択＝上辺2pxのアクセント線＋アイコン/文字がアクセント ---- */
 .tabs{
   position:fixed;bottom:0;left:0;right:0;z-index:100;display:flex;
-  background:color-mix(in srgb,var(--card) 86%,transparent);
-  -webkit-backdrop-filter:blur(14px) saturate(1.4);backdrop-filter:blur(14px) saturate(1.4);
-  border-top:1px solid var(--bdr);
-  box-shadow:0 -3px 14px rgba(16,32,46,.09);
+  background:var(--card);border-top:1px solid var(--bdr);
   padding-bottom:env(safe-area-inset-bottom,0px);
 }
-@supports not (backdrop-filter:blur(1px)){.tabs{background:var(--card)}}
 .tabs button{
-  flex:1;min-height:var(--tabs-h);padding:7px 2px 6px;border:none;background:none;
-  font-size:.68rem;font-weight:600;color:var(--sub);cursor:pointer;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-  position:relative;transition:color .18s var(--ease);
+  flex:1;min-width:0;min-height:var(--tabs-h);padding:9px 2px 6px;border:none;background:none;
+  font-size:.75rem;font-weight:600;letter-spacing:.02em;color:var(--sub);cursor:pointer;line-height:1.25;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:4px;
+  position:relative;transition:color .15s var(--ease);
   font-family:inherit;-webkit-tap-highlight-color:transparent;
 }
 .tabs button::before{
-  content:'';position:absolute;top:0;left:50%;transform:translateX(-50%) scaleX(0);
-  width:44px;height:3px;border-radius:0 0 3px 3px;background:var(--pri);
-  transition:transform .25s var(--ease);
+  content:'';position:absolute;top:6px;left:50%;width:56px;margin-left:-28px;height:28px;border-radius:14px;
+  background:var(--pri-l);transform:scaleX(.4);opacity:0;transition:transform .18s var(--ease),opacity .15s;
 }
-.tabs button::after{
-  content:'';position:absolute;top:6px;left:50%;transform:translate(-50%,0) scale(.6);
-  width:46px;height:30px;border-radius:15px;background:var(--pri-l);
-  opacity:0;transition:opacity .22s var(--ease),transform .25s var(--ease);z-index:-1;
-}
-.tabs button svg{width:22px;height:22px;fill:currentColor;transition:transform .2s var(--ease)}
+.tabs button svg{width:22px;height:22px;fill:currentColor;position:relative;margin-top:3px;flex-shrink:0}
+.tabs button span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 2px}
+.tabs button:hover{color:var(--txt)}
 .tabs button.on{color:var(--pri);font-weight:700}
-.tabs button.on::before{transform:translateX(-50%) scaleX(1)}
-.tabs button.on::after{opacity:1;transform:translate(-50%,0) scale(1)}
-.tabs button.on svg{transform:translateY(-1px)}
-.tabs button:active svg{transform:scale(.88)}
-/* 試問保存直後の「次は採点タブ」誘導パルス（app.js saveSessionが付与、5秒で除去） */
+.tabs button.on::before{transform:scaleX(1);opacity:1}
+.tabs button:active svg{transform:scale(.9)}
 .tabs button.attn{animation:attnPulse 1s ease 3;color:var(--pri)}
 @keyframes attnPulse{50%{transform:translateY(-3px)}}
 
 /* ---- ページ ---- */
 .pg{display:none;padding:16px 16px 8px;max-width:660px;margin:0 auto}
-.pg.on{display:block;animation:pgIn .22s ease-out}
-@keyframes pgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.pg.on{display:block;animation:pgIn .18s ease-out}
+@keyframes pgIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 
-/* ---- カード共通 ---- */
+/* ---- カード共通：線1px・影なし ---- */
 .cd{
-  background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);
-  padding:16px;margin-bottom:12px;box-shadow:var(--sh);
+  background:var(--card);border:1px solid var(--bdr);border-radius:var(--r-card);
+  padding:16px;margin-bottom:14px;box-shadow:var(--card-edge),var(--sh-card);
+  transition:border-color .15s var(--ease);
 }
-/* button要素として使うカード（受験者サマリータイル等）: UA既定のボタンフォントを継承に戻す */
 button.cd{font-family:inherit;font-size:inherit;color:var(--txt);line-height:inherit}
+button.cd:hover{border-color:var(--bdr-s)}
 
-/* ---- メタ入力（一段引いた面＝ヒーローと質問カードを立てる） ---- */
-.cd.meta{background:var(--card-2);box-shadow:none}
-.meta label{display:block;font-size:.82rem;font-weight:700;color:var(--sub);margin-bottom:5px;letter-spacing:.02em}
+/* ---- メタ入力（一段引いた面） ---- */
+.cd.meta{background:var(--card-2)}
+.meta label{display:flex;align-items:flex-end;min-height:44px;padding-bottom:6px;font-size:.75rem;font-weight:700;color:var(--sub);letter-spacing:.08em;text-transform:uppercase}
 .meta input{
-  width:100%;min-height:46px;padding:10px 13px;border:1.5px solid var(--bdr-s);border-radius:var(--r-s);
+  width:100%;min-height:46px;padding:10px 13px;border:1px solid var(--bdr-s);border-radius:var(--r-s);
   font-size:1rem;margin-bottom:14px;outline:0;background:var(--card);color:var(--txt);
   transition:border-color .15s,box-shadow .15s;font-family:inherit;
 }
 .meta input:focus{border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-l)}
 .meta input:last-child{margin-bottom:0}
 
-/* ---- セクション見出し ---- */
+/* ---- セクション見出し：小さな大文字字間＋ヘアライン ---- */
 .stit{
-  font-size:.98rem;font-weight:900;color:var(--pri-d);
+  font-size:.82rem;font-weight:700;color:var(--txt);letter-spacing:.02em;
   padding:10px 0 8px;margin-top:10px;margin-bottom:12px;
-  border-bottom:2px solid;
-  border-image:linear-gradient(90deg,var(--pri) 30%,transparent 95%) 1;
-  display:flex;align-items:center;gap:8px;letter-spacing:.02em;
+  border-bottom:1px solid var(--bdr);
+  display:flex;align-items:center;gap:8px;
   scroll-margin-top:calc(var(--hdr-h) + 158px); /* ヒーロー進捗パネル(sticky)の高さぶん */
 }
-.stit::before{content:'';width:5px;height:1.05em;border-radius:3px;background:var(--pri);flex-shrink:0}
+.stit::before{content:'';width:3px;height:1.1em;background:var(--pri);border-radius:2px;flex-shrink:0}
 
-/* ---- 試問カード ---- */
-.qc{border-left:4px solid var(--bdr-s);transition:border-color .3s,box-shadow .3s;position:relative}
+/* ---- 試問カード：左帯4pxが合否 ---- */
+.qc{border-left:4px solid var(--bdr-s);position:relative;transition:border-color .2s}
 .qc.done{border-left-color:var(--pri)}
 .qc.scored{border-left-color:var(--pri)}
-/* 左帯は合否の色（○=緑・×=赤）。右上の✓は入力完了の印なので合否に関係なく中立色 */
 .qc.v-pass{border-left-color:var(--s5)}.qc.v-fail{border-left-color:var(--s1)}
-/* 録音済み/採点済みが流し見で分かる右上ステータスアイコン */
 .qc.done::after,.qc.scored::after{
   content:'✓';position:absolute;top:12px;right:14px;width:22px;height:22px;border-radius:50%;
   line-height:22px;text-align:center;font-size:.76rem;font-weight:900;
 }
-.qc.done::after{background:var(--pri-l);color:var(--pri)}
-.qc.scored::after{background:var(--pri-l);color:var(--pri)}
+.qc.done::after,.qc.scored::after{background:var(--pri-l);color:var(--pri)}
 .qc .en{
-  display:inline-block;font-size:.72rem;font-weight:700;color:var(--pri);letter-spacing:.06em;
-  background:var(--pri-l);border:1px solid color-mix(in srgb,var(--pri) 25%,transparent);
-  border-radius:7px;padding:2px 9px;margin-bottom:2px;font-variant-numeric:tabular-nums;
+  display:inline-block;font-size:.75rem;font-weight:700;color:var(--sub);letter-spacing:.08em;
+  border:1px solid var(--bdr-s);border-radius:var(--r-s);padding:1px 8px;margin-bottom:2px;
 }
-.qc .enm{font-size:1.125rem;font-weight:700;margin:6px 0 4px;line-height:1.45}
+.qc .enm,.qc .ed,.hi .hin,.stit{overflow-wrap:anywhere;min-width:0}
+.qc{min-width:0}
+#examCards,.pg{min-width:0}
+.qc .enm{font-size:1.1rem;font-weight:700;margin:6px 0 4px;line-height:1.45;letter-spacing:.01em}
 .qc .ed{
   font-size:.88rem;color:var(--txt);margin-bottom:12px;line-height:1.7;
-  background:var(--pri-l);border-left:3px solid var(--pri);padding:10px 13px;border-radius:0 var(--r-s) var(--r-s) 0;
+  background:var(--card-2);border-left:2px solid var(--bdr-s);padding:10px 13px;border-radius:0 var(--r-s) var(--r-s) 0;
 }
 
-/* ---- 録音 ---- */
-.recrow{display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap} /* 375px幅で「次の未録音へ」ボタンがはみ出さない */
+/* ---- 録音（録音中の脈動は十分大きな回数で回す＝無限ループの宣言を使わない） ---- */
+.recrow{display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap}
 .recbtn{
   display:flex;align-items:center;gap:8px;min-height:44px;padding:10px 18px;
-  border:2px solid var(--rec);border-radius:24px;background:var(--card);color:var(--rec);
-  font-size:.92rem;font-weight:700;cursor:pointer;transition:transform .12s,background .15s,box-shadow .15s;
+  border:1.5px solid var(--rec);border-radius:var(--r);background:transparent;color:var(--rec);
+  font-size:.92rem;font-weight:700;cursor:pointer;transition:transform .12s,background .15s;
   font-family:inherit;flex-shrink:0;
 }
 .recbtn:hover{background:var(--rec-l)}
-.recbtn:active{transform:scale(.95)}
+.recbtn:active{transform:scale(.97)}
 .recbtn .dot{width:12px;height:12px;border-radius:50%;background:var(--rec);flex-shrink:0}
-.recbtn.recording{background:var(--rec-bg);border-color:var(--rec-bg);color:#fff;box-shadow:0 0 0 5px var(--rec-l);animation:recGlow 1.6s infinite}
-@keyframes recGlow{0%,100%{box-shadow:0 0 0 5px var(--rec-l)}50%{box-shadow:0 0 0 9px color-mix(in srgb,var(--rec-l) 45%,transparent)}}
-.recbtn.recording .dot{background:#fff;animation:pulse 1s infinite}
+.recbtn.recording{background:var(--rec-bg);border-color:var(--rec-bg);color:#fff;animation:recGlow 1.6s 99999}
+@keyframes recGlow{0%,100%{box-shadow:0 0 0 3px var(--rec-l)}50%{box-shadow:0 0 0 7px color-mix(in srgb,var(--rec-l) 45%,transparent)}}
+.recbtn.recording .dot{background:#fff;animation:pulse 1s 99999}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.8)}}
-/* 録音中の固定ピル（media.jsが生成）: どこへスクロールしても停止・復帰の導線が残る */
 #recPill{
   position:fixed;right:12px;bottom:calc(var(--tabs-h) + 14px + env(safe-area-inset-bottom,0px));
-  z-index:200;min-height:48px;padding:10px 18px;border:none;border-radius:24px;
+  z-index:200;min-height:48px;padding:10px 18px;border:none;border-radius:var(--r-pill);
   background:var(--rec-bg);color:#fff;font-weight:700;font-size:.95rem;cursor:pointer;
   box-shadow:var(--sh-lg);font-family:inherit;font-variant-numeric:tabular-nums;
-  animation:recGlow 1.6s infinite;
+  animation:recGlow 1.6s 99999;
 }
-/* 録音中の簡易VUメーター（音を拾えているかの可視化。media.jsが録音中のみ生成） */
 .vu{display:inline-block;width:0;max-width:48px;height:6px;background:var(--rec);border-radius:3px;transition:width .15s;flex:0 0 auto}
-/* 録り直し直後の「元に戻す」バー（次の操作か✕まで残す。トーストと同系の配色で両テーマ可読）
-   left:50%+translateX は「残り幅」で縮み、狭い画面で文言が1文字ずつ折れて縦の柱になる（R8回帰）
-   → 左右を画面端から固定し（広い画面は中央寄せで最大560px）、文言は残りの幅を使って2行までに収める */
+/* 録り直し直後の「元に戻す」バー（左右を画面端から固定し、広い画面は中央寄せ最大560px・文言は2行まで） */
 #undoBar{
   position:fixed;left:12px;right:12px;margin:0 auto;width:auto;max-width:560px;box-sizing:border-box;
   bottom:calc(var(--tabs-h) + 10px + env(safe-area-inset-bottom,0px));z-index:210;
-  display:flex;align-items:center;gap:8px;padding:6px 6px 6px 14px;border-radius:22px;
+  display:flex;align-items:center;gap:8px;padding:6px 6px 6px 14px;border-radius:var(--r);
   background:var(--toast-bg);color:var(--toast-tx);font-size:.85rem;font-weight:700;line-height:1.35;
   box-shadow:var(--sh-lg);border:1px solid rgba(255,255,255,.08);
 }
 #undoBar span{flex:1 1 auto;min-width:0;overflow-wrap:anywhere;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-/* バーが出ている間は、その高さ分だけページ下の余白を足す＝最下部までスクロールすれば全部の操作がバーの上に出る */
 html.undo-on body{padding-bottom:calc(var(--tabs-h) + 28px + var(--undo-h,64px) + env(safe-area-inset-bottom,0px))}
-/* VIS-1：録音中は右下の録音ピルの高さ分もページ下の余白を足す＝最下部までスクロールすれば「試問を保存」「リセット」がピルの上に出る */
 body:has(#recPill){padding-bottom:calc(var(--tabs-h) + 80px + env(safe-area-inset-bottom,0px))}
 html.undo-on body:has(#recPill){padding-bottom:calc(var(--tabs-h) + 80px + var(--undo-h,64px) + env(safe-area-inset-bottom,0px))}
 html.undo-on{scroll-padding-bottom:calc(var(--tabs-h) + 20px + var(--undo-h,64px) + env(safe-area-inset-bottom,0px))}
 #undoBar button{
-  min-height:40px;padding:7px 14px;border:none;border-radius:19px;cursor:pointer;
-  background:var(--pri);color:#fff;font-weight:700;font-family:inherit;font-size:.85rem;flex:0 0 auto;white-space:nowrap;
+  min-height:44px;padding:7px 14px;border:none;border-radius:var(--r-s);cursor:pointer;
+  background:var(--btn-pri);color:#fff;font-weight:700;font-family:inherit;font-size:.85rem;flex:0 0 auto;white-space:nowrap;
 }
-/* ピルから録音中カードへ誘導した直後の停止ボタン強調（「ここで停止」を明示） */
 .recbtn.attn{animation:attnBtn .55s ease 4}
-@keyframes attnBtn{50%{transform:scale(1.07)}}
+@keyframes attnBtn{50%{transform:scale(1.05)}}
 .rectime{font-size:.95rem;font-weight:700;color:var(--rec);font-variant-numeric:tabular-nums;min-width:48px}
-.rectime:empty{min-width:0} /* 空表示時は幅を取らない（狭幅端末の折返し抑制） */
+.rectime:empty{min-width:0}
 .recstat{font-size:.8rem;color:var(--sub)}
 .recstat.ok{color:var(--pri);font-weight:700}
-/* 合否タブ（録音の横）。同じボタンを再押下で解除 */
-.verd{display:inline-flex;border:1.5px solid var(--bdr);border-radius:999px;overflow:hidden;flex:0 0 auto}
-.verd .vb{border:0;background:transparent;color:var(--sub);font-weight:700;font-size:.95rem;padding:10px 18px;min-height:44px;cursor:pointer;font-family:inherit;white-space:nowrap}
-.verd .vb+.vb{border-left:1.5px solid var(--bdr)}
-/* 合格=緑・不合格=赤（採点画面の .sb.sel・履歴の .dis と同じトークン） */
+/* 合否タブ（録音の横）。同じボタンを再押下で解除。未選択=線1px＋--sub、選択=塗り */
+.verd{display:inline-flex;max-width:100%;border:1px solid var(--bdr-s);border-radius:var(--r);overflow:hidden;flex:0 0 auto}
+.verd .vb{border:0;background:transparent;color:var(--sub);font-weight:700;font-size:.95rem;padding:10px clamp(10px,3vw,20px);min-height:48px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.verd .vb+.vb{border-left:1px solid var(--bdr-s)}
+.verd .vb:hover{background:var(--card-2)}
 .verd .vpass.on{background:var(--s5);color:var(--sel-tx)}
 .verd .vfail.on{background:var(--s1);color:var(--sel-tx)}
-/* 「続ける」で開いた旧5段階の点数（合否ではない＝中立色で併記） */
-.vold{flex:0 0 auto;font-size:.78rem;font-weight:700;color:var(--sub);border:1.5px dashed var(--bdr);border-radius:999px;padding:4px 10px;white-space:nowrap}
+.vold{flex:0 0 auto;font-size:.78rem;font-weight:700;color:var(--sub);border:1px dashed var(--bdr-s);border-radius:var(--r-s);padding:4px 10px;white-space:nowrap}
 audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
 .live{
   font-size:.84rem;color:var(--sub);background:var(--card-2);border:1px dashed var(--bdr-s);
   border-radius:var(--r-s);padding:9px 12px;margin-top:6px;white-space:pre-wrap;min-height:20px;
 }
-.live .lbl{display:block;font-size:.7rem;font-weight:700;color:var(--pri);margin-bottom:2px;letter-spacing:.03em}
+.live .lbl{display:block;font-size:.75rem;font-weight:700;color:var(--pri);margin-bottom:2px;letter-spacing:.08em}
 
-/* ---- 採点ボタン ---- */
-.sr{display:flex;gap:7px;margin:10px 0}
+/* ---- 採点ボタン(.sb)：高さ48以上・未選択=線1px＋文字、選択=塗り ---- */
+.sr{display:flex;gap:6px;margin:10px 0}
 .sb{
-  flex:1;min-height:60px;border:1.5px solid var(--bdr-s);border-radius:12px;background:var(--card);
-  font-size:1.15rem;font-weight:900;color:var(--txt);cursor:pointer;font-variant-numeric:tabular-nums;
+  flex:1;min-height:56px;border:1px solid var(--bdr-s);border-radius:var(--r);background:var(--card);
+  font-size:1.15rem;font-weight:800;color:var(--txt);cursor:pointer;font-variant-numeric:tabular-nums;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
-  transition:transform .12s,background .18s,border-color .18s,box-shadow .18s;font-family:inherit;
+  transition:transform .12s,background .15s,border-color .15s;font-family:inherit;
 }
 .sb .sl{font-size:.78rem;font-weight:700;color:var(--sub);line-height:1.25;text-align:center}
-/* 選択した評価の意味を大きく再掲（極小ラベルだけに尺度の意味を負わせない） */
-.spick{min-height:22px;font-size:.95rem;font-weight:900;color:var(--pri-d);margin-top:2px}
-/* 未選択でも評価色のヒントを上端に（5⇔1の方向が迷わない） */
-.sb:not(.sel){box-shadow:inset 0 4px 0 var(--hint,transparent)}
+.spick{min-height:22px;font-size:.95rem;font-weight:800;color:var(--pri-d);margin-top:2px}
 .sb[data-s="5"]{--hint:var(--s5)}.sb[data-s="4"]{--hint:var(--s4)}.sb[data-s="3"]{--hint:var(--s3)}.sb[data-s="2"]{--hint:var(--s2)}.sb[data-s="1"]{--hint:var(--s1)}
-.sb:hover{border-color:var(--pri);background:var(--pri-l)}
-/* hover時は該当評価色の淡面＋同色枠（どの点に落ちるかを予告） */
-.sb:not(.sel):hover{border-color:var(--hint,var(--pri));background:color-mix(in srgb,var(--hint,var(--pri)) 10%,var(--card))}
-.sb:active{transform:scale(.93)}
-.sb.sel{color:var(--sel-tx);border-color:transparent;box-shadow:inset 0 1px 0 rgba(255,255,255,.22),var(--sh);transform:translateY(-1px);animation:selPop .28s var(--ease)}
-@keyframes selPop{0%{transform:scale(.92)}60%{transform:scale(1.04) translateY(-1px)}100%{transform:translateY(-1px)}}
+.sb[data-s="pass"]{--hint:var(--s5)}.sb[data-s="fail"]{--hint:var(--s1)}
+.sb:not(.sel):hover{border-color:var(--hint,var(--pri));background:var(--card-2)}
+.sb:active{transform:scale(.97)}
+.sb.sel{color:var(--sel-tx);border-color:transparent;animation:selPop .18s var(--ease)}
+@keyframes selPop{0%{transform:scale(.96)}100%{transform:none}}
 .sb.sel .sl{color:var(--sel-sl)}
 .sb[data-s="5"].sel{background:var(--s5)}
 .sb[data-s="4"].sel{background:var(--s4)}
 .sb[data-s="3"].sel{background:var(--s3)}
 .sb[data-s="2"].sel{background:var(--s2)}
 .sb[data-s="1"].sel{background:var(--s1)}
-/* 合格/不合格（2択） */
-.sb[data-s="pass"]{--hint:var(--s5)}.sb[data-s="fail"]{--hint:var(--s1)}
 .sb[data-s="pass"].sel{background:var(--s5)}
 .sb[data-s="fail"].sel{background:var(--s1)}
-.sb.pf{font-size:1.5rem;min-height:68px}
+.sb.pf{font-size:1.4rem;min-height:60px}
 .sb.pf .sl{font-size:.95rem}
 .dis.pf-pass{background:var(--s5)}.dis.pf-fail{background:var(--s1)}
 
-.tlbl{font-size:.8rem;font-weight:700;color:var(--pri-d);margin:12px 0 5px;display:flex;justify-content:space-between;align-items:center;letter-spacing:.02em}
+.tlbl{font-size:.75rem;font-weight:700;color:var(--sub);margin:12px 0 5px;display:flex;justify-content:space-between;align-items:center;letter-spacing:.08em}
 .qc textarea,.oata{
-  width:100%;padding:10px 13px;border:1.5px solid var(--bdr-s);border-radius:var(--r-s);
+  width:100%;padding:10px 13px;border:1px solid var(--bdr-s);border-radius:var(--r-s);
   font-size:.92rem;font-family:inherit;resize:vertical;min-height:60px;outline:0;
   background:var(--card);color:var(--txt);line-height:1.7;transition:border-color .15s,box-shadow .15s;
 }
@@ -383,191 +312,172 @@ audio{width:100%;margin:6px 0;height:40px;border-radius:20px}
 .clbl{font-size:.8rem;font-weight:600;color:var(--sub);margin:10px 0 4px}
 .aibtn{
   font-size:.78rem;font-weight:700;color:var(--pri);background:var(--pri-l);border:1px solid var(--pri);
-  border-radius:10px;min-height:44px;padding:6px 14px;cursor:pointer;transition:filter .15s;font-family:inherit;
+  border-radius:var(--r-s);min-height:44px;padding:6px 14px;cursor:pointer;transition:filter .15s;font-family:inherit;
 }
 .aibtn:hover{filter:brightness(.96)}
 .aibtn:disabled{opacity:.5;cursor:default}
-
-/* ---- 全体所感 ---- */
-.oasec h2{font-size:.98rem;margin-bottom:8px;color:var(--pri-d)}
+.oasec h2{font-size:.98rem;margin-bottom:8px;color:var(--txt)}
 
 /* ---- ボタン ---- */
 .bg{display:flex;gap:10px;margin:16px 0}
 .b{
-  flex:1;min-height:50px;padding:13px;border:none;border-radius:12px;
-  font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit;
-  transition:transform .12s var(--ease),background .15s,filter .15s,box-shadow .2s var(--ease);
+  flex:1;min-height:50px;padding:13px;border:none;border-radius:var(--r);
+  font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.02em;
+  transition:transform .12s var(--ease),background .15s,border-color .15s;
   -webkit-tap-highlight-color:transparent;
 }
-.b:active{transform:scale(.97)}
-.b1{
-  background:linear-gradient(180deg,color-mix(in srgb,var(--btn-pri) 88%,#fff),var(--btn-pri) 45%,color-mix(in srgb,var(--btn-pri) 88%,#000));
-  color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 2px 8px rgba(30,70,100,.28);
-}
-.b1:hover{background:var(--btn-pri-h);box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 4px 14px rgba(30,70,100,.34)}
-.b2{background:var(--card);color:var(--s1);border:2px solid var(--s1)}
+.b:active{transform:scale(.98)}
+.b1{background:var(--btn-pri);color:#fff}
+.b1:hover{background:var(--btn-pri-h)}
+.b2{background:var(--card);color:var(--s1);border:1px solid var(--s1)}
 .b2:hover{background:var(--s1-l)}
-.b3{background:var(--pri-l);color:var(--pri-d);border:1px solid transparent}
-.b3:hover{filter:brightness(.97)}
-.b4{background:var(--pri-l);color:var(--pri-d);border:2px solid var(--pri)}
-.b4:hover{filter:brightness(.98)}
+.b3{background:transparent;color:var(--txt);border:1px solid var(--bdr-s)}
+.b3:hover{border-color:var(--pri);color:var(--pri)}
+.b4{background:var(--pri-l);color:var(--pri-d);border:1px solid var(--pri)}
+.b4:hover{filter:brightness(.97)}
+.b:disabled{opacity:.5;cursor:not-allowed}
 
-/* ---- トースト ---- */
+/* ---- トースト（浮くもの＝影可） ---- */
 .toast{
-  /* 既定はタブのすぐ上（試問タブのカードの中ほどを覆わない・L-14）。録音中はピルの上。採点の保存バーが出ている間はその上（下の html.scoring） */
-  position:fixed;bottom:calc(var(--tabs-h) + 12px + env(safe-area-inset-bottom,0px));left:50%;
-  transform:translateX(-50%) translateY(16px);
-  background:var(--toast-bg);color:var(--toast-tx);padding:12px 26px;border-radius:26px;
+  position:fixed;bottom:calc(var(--tabs-h) + 12px + env(safe-area-inset-bottom,0px));left:0;right:0;margin:0 auto;
+  width:max-content;max-height:calc(100vh - var(--hdr-h) - var(--tabs-h) - 32px);overflow-y:auto;
+  transform:translateY(12px);
+  background:var(--toast-bg);color:var(--toast-tx);padding:12px 24px;border-radius:var(--r);
   border:1px solid rgba(255,255,255,.08);
-  font-size:.9rem;font-weight:700;opacity:0;transition:opacity .28s var(--ease),transform .28s var(--ease);
-  z-index:400;pointer-events:none;white-space:normal;max-width:92%;text-align:center;
+  font-size:.9rem;font-weight:700;opacity:0;transition:opacity .18s var(--ease),transform .18s var(--ease);
+  z-index:400;pointer-events:none;white-space:normal;max-width:calc(100% - 24px);text-align:center;overflow-wrap:anywhere;
   box-shadow:var(--sh-lg);
 }
-body:has(#recPill) .toast,body:has(#wakeNote) .toast{bottom:calc(var(--tabs-h) + 74px + env(safe-area-inset-bottom,0px))} /* 録音中は録音ピルの上 */
-html.undo-on .toast{bottom:calc(var(--tabs-h) + 18px + var(--undo-h,64px) + env(safe-area-inset-bottom,0px))} /* 「元に戻す」バーより上 */
+html body:has(#recPill) .toast,html body:has(#wakeNote) .toast{bottom:auto;top:calc(var(--hdr-h) + 10px)}
+html.undo-on .toast{bottom:calc(var(--tabs-h) + 18px + var(--undo-h,64px) + env(safe-area-inset-bottom,0px))}
 .toast::before{content:'✓';font-weight:900;margin-right:7px;color:var(--toast-ok)}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.show{opacity:1;transform:none}
 .toast.err{background:var(--rec-bg);color:#fff}
 .toast.err::before{content:'！';color:#fff}
 
 /* ---- リスト（採点待ち/履歴） ---- */
 .hctrl{display:flex;gap:8px;margin-bottom:16px}
-
-/* セレクト共通: ネイティブ矢印を廃し、テーマ追従のシェブロンで統一 */
 .hctrl select,.chc select,.catrow select,#qsetArea select,#examSetBox select{
   appearance:none;-webkit-appearance:none;
-  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%235b6773" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>');
+  background-image:var(--chev);
   background-repeat:no-repeat;background-position:right 12px center;background-size:16px;
   padding-right:38px;cursor:pointer;
   transition:border-color .15s,box-shadow .15s;
-  max-width:100%;min-width:0;text-overflow:ellipsis; /* 長い受験者名の選択肢で幅が広がり375px幅で横スクロールしないように */
-}
-@media(prefers-color-scheme:dark){
-  :root:not([data-theme=light]) .hctrl select,:root:not([data-theme=light]) .chc select,:root:not([data-theme=light]) .catrow select,:root:not([data-theme=light]) #qsetArea select,:root:not([data-theme=light]) #examSetBox select{
-    background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%2393a2af" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>');
-  }
-}
-:root[data-theme=dark] .hctrl select,:root[data-theme=dark] .chc select,:root[data-theme=dark] .catrow select,:root[data-theme=dark] #qsetArea select,:root[data-theme=dark] #examSetBox select{
-  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%2393a2af" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>');
+  max-width:100%;min-width:0;text-overflow:ellipsis;
 }
 .hctrl select{
-  flex:1;min-height:44px;padding-top:10px;padding-bottom:10px;padding-left:12px;border:1.5px solid var(--bdr-s);border-radius:var(--r-s);
+  flex:1;min-height:44px;padding-top:10px;padding-bottom:10px;padding-left:12px;border:1px solid var(--bdr-s);border-radius:var(--r-s);
   font-size:.9rem;background-color:var(--card);color:var(--txt);outline:0;font-family:inherit;
 }
 .hctrl select:focus{border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-l)}
-/* JS生成セレクト（設定=質問セット/プリセット #qsetArea・試問タブ上部 #examSetBox）を共通スタイルに揃える */
 #qsetArea select,#examSetBox select{
   min-height:44px;padding-top:10px;padding-bottom:10px;padding-left:12px;
-  border:1.5px solid var(--bdr-s);border-radius:var(--r-s);
+  border:1px solid var(--bdr-s);border-radius:var(--r-s);
   font-size:.9rem;background-color:var(--card);color:var(--txt);outline:0;font-family:inherit;
 }
 #qsetArea select:focus,#examSetBox select:focus{border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-l)}
-.hlist{display:flex;flex-direction:column;gap:9px}
+.hlist{display:flex;flex-direction:column;gap:12px}
 .hi{
-  background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);
-  padding:14px 16px;box-shadow:var(--sh);cursor:pointer;
+  background:var(--card);border:1px solid var(--bdr);border-radius:var(--r-card);
+  padding:14px 16px;cursor:pointer;box-shadow:var(--card-edge),var(--sh-card);
   display:flex;justify-content:space-between;align-items:center;gap:10px;
-  transition:transform .12s,border-color .15s,background .15s;
+  transition:border-color .15s var(--ease),background .15s var(--ease);
   width:100%;text-align:left;font-family:inherit;font-size:1rem;color:var(--txt);
 }
 .hi .hid,.hi .hin{display:block}
-.hi:hover{border-color:var(--pri);box-shadow:var(--sh-hover);transform:translateY(-1px)}
-.hi:active{background:var(--pri-l);transform:scale(.985)}
+.hi:hover{border-color:var(--bdr-s)}
+.hi:active{background:var(--card-2)}
 .hi .hii{flex:1;min-width:0}
-.hi .hid{font-size:.78rem;color:var(--sub)}
+.hi .hid{font-size:.76rem;color:var(--sub);letter-spacing:.02em}
 .hi .hin{font-weight:700;font-size:1.06rem;margin-top:1px}
-.hi .hia{font-size:var(--fs-xl);font-weight:900;color:var(--pri);min-width:52px;text-align:right;font-variant-numeric:tabular-nums}
-/* 平均点の評価色（一覧で成績が一目で分かる） */
+.hi .hia{font-size:var(--fs-xl);font-weight:800;letter-spacing:-.02em;color:var(--pri);min-width:52px;text-align:right;font-variant-numeric:tabular-nums}
 .hia.a5{color:var(--s5)}.hia.a4{color:var(--s4)}.hia.a3{color:var(--s3)}.hia.a2{color:var(--s2)}.hia.a1{color:var(--s1)}
-/* 素の評価色クラス（ui.js生成のサマリータイル等で単独使用される） */
 .a5{color:var(--s5)}.a4{color:var(--s4)}.a3{color:var(--s3)}.a2{color:var(--s2)}.a1{color:var(--s1)}
-/* 採点中のリアルタイム平均 */
 .spavg{margin-right:10px;font-variant-numeric:tabular-nums}
 .spavg.a5{color:var(--s5)}.spavg.a4{color:var(--s4)}.spavg.a3{color:var(--s3)}.spavg.a2{color:var(--s2)}.spavg.a1{color:var(--s1)}
 .badge{
   display:inline-flex;align-items:center;gap:5px;font-size:.75rem;font-weight:700;
-  padding:2.5px 10px 2.5px 8px;border-radius:10px;margin-top:4px;letter-spacing:.02em;
+  padding:2.5px 10px 2.5px 8px;border-radius:var(--r-pill);margin-top:4px;letter-spacing:.02em;
 }
 .badge::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
 .badge.rec{background:var(--s2-l);color:var(--s2)}
 .badge.scored{background:var(--s5-l);color:var(--s5)}
+.badge.unsent{background:transparent;color:var(--s1);border:1px solid var(--s1)}
 
 /* ---- モーダル ---- */
 .mo{
-  display:none;position:fixed;inset:0;background:rgba(10,20,30,.58);
-  backdrop-filter:blur(6px) saturate(1.1);-webkit-backdrop-filter:blur(6px) saturate(1.1);
+  display:none;position:fixed;inset:0;background:rgba(4,6,12,.66);
   z-index:300;overflow-y:auto;padding:24px 12px calc(24px + env(safe-area-inset-bottom,0px));
 }
-.mo.show{display:block;animation:moFade .18s ease-out}
+.mo.show{display:block;animation:moFade .15s ease-out}
 @keyframes moFade{from{opacity:0}to{opacity:1}}
 .mc{
-  background:var(--card);border:1px solid var(--bdr);border-radius:20px;max-width:560px;
+  background:var(--card);border:1px solid var(--bdr);border-radius:var(--r-card);max-width:560px;
   margin:0 auto;padding:20px 18px;box-shadow:var(--sh-lg);
-  animation:moUp .28s var(--ease);
+  animation:moUp .2s var(--ease);
 }
-@keyframes moUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes moUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 .mh{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--bdr)}
-.mh h2{font-size:1.02rem;color:var(--pri-d)}
-.mx{background:0;border:0;font-size:1.5rem;cursor:pointer;min-width:44px;min-height:44px;padding:4px 8px;color:var(--sub);border-radius:10px;transition:background .15s}
-.mx:hover{background:var(--pri-l);color:var(--txt)}
+.mh h2{font-size:1.02rem;color:var(--txt)}
+.mx{background:0;border:0;font-size:1.5rem;cursor:pointer;min-width:44px;min-height:44px;padding:4px 8px;color:var(--sub);border-radius:var(--r-s);transition:background .15s}
+.mx:hover{background:var(--card-2);color:var(--txt)}
 .di{padding:11px 0;border-bottom:1px solid var(--bdr)}.di:last-of-type{border-bottom:none}
 .dih{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .din{font-weight:700;font-size:.92rem}
-.dis{font-weight:900;font-size:1rem;min-width:34px;text-align:center;padding:2px 10px;border-radius:8px;color:var(--sel-tx);flex-shrink:0;font-variant-numeric:tabular-nums}
+.dis{font-weight:800;font-size:1rem;min-width:34px;text-align:center;padding:2px 10px;border-radius:var(--r-s);color:var(--sel-tx);flex-shrink:0;font-variant-numeric:tabular-nums}
 .ditr{font-size:.85rem;color:var(--txt);margin-top:5px;white-space:pre-wrap;line-height:1.7}
 .dic{font-size:.84rem;color:var(--sub);margin-top:4px}
-.dov{margin-top:12px;padding:12px 14px;background:var(--pri-l);border-left:3px solid var(--pri);border-radius:0 var(--r-s) var(--r-s) 0;font-size:.9rem;line-height:1.7}
+.dov{margin-top:12px;padding:12px 14px;background:var(--card-2);border-left:2px solid var(--bdr-s);border-radius:0 var(--r-s) var(--r-s) 0;font-size:.9rem;line-height:1.7}
 .ma{display:flex;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid var(--bdr)}
 .sb5{background:var(--s5)}.sb4{background:var(--s4)}.sb3{background:var(--s3)}.sb2{background:var(--s2)}.sb1{background:var(--s1)}
 
-/* ---- グラフ ---- */
-.chc{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);padding:16px;margin-bottom:16px;box-shadow:var(--sh)}
+/* ---- グラフ：見出しを大きく（.chb-h）・面は線1px ---- */
+.chc{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);padding:16px;margin-bottom:16px;box-shadow:var(--card-edge),var(--sh-card)}
 .chc select{
-  width:100%;min-height:46px;padding-top:10px;padding-bottom:10px;padding-left:12px;border:1.5px solid var(--bdr-s);border-radius:var(--r-s);
+  width:100%;min-height:46px;padding-top:10px;padding-bottom:10px;padding-left:12px;border:1px solid var(--bdr-s);border-radius:var(--r-s);
   font-size:.95rem;background-color:var(--card);color:var(--txt);outline:0;font-family:inherit;
 }
 .chc select:focus{border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-l)}
-.chb{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);padding:16px;margin-bottom:16px;box-shadow:var(--sh)}
-.chb h2{font-size:.88rem;margin-bottom:12px;color:var(--sub);font-weight:700;letter-spacing:.02em}
+.chb{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r-card);padding:16px;margin-bottom:16px;box-shadow:var(--card-edge),var(--sh-card)}
+.chb-h{display:flex;align-items:center;gap:10px;margin:-2px -16px 14px;padding:0 16px 12px;border-bottom:1px solid var(--bdr)}
+.chb-h::before{content:'';width:3px;height:1.1em;background:var(--pri);flex-shrink:0}
+.chb h2{font-size:1rem;font-weight:700;color:var(--txt);letter-spacing:.01em;line-height:1.4}
 .chb canvas{width:100%!important;max-height:300px}
-.b:disabled{opacity:.5;cursor:not-allowed}
 .nd{
-  text-align:center;color:var(--sub);padding:56px 20px;font-size:var(--fs-md);font-weight:500;line-height:1.8;
-  border:2px dashed var(--bdr-s);border-radius:var(--r);background:var(--card-2);
+  text-align:center;color:var(--sub);padding:48px 20px;font-size:var(--fs-md);font-weight:500;line-height:1.8;
+  border:1px solid var(--bdr);border-radius:var(--r);background:var(--card-2);
 }
-.nd::before{content:'';display:block;width:60px;height:60px;margin:0 auto 14px;border-radius:50%;background:var(--pri-l);
-  box-shadow:0 0 0 8px color-mix(in srgb,var(--pri-l) 40%,transparent);
-  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%232e5d7d" opacity=".55"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-8 14H7v-6h4v6zm6 0h-4V7h4v10z"/></svg>');
-  background-repeat:no-repeat;background-position:center;background-size:26px}
+.nd::before{
+  content:'';display:block;width:40px;height:40px;margin:0 auto 14px;background:var(--pri);opacity:.85;
+  -webkit-mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-8 14H7v-6h4v6zm6 0h-4V7h4v10z"/></svg>') center/100% no-repeat;
+  mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-8 14H7v-6h4v6zm6 0h-4V7h4v10z"/></svg>') center/100% no-repeat;
+}
 
 /* ---- 設定画面 ---- */
 .cfg-sec{margin-bottom:26px}
-.cfg-sec-hdr{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.cfg-sec-hdr{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;margin-bottom:9px}
 .cfg-sec-hdr input{
-  flex:1;min-width:0; /* 既定の最小幅(約20字)のまま縮まず ▲▼✕ を押し出していた（375px幅で+20px） */font-size:.95rem;font-weight:700;min-height:44px;padding:8px 12px;
-  border:1.5px solid var(--bdr-s);border-radius:var(--r-s);outline:0;color:var(--pri-d);
+  flex:1;min-width:0;font-size:.95rem;font-weight:700;min-height:44px;padding:8px 12px;
+  border:1px solid var(--bdr-s);border-radius:var(--r-s);outline:0;color:var(--txt);
   background:var(--card);font-family:inherit;transition:border-color .15s;
 }
 .cfg-sec-hdr input:focus{border-color:var(--pri)}
-.cfg-item{
-  background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);
-  padding:12px;margin-bottom:9px;box-shadow:var(--sh);border-left:3px solid var(--pri);
-}
-.cfg-item .ci-row{display:flex;gap:6px;align-items:center;margin-bottom:7px}
+.cfg-item{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);padding:12px;margin-bottom:12px;box-shadow:var(--card-edge),var(--sh-card)}
+.cfg-item .ci-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;margin-bottom:8px}
 .cfg-item input{
-  flex:1;min-width:0;min-height:40px;padding:8px 11px;border:1.5px solid var(--bdr-s);border-radius:8px;
+  flex:1;min-width:0;min-height:44px;padding:8px 11px;border:1px solid var(--bdr-s);border-radius:var(--r-s);
   font-size:.9rem;outline:0;background:var(--card);color:var(--txt);font-family:inherit;transition:border-color .15s;
 }
 .cfg-item input:focus{border-color:var(--pri)}
 .cfg-item textarea{
-  width:100%;padding:8px 11px;border:1.5px solid var(--bdr-s);border-radius:8px;
+  width:100%;padding:8px 11px;border:1px solid var(--bdr-s);border-radius:var(--r-s);
   font-size:.86rem;font-family:inherit;resize:vertical;min-height:48px;outline:0;
   color:var(--sub);background:var(--card);line-height:1.6;transition:border-color .15s;
 }
 .cfg-item textarea:focus{border-color:var(--pri);color:var(--txt)}
-.ci-btns{display:flex;gap:4px;flex-shrink:0}
+.ci-btns{display:grid;grid-template-columns:repeat(3,44px);gap:4px;flex-shrink:0;justify-content:end}
 .ci-btns button{
-  width:44px;height:44px;border:1px solid var(--bdr-s);border-radius:10px;background:var(--card);
+  width:44px;height:44px;border:1px solid var(--bdr-s);border-radius:var(--r-s);background:var(--card);
   cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;
   color:var(--sub);transition:background .15s,color .15s,border-color .15s;font-family:inherit;
 }
@@ -575,216 +485,200 @@ html.undo-on .toast{bottom:calc(var(--tabs-h) + 18px + var(--undo-h,64px) + env(
 .ci-btns button.del:hover{background:var(--s1-l);color:var(--s1);border-color:var(--s1)}
 .cfg-add{display:flex;gap:8px;margin-top:8px}
 .cfg-add button{
-  flex:1;min-height:46px;padding:10px;border:2px dashed var(--bdr-s);border-radius:var(--r);
+  flex:1;min-height:46px;padding:10px;border:1px dashed var(--bdr-s);border-radius:var(--r);
   background:none;font-size:.86rem;font-weight:700;color:var(--sub);cursor:pointer;
   font-family:inherit;transition:border-color .15s,color .15s,background .15s;
 }
 .cfg-add button:hover{border-color:var(--pri);color:var(--pri);background:var(--pri-l)}
-.cfg-box{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);padding:16px;margin-bottom:16px;box-shadow:var(--sh)}
-.cfg-box h3{font-size:.95rem;color:var(--pri-d);margin-bottom:4px}
+.cfg-box{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);padding:16px;margin-bottom:16px}
+.cfg-box h3{font-size:.95rem;color:var(--txt);margin-bottom:4px}
 .cfg-box p{font-size:.78rem;color:var(--sub);margin-bottom:10px}
-.cfg-box label{display:block;font-size:.8rem;font-weight:700;color:var(--sub);margin:8px 0 3px}
-.cfg-box input{width:100%;min-height:42px;padding:9px 11px;border:1.5px solid var(--bdr-s);border-radius:var(--r-s);font-size:.9rem;outline:0;background:var(--card);color:var(--txt);font-family:inherit}
+.cfg-box label{display:block;font-size:.75rem;font-weight:700;color:var(--sub);letter-spacing:.08em;margin:8px 0 3px}
+.cfg-box input{width:100%;min-height:44px;padding:9px 11px;border:1px solid var(--bdr-s);border-radius:var(--r-s);font-size:.9rem;outline:0;background:var(--card);color:var(--txt);font-family:inherit}
 .cfg-box input:focus{border-color:var(--pri)}
-
 .qc.warn{border-left-color:var(--s1);animation:shake .4s}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 
-/* ---- 進捗ナビ（試問・採点） ---- */
-.prog{position:sticky;top:var(--hdr-h);z-index:90;background:var(--bg);padding:8px 0 4px;margin-bottom:8px}
-/* 試問タブの進捗＝画面の主役（ヒーロー・コックピット化）。ID/クラス構造は不変・CSSのみ */
+/* ==============================================================
+   ヒーロー面＝数字のコックピット（試問 .prog／採点詳細 #scDetail .cd.meta 共通）
+   両テーマ共通の暗面。上辺1pxのアクセント線＋直下24pxの薄い発光。巨大数字・3pxの進捗ライン＋末端の光点。
+   全問OKは線を緑・全問NGは線を赤に変える（面は変えない）
+   ============================================================== */
 .prog{
-  top:calc(var(--hdr-h) + 8px);
-  background:var(--hero-grad);color:var(--hero-tx);
-  padding:13px 16px 7px;margin-bottom:var(--sp-3);
-  border-radius:var(--r);border:1px solid rgba(255,255,255,.14);
-  box-shadow:var(--sh-lg);overflow:hidden;
-  transition:background .45s var(--ease); /* 高さ（padding）は動かさない：小型化の瞬間に流れの高さを合わせるため（M-22） */
+  position:sticky;top:calc(var(--hdr-h) + 8px);z-index:90;
+  background-color:var(--hero-bg);background-image:var(--hero-grad),var(--hero-base);color:var(--hero-tx);
+  padding:12px 16px 8px;margin-bottom:var(--sp-3);
+  border:1px solid rgba(255,255,255,.08);border-top:1px solid var(--hero-line);border-radius:var(--r-card);
+  box-shadow:0 0 0 8px var(--bg),var(--sh-hero);
 }
-/* 試問タブの位置合わせは JS（updateExamProg）で行う。Chrome の自動の位置合わせ（scroll anchoring）と二重にならないよう、
-   ここでは使わない（iOS Safari には無い機能なので、どちらの端末でも同じ動きにする） */
 #pgExam{overflow-anchor:none}
-/* スクロール中の小型化（カードがヒーローの下へ入ったら ui-exam.js progMiniCheck が.miniを付与）。
-   1行（数・バー・「次の未判定へ」）にして見える高さを広げる（L-12）。流れの中の高さは元のまま（syncProgComp・M-22） */
-.prog.mini{padding:6px 12px 6px 16px;display:flex;align-items:center;gap:10px}
+.prog::before{content:'';position:absolute;left:-1px;right:-1px;top:-9px;height:8px;background:var(--bg);pointer-events:none}
+.prog.complete{background-image:var(--hero-grad-done),var(--hero-base)}
+.prog.complete.res-a5{background-image:var(--hero-grad-ok),var(--hero-base);border-top-color:var(--hero-ok)}
+.prog.complete.res-a1{background-image:var(--hero-grad-ng),var(--hero-base);border-top-color:var(--hero-ng)}
+.prog.mini{padding:3px 12px 3px 16px;display:flex;align-items:center;gap:10px}
 .prog.mini .chips{display:none}
 .prog.mini .pmeta{margin:0;flex:0 0 auto}
 .prog.mini .pmeta>span:first-child{display:none}
-.prog.mini .pmeta>span:last-child{font-size:1.15rem}
-.prog.mini .pbar{height:6px;flex:1 1 auto;min-width:40px}
+.prog.mini .pmeta>span:last-child{font-size:1.25rem}
+.prog.mini .pbar{flex:1 1 auto;min-width:40px}
 .prog.mini .pjudge{margin:0;flex:0 0 auto}
 .prog.mini .pjudge>span{display:none}
-.prog::before{
-  content:'';position:absolute;inset:0;pointer-events:none;
-  background:radial-gradient(130% 170% at 10% -35%,rgba(255,255,255,.18),transparent 55%);
-}
-.prog>*{position:relative}
-.prog.complete{background:var(--hero-grad-done)}
-.prog.complete.res-a5{background:var(--hero-grad-ok)}
-.prog.complete.res-a1{background:var(--hero-grad-ng)}
-.pmeta{display:flex;justify-content:space-between;align-items:center;font-size:.8rem;font-weight:700;color:var(--pri-d);margin-bottom:5px}
+
+.pmeta{display:flex;justify-content:space-between;align-items:baseline;font-size:.8rem;font-weight:700;color:var(--hero-tx);margin-bottom:8px}
 .pmeta span:last-child{font-variant-numeric:tabular-nums}
-.pbar{height:8px;background:var(--bdr);border-radius:5px;overflow:hidden;box-shadow:inset 0 1px 2px rgba(16,32,46,.08)}
+.prog .pmeta>span:first-child{font-size:var(--fs-xs);font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--hero-dim)}
+.prog .pmeta>span:last-child{font-size:var(--fs-num);font-weight:800;line-height:1;letter-spacing:-.03em;color:var(--hero-tx)}
+/* 進捗ライン：高さ3px・アクセント色・末端に光点 */
+.pbar{height:3px;background:rgba(255,255,255,.14);border-radius:2px;position:relative}
 .pbar>i{
-  display:block;height:100%;width:0;border-radius:5px;position:relative;
-  background:linear-gradient(90deg,var(--btn-pri),#4a86ac);
-  transition:width .5s var(--ease);overflow:hidden;
+  display:block;height:100%;width:0;border-radius:2px;position:relative;
+  background:var(--hero-acc);transition:width .4s var(--ease);
 }
 .pbar>i::after{
-  content:'';position:absolute;inset:0;
-  background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.35) 50%,transparent 70%);
-  background-size:200% 100%;animation:shimmer 2.4s infinite linear;
+  content:'';position:absolute;right:-3px;top:50%;width:7px;height:7px;margin-top:-3.5px;border-radius:50%;
+  background:var(--hero-acc-d);box-shadow:0 0 0 3px rgba(92,200,255,.22);
 }
-@keyframes shimmer{from{background-position:180% 0}to{background-position:-80% 0}}
-/* 全問録音/採点完了：バーが評価グリーンに変わり✓が付く（試問・採点共通） */
-.complete .pbar>i{background:linear-gradient(90deg,var(--s5),var(--s4))}
-.complete .pbar>i::after{animation:none}
-.complete .pmeta{color:var(--s5)}
-.complete .pmeta>span:last-child::after{content:' ✓';font-weight:900}
+.prog.complete.res-a5 .pbar>i,#scDetail .cd.meta.complete.res-a5 .pbar>i{background:var(--hero-ok)}
+.prog.complete.res-a5 .pbar>i::after,#scDetail .cd.meta.complete.res-a5 .pbar>i::after{background:var(--hero-ok);box-shadow:0 0 0 3px rgba(74,222,128,.22)}
+.prog.complete.res-a1 .pbar>i,#scDetail .cd.meta.complete.res-a1 .pbar>i{background:var(--hero-ng)}
+.prog.complete.res-a1 .pbar>i::after,#scDetail .cd.meta.complete.res-a1 .pbar>i::after{background:var(--hero-ng);box-shadow:0 0 0 3px rgba(255,123,123,.22)}
+.pmeta .sl{opacity:.5;font-weight:700}
+.complete .pmeta>span:last-child::after{
+  content:'✓';display:inline-flex;align-items:center;justify-content:center;width:1em;height:1em;margin-left:.3em;border-radius:50%;
+  vertical-align:.12em;font-weight:800;font-size:.6em;letter-spacing:0;line-height:1;color:#fff;background:var(--chk-bg,#0b5fd9);
+}
+.res-a5.complete .pmeta>span:last-child::after{--chk-bg:#16803a}
+.res-a1.complete .pmeta>span:last-child::after{--chk-bg:#c62828}
 .chips{
-  display:flex;gap:7px;overflow-x:auto;padding:8px 0 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none;
+  display:flex;gap:6px;overflow-x:auto;padding:8px 0 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none;
   scroll-snap-type:x proximity;
-  -webkit-mask-image:linear-gradient(90deg,#000 92%,transparent);mask-image:linear-gradient(90deg,#000 92%,transparent);
 }
 .chips .chip{scroll-snap-align:start}
 .chips::-webkit-scrollbar{display:none}
 .chip{
-  flex:0 0 auto;min-height:44px;padding:10px 16px;border:1.5px solid var(--bdr-s);border-radius:22px;
+  flex:0 0 auto;min-height:44px;padding:10px 16px;border:1px solid var(--bdr-s);border-radius:var(--r);
   background:var(--card);font-size:.78rem;font-weight:700;color:var(--sub);cursor:pointer;white-space:nowrap;
   font-family:inherit;transition:border-color .15s,color .15s,background .15s;
 }
 .chip:hover{border-color:var(--pri)}
 .chip.done{border-color:var(--pri);color:var(--pri);background:var(--pri-l)}
 .chip.done::before{content:'✓ ';font-weight:700}
+/* ヒーロー内のチップ：暗い面に線だけ／done=アクセント */
+.prog .chips{padding:9px 0 4px;flex-wrap:wrap;overflow:visible}
+.prog .chip{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.2);color:#e8ecf4}
+.prog .chip:hover{border-color:var(--hero-acc)}
+.prog .chip.done{background:rgba(92,200,255,.12);border-color:var(--hero-acc);color:var(--hero-acc-d)}
+.hdr :focus-visible,.prog :focus-visible,#scDetail .cd.meta :focus-visible{outline-color:var(--hero-acc)}
 
-/* ---- ヒーロー面の中身（試問=.prog／採点詳細=#scDetail .cd.meta 共通） ---- */
-/* 「いま何問目か」を3m先から読める主役数字に昇格 */
-.prog .pmeta{color:var(--hero-tx);align-items:baseline;margin-bottom:7px}
-.prog .pmeta span:first-child{font-size:var(--fs-xs);font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--hero-dim)}
-.prog .pmeta>span:last-child{font-size:var(--fs-num);font-weight:900;line-height:1.05;letter-spacing:-.01em;text-shadow:0 1px 2px rgba(0,0,0,.15)}
-.prog .pbar,#scDetail .cd.meta .pbar{height:12px;border-radius:7px;background:rgba(0,0,0,.28);box-shadow:inset 0 1px 3px rgba(0,0,0,.3)}
-.prog .pbar>i,#scDetail .cd.meta .pbar>i{border-radius:7px;background:linear-gradient(90deg,#d9eaf6,#fff)}
-.prog .pbar>i::after,#scDetail .cd.meta .pbar>i::after{background:linear-gradient(105deg,transparent 30%,rgba(27,62,87,.18) 50%,transparent 70%);background-size:200% 100%}
-/* 完了時もヒーロー内は白バー＋白文字を維持（面全体が緑に遷移して達成を演出） */
-.prog.complete .pbar>i,#scDetail .cd.meta.complete .pbar>i{background:linear-gradient(90deg,#e3e9f5,#fff)}
-.prog.complete .pmeta,#scDetail .cd.meta.complete .pmeta{color:var(--hero-tx)}
-.prog.complete .pmeta span:first-child{color:var(--hero-dim)}
-/* セクションジャンプchip: 濃色ガラス面／done=白面+濃紺文字。
-   横スクロールを廃し2行折返し＝後半セクションも「存在ごと」見える（スクロール中は.miniで非表示） */
-.prog .chips{padding:9px 0 4px;flex-wrap:wrap;overflow:visible;-webkit-mask-image:none;mask-image:none}
-.prog .chip{background:rgba(8,22,35,.3);border-color:rgba(255,255,255,.36);color:#fff}
-.prog .chip:hover{background:rgba(8,22,35,.46);border-color:#fff}
-.prog .chip.done{background:#fff;border-color:#fff;color:#1c3f58}
-.prog .chip.done:hover{background:#fff}
-.hdr :focus-visible,.prog :focus-visible,#scDetail .cd.meta :focus-visible{outline-color:#fff}
-
-/* ---- 採点詳細ヘッダー＝第2のヒーロー（ui.js生成の .cd.meta をCSSのみで昇格） ---- */
+/* ---- 採点詳細ヘッダー＝第2のヒーロー（同じ言語） ---- */
 #scDetail .cd.meta{
-  --sub:rgba(255,255,255,.84); /* インラインstyleのvar(--sub)参照ごと白系に切替 */
-  background:var(--hero-grad);color:var(--hero-tx);
-  border-color:rgba(255,255,255,.14);box-shadow:var(--sh-lg);
-  position:relative;overflow:hidden;transition:background .45s var(--ease);
+  --sub:rgba(255,255,255,.78);
+  background-color:var(--hero-bg);background-image:var(--hero-grad),var(--hero-base);color:var(--hero-tx);
+  border:1px solid rgba(255,255,255,.08);border-top:1px solid var(--hero-line);
+  padding:14px 16px 16px;
 }
-#scDetail .cd.meta::before{
-  content:'';position:absolute;inset:0;pointer-events:none;
-  background:radial-gradient(130% 170% at 10% -35%,rgba(255,255,255,.18),transparent 55%);
-}
-#scDetail .cd.meta>*{position:relative}
-#scDetail .cd.meta.complete{background:var(--hero-grad-done)}
-#scDetail .cd.meta.complete.res-a5{background:var(--hero-grad-ok)}
-#scDetail .cd.meta.complete.res-a1{background:var(--hero-grad-ng)}
+#scDetail .cd.meta.complete{background-image:var(--hero-grad-done),var(--hero-base)}
+#scDetail .cd.meta.complete.res-a5{background-image:var(--hero-grad-ok),var(--hero-base);border-top-color:var(--hero-ok)}
+#scDetail .cd.meta.complete.res-a1{background-image:var(--hero-grad-ng),var(--hero-base);border-top-color:var(--hero-ng)}
 #scDetail .cd.meta .pmeta{color:var(--hero-tx);align-items:baseline}
-#scDetail .cd.meta .pmeta>span:first-child{font-size:var(--fs-xs);font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--hero-dim)}
-#scDetail #spCnt{font-size:1.55rem;font-weight:900;line-height:1.05;letter-spacing:-.01em;vertical-align:middle;text-shadow:0 1px 2px rgba(0,0,0,.15)}
-#scDetail .cd.meta.complete .pmeta>span:last-child::after{font-size:1.2rem;vertical-align:middle}
-/* リアルタイム平均＝評価色バッジ（a1〜a5のJS付与ロジックは不変） */
+#scDetail .cd.meta .pmeta>span:first-child{font-size:var(--fs-xs);font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--hero-dim)}
+#scDetail #spCnt{font-size:2.75rem;font-weight:800;line-height:1;letter-spacing:-.03em;vertical-align:middle}
+#scDetail .complete .pmeta>span:last-child::after{width:32px;height:32px;font-size:20px;margin-left:10px;vertical-align:middle}
 #scDetail .spavg{
-  display:inline-block;background:var(--pill-bg);padding:3px 12px;border-radius:999px;
-  font-weight:900;font-size:.92rem;vertical-align:middle;margin-right:10px;
-  box-shadow:0 1px 4px rgba(0,0,0,.18);
+  display:inline-block;background:var(--pill-bg);padding:3px 12px;border-radius:var(--r-s);
+  font-weight:800;font-size:.92rem;vertical-align:middle;margin-right:10px;
 }
 #scDetail .spavg:empty{display:none}
-/* ヒーロー面上の操作ボタン（再生速度等）は白面チップに統一（両テーマ共通で可読） */
-#scDetail .cd.meta .b3{background:rgba(255,255,255,.92);color:#1c3f58;border-color:transparent}
+#scDetail .cd.meta .b3{background:rgba(255,255,255,.06);color:#e8ecf4;border:1px solid rgba(255,255,255,.22)}
+#scDetail .cd.meta .b3:hover{border-color:var(--hero-acc);color:var(--hero-acc-d)}
 
-/* ---- 採点：常時表示の保存バー＋自動保存表示 ---- */
+/* ---- 採点：常時表示の保存バー（浮くもの＝上辺ヘアライン＋やや影） ---- */
 .savebar{
   position:sticky;bottom:calc(var(--tabs-h) + env(safe-area-inset-bottom,0px));z-index:80;
-  padding-top:6px;background:var(--bg); /* 進捗(sbCnt)の行は不透明の帯（下の本文と重ねない） */
+  padding-top:8px;background:var(--bg);border-top:1px solid var(--bdr);box-shadow:0 -6px 12px var(--bg);
 }
-.savebar::before{content:'';position:absolute;left:0;right:0;top:-14px;height:14px;pointer-events:none;background:linear-gradient(to bottom,transparent,var(--bg))}
+.savebar::before{content:'';position:absolute;left:0;right:0;top:-15px;height:14px;pointer-events:none;background:linear-gradient(to bottom,transparent,var(--bg))}
 .savebar .sbhead{display:flex;justify-content:space-between;align-items:flex-end;gap:8px;min-height:18px}
 #sbCnt{font-size:.8rem;font-weight:700;color:var(--sub);font-variant-numeric:tabular-nums;white-space:nowrap}
 #sbCnt .sbres{margin-left:.8em}
-/* ボタン文字は1語が縦に折れないよう1行固定＋省略表示 */
 .savebar .b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .savebar .lbl-s{display:none}
-/* どの幅でも2段：上段＝採点を保存（全幅・主ボタン）、下段＝⏸／速度／次へ／一覧。
-   1段だと601px以上で主ボタンの文言が「…」で切れていた（L-13）。脇の2つは狭い幅（700px以下）だけ短い文言（全文は title） */
 .savebar .bg{flex-wrap:wrap;gap:6px 8px}
 .savebar .sbsave{order:-1;flex:1 1 100%;min-height:48px;padding:10px 13px}
 .savebar .sbsub{flex:1 1 0;min-height:44px;padding:10px 8px;font-size:.92rem}
 .savebar .bg .sbico{min-height:44px;padding:10px 8px}
-html.scoring .toast{bottom:calc(var(--tabs-h) + 138px + env(safe-area-inset-bottom,0px))} /* 2段の保存バー（約128px）より上 */
+html.scoring .toast{bottom:calc(var(--tabs-h) + 138px + env(safe-area-inset-bottom,0px))}
 @media (max-width:700px){.savebar .lbl-l{display:none}.savebar .lbl-s{display:inline}}
-.autost{display:block;text-align:right;font-size:.74rem;font-weight:700;color:var(--s5);min-height:16px;opacity:0;transition:opacity .3s;margin-bottom:2px}
-/* savebar内のアイコンボタン（⏸/速度）: 幅を取らず主要3ボタンを圧迫しない */
+.autost{display:block;text-align:right;font-size:.75rem;font-weight:700;color:var(--s5);min-height:16px;opacity:0;transition:opacity .3s;margin-bottom:2px}
 .savebar .sbico{flex:0 0 auto;min-width:52px;padding:13px 8px;font-size:.95rem;font-variant-numeric:tabular-nums}
 @media (max-width:359px){.savebar .bg .sbico{min-width:44px;padding:10px 4px}.savebar .sbsub{font-size:.82rem;padding:10px 4px}}
 
-/* ---- 履歴：検索＋月グループ ---- */
+/* ---- 履歴：検索＋月グループ＋受験者サマリ（2列グリッド・前回比ピル） ---- */
 .hsearch{
-  flex:1 1 100%;min-height:44px;padding:10px 13px;border:1.5px solid var(--bdr-s);border-radius:var(--r-s);
+  flex:1 1 100%;min-height:44px;padding:10px 13px;border:1px solid var(--bdr-s);border-radius:var(--r-s);
   font-size:.95rem;background:var(--card);color:var(--txt);outline:0;font-family:inherit;transition:border-color .15s,box-shadow .15s;
 }
 .hsearch:focus{border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-l)}
 .mgrp{
-  display:flex;align-items:center;gap:8px;
-  font-size:.78rem;font-weight:800;color:var(--sub);letter-spacing:.06em;margin:14px 2px 2px;text-transform:uppercase;
+  display:flex;align-items:center;gap:10px;grid-column:1/-1;
+  font-size:.76rem;font-weight:700;color:var(--sub);letter-spacing:.08em;margin:12px 2px 0;text-transform:uppercase;
 }
-.mgrp::before{content:'';width:4px;height:14px;border-radius:2px;background:var(--pri);flex-shrink:0}
-.mgrp::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--bdr-s),transparent)}
+.mgrp::after{content:'';flex:1;height:1px;background:var(--bdr)}
+.esum{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:12px}
+.esum .cd{margin:0}
+@media(max-width:420px){.esum{grid-template-columns:minmax(0,1fr)}}
+.esb{text-align:left;cursor:pointer;padding:12px;margin:0;display:flex;flex-direction:column;gap:2px;min-width:0}
+.esb .esn{font-weight:700;font-size:.9rem;overflow-wrap:anywhere}
+.esb .esc{font-size:.75rem;color:var(--sub);overflow-wrap:anywhere}
+.esb .eelast{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:6px;font-size:1.15rem;font-weight:800;letter-spacing:-.01em;line-height:1.25}
+.esb .eelast.eeold{font-size:.9rem;letter-spacing:0}
+.delta{
+  display:flex;align-items:center;flex:1 1 100%;margin:6px 0 0;font-size:.76rem;font-weight:700;letter-spacing:0;line-height:1.5;
+  padding:6px 0 0;border:0;border-top:1px solid var(--bdr);border-radius:0;background:none;max-width:100%;min-width:0;overflow-wrap:anywhere;
+}
+.delta.up{color:var(--s4)}.delta.down{color:var(--s1)}.delta.flat{color:var(--sub)}
 
-/* ---- 設定：アコーディオン ---- */
-details.acc{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);box-shadow:var(--sh);margin-bottom:12px;overflow:hidden}
+/* ---- 設定：アコーディオン（セクション＝ヘアライン区切り） ---- */
+details.acc{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);margin-bottom:12px;overflow:hidden}
 details.acc summary{
   list-style:none;cursor:pointer;min-height:52px;padding:14px 16px;
   display:flex;justify-content:space-between;align-items:center;gap:8px;
-  font-size:.95rem;font-weight:700;color:var(--pri-d);transition:background .15s;
+  font-size:.95rem;font-weight:700;color:var(--txt);transition:background .15s;
 }
 details.acc summary:hover{background:var(--card-2)}
 details.acc summary::-webkit-details-marker{display:none}
-details.acc summary::after{content:'＋';color:var(--sub);font-weight:400;flex-shrink:0;font-size:1.1rem;transition:transform .25s var(--ease)}
+details.acc summary::after{content:'＋';color:var(--sub);font-weight:400;flex-shrink:0;font-size:1.1rem;transition:transform .18s var(--ease)}
 details.acc[open] summary::after{transform:rotate(45deg)}
 details.acc[open] summary{border-bottom:1px solid var(--bdr)}
-details.acc .accb{animation:accIn .25s var(--ease)}
-@keyframes accIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
-details.acc .accb{padding:12px 16px 16px}
+details.acc:not([open])>.accb{display:none}
+details.acc .accb{animation:accIn .18s var(--ease);padding:12px 16px 16px}
+@keyframes accIn{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
 .accb p{font-size:.78rem;color:var(--sub);margin-bottom:10px;line-height:1.7}
-.accb label{display:block;font-size:.8rem;font-weight:700;color:var(--sub);margin:10px 0 4px}
-.accb input{width:100%;min-height:42px;padding:9px 12px;border:1.5px solid var(--bdr-s);border-radius:var(--r-s);font-size:.9rem;outline:0;background:var(--card);color:var(--txt);font-family:inherit;transition:border-color .15s}
+.accb label{display:block;font-size:.75rem;font-weight:700;color:var(--sub);letter-spacing:.08em;margin:10px 0 4px}
+.accb input{width:100%;min-height:44px;padding:9px 12px;border:1px solid var(--bdr-s);border-radius:var(--r-s);font-size:.9rem;outline:0;background:var(--card);color:var(--txt);font-family:inherit;transition:border-color .15s}
 .accb input:focus{border-color:var(--pri)}
 .accb input[type="checkbox"]{width:20px;min-height:0;height:20px;accent-color:var(--btn-pri)}
 
 /* ---- 模範解答（折りたたみ） ---- */
-details.ans{margin:8px 0;border:1.5px dashed var(--pri);border-radius:var(--r-s);background:var(--card-2)}
-details.ans summary{list-style:none;cursor:pointer;min-height:38px;padding:8px 13px;font-size:.78rem;font-weight:700;color:var(--pri-d);display:flex;align-items:center}
+details.ans{margin:8px 0;border:1px solid var(--bdr-s);border-radius:var(--r-s);background:var(--card-2)}
+details.ans summary{list-style:none;cursor:pointer;min-height:44px;padding:8px 13px;font-size:.78rem;font-weight:700;color:var(--pri-d);display:flex;align-items:center}
 details.ans summary::-webkit-details-marker{display:none}
-details.ans summary::before{content:'▼ ';font-size:.68rem;margin-right:4px}
+details.ans summary::before{content:'▼ ';font-size:.75rem;margin-right:4px}
 details.ans[open] summary::before{content:'▲ '}
 details.ans .ansb{padding:0 13px 11px;font-size:.84rem;line-height:1.75;white-space:pre-wrap;color:var(--txt)}
 
 /* ---- 作業カタログモーダル ---- */
 .catrow{margin-bottom:13px}
-.catrow label{display:block;font-size:.8rem;font-weight:700;color:var(--sub);margin-bottom:5px}
+.catrow label{display:block;font-size:.75rem;font-weight:700;color:var(--sub);letter-spacing:.08em;margin-bottom:5px}
 .catrow select{
-  width:100%;min-height:46px;padding-top:10px;padding-bottom:10px;padding-left:12px;border:1.5px solid var(--bdr-s);border-radius:var(--r-s);
+  width:100%;min-height:46px;padding-top:10px;padding-bottom:10px;padding-left:12px;border:1px solid var(--bdr-s);border-radius:var(--r-s);
   font-size:.95rem;background-color:var(--card);color:var(--txt);outline:0;font-family:inherit;
 }
 .catrow select:focus{border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-l)}
 .qa-check{
-  display:flex;gap:11px;align-items:flex-start;padding:11px 13px;border:1.5px solid var(--bdr-s);
-  border-radius:var(--r-s);margin-bottom:9px;cursor:pointer;transition:border-color .15s,background .15s;
+  display:flex;gap:11px;align-items:flex-start;padding:11px 13px;border:1px solid var(--bdr-s);
+  border-radius:var(--r-s);margin-bottom:8px;cursor:pointer;transition:border-color .15s,background .15s;
 }
 .qa-check:hover{border-color:var(--pri)}
 .qa-check:has(input:checked){border-color:var(--pri);background:var(--pri-l)}
@@ -792,20 +686,15 @@ details.ans .ansb{padding:0 13px 11px;font-size:.84rem;line-height:1.75;white-sp
 .qa-check .qat{flex:1;min-width:0}
 .qa-check .qan{font-size:.9rem;font-weight:700}
 .qa-check .qaq{font-size:.8rem;color:var(--sub);margin-top:2px;line-height:1.6}
-.qa-check .qaa{font-size:.78rem;color:var(--txt);background:var(--card-2);border:1px solid var(--bdr);border-radius:7px;padding:7px 9px;margin-top:7px;white-space:pre-wrap;line-height:1.65}
-/* 設定画面の模範解答編集 */
-.cfg-item .ans-lbl{font-size:.72rem;font-weight:700;color:var(--pri-d);margin:7px 0 3px}
+.qa-check .qaa{font-size:.78rem;color:var(--txt);background:var(--card-2);border:1px solid var(--bdr);border-radius:var(--r-s);padding:7px 9px;margin-top:7px;white-space:pre-wrap;line-height:1.65}
+.cfg-item .ans-lbl{font-size:.75rem;font-weight:700;color:var(--sub);letter-spacing:.08em;margin:7px 0 3px}
 
 /* ---- color-mix() 非対応ブラウザの単色フォールバック ---- */
 @supports not (color:color-mix(in srgb,#000,#fff)){
-  .b1{background:var(--btn-pri)}
-  .tabs{background:var(--card)}
-  .qc .en{border-color:var(--pri)}
-  .recbtn.recording{animation:none;box-shadow:0 0 0 5px var(--rec-l)}
-  .sb:not(.sel):hover{background:var(--pri-l)}
+  .recbtn.recording{animation:none;box-shadow:0 0 0 4px var(--rec-l)}
 }
 
-/* ---- ユーティリティ（index.htmlのインラインstyleをクラス化。見た目は同一） ---- */
+/* ---- ユーティリティ ---- */
 .wfull{width:100%}
 .grow{flex:1}
 .mt10{margin-top:10px}
@@ -815,19 +704,15 @@ details.ans .ansb{padding:0 13px 11px;font-size:.84rem;line-height:1.75;white-sp
 .btnrow{display:flex;gap:8px;margin-top:12px}
 .hwrap{flex-wrap:wrap}
 .b-sm{flex:0 0 auto;padding:10px 16px;font-size:.85rem}
-.flabel{font-size:.85rem;font-weight:600;color:var(--sub);display:block;margin-bottom:6px}
+.flabel{display:flex;align-items:center;min-height:44px;font-size:.75rem;font-weight:700;color:var(--sub);letter-spacing:.08em;margin-bottom:2px}
 .gstat{font-size:.82rem;font-weight:700;margin-top:10px;text-align:center}
-.ckrow{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:.88rem;color:var(--txt);cursor:pointer}
+.ckrow{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:.88rem;color:var(--txt);cursor:pointer;min-height:44px}
 .ckrow input{width:auto;min-height:0}
 .file-hidden{display:none}
-
-/* ---- 入力欄ホバー（フォーカス前の気配） ---- */
 .meta input:hover:not(:focus),.hsearch:hover:not(:focus),
 .accb input:hover:not(:focus),.cfg-box input:hover:not(:focus),
 .qc textarea:hover:not(:focus),.oata:hover:not(:focus),
 .cfg-item input:hover:not(:focus),.cfg-item textarea:hover:not(:focus){border-color:var(--sub)}
-
-/* ---- スクロールバー（デスクトップ） ---- */
 @media(pointer:fine){
   ::-webkit-scrollbar{width:10px;height:10px}
   ::-webkit-scrollbar-track{background:transparent}
@@ -836,35 +721,32 @@ details.ans .ansb{padding:0 13px 11px;font-size:.84rem;line-height:1.75;white-sp
 }
 
 /* ---- アクセシビリティ ---- */
-:focus-visible{outline:3px solid var(--pri);outline-offset:2px;border-radius:4px}
+:focus-visible{outline:2px solid var(--pri);outline-offset:2px;border-radius:var(--r-s)}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
 /* ---- 印刷（履歴・採点結果を紙で提出できる） ---- */
 @media print{
   body{background:#fff;color:#000;padding-bottom:0}
-  .hdr{position:static;background:#fff!important;color:#000;box-shadow:none;border-bottom:2px solid #000}
-  .hdr h1{color:#000;text-shadow:none}
+  .hdr{position:static;background:#fff!important;color:#000;border-bottom:2px solid #000}
+  .hdr h1{color:#000}
   .hdr .lsw,.thbtn,.brand,.tabs,.bg,.savebar,.recbtn,.aibtn,.hctrl button,.ma,.b,.toast{display:none!important}
-  .cd,.hi,.chb,.chc{box-shadow:none;border:1px solid #999;break-inside:avoid}
-  .pbar>i::after{animation:none}
+  .cd,.hi,.chb,.chc{border:1px solid #999;break-inside:avoid}
   audio{display:none}
-  /* ヒーロー面は紙では単色化（インク節約・可読性） */
   .prog,#scDetail .cd.meta{position:static;background:#fff!important;color:#000;border:1px solid #999;box-shadow:none}
-  .prog::before,#scDetail .cd.meta::before{display:none}
   #scDetail .cd.meta{--sub:#333}
   .prog .pmeta,.prog .pmeta span:first-child,.prog .pmeta>span:last-child,
-  #scDetail .cd.meta .pmeta,#scDetail .cd.meta .pmeta>span:first-child,#scDetail #spCnt{color:#000;text-shadow:none}
-  .prog .pbar,#scDetail .cd.meta .pbar{background:#ddd;box-shadow:none}
+  #scDetail .cd.meta .pmeta,#scDetail .cd.meta .pmeta>span:first-child,#scDetail #spCnt{color:#000}
+  .prog .pbar,#scDetail .cd.meta .pbar{background:#ddd}
   .prog .pbar>i,#scDetail .cd.meta .pbar>i{background:#666}
+  .pbar>i::after{display:none}
   .prog .chip{background:#fff;color:#000;border-color:#999}
   .prog .chip.done{background:#fff;color:#000;border-color:#000}
-  #scDetail .spavg{background:none;box-shadow:none}
-  /* 採点値は背景色なしでも判別できるように（ブラウザ既定は背景色を印刷しない） */
+  #scDetail .spavg{background:none}
   .sb{border-color:#999}
-  .sb.sel{color:#000;border:2.5px solid #000;box-shadow:none;transform:none}
+  .sb.sel,.sb.pf.sel{background:#fff!important;color:#000;border:2.5px solid #000;transform:none}
   .sb.sel .sl{color:#333}
-  .dis{color:#000;border:1.5px solid #000}
-  /* 履歴詳細モーダルを開いたまま印刷しても内容が紙に出るように */
-  .mo{position:static;background:none;backdrop-filter:none;-webkit-backdrop-filter:none;padding:0;overflow:visible}
+  .dis{color:#000;background:none!important;border:1.5px solid #000}
+  .mo{position:static;background:none;padding:0;overflow:visible}
   .mc{box-shadow:none;border:1px solid #999;max-width:none;animation:none}
   .mx{display:none!important}
 }
@@ -872,72 +754,65 @@ details.ans .ansb{padding:0 13px 11px;font-size:.84rem;line-height:1.75;white-sp
 @media(min-width:640px){
   .pg{padding:24px 24px 8px}
   .cd{padding:20px;margin-bottom:14px}
-  .sb{min-height:62px;font-size:1.25rem}
+  .sb{min-height:60px;font-size:1.25rem}
   .sb .sl{font-size:.8rem}
   .hdr h1{font-size:1.1rem}
   .hlist{gap:10px}
   .mc{padding:24px 22px}
-  .prog{padding:15px 20px 9px}
-  .prog .pmeta>span:last-child{font-size:2.1rem}
+  .prog{padding:14px 20px 10px}
+  .esum{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 }
 
-/* 合否2択化の波及（R1）：旧5段階・確定待ちの表示 */
+/* 合否2択化の波及：旧5段階・確定待ちの表示 */
 .old,.hia.old,.spavg.old,#scDetail .spavg.old{color:var(--sub)}
 .hi .hia.lng{font-size:var(--fs-sm);line-height:1.3;max-width:48%;min-width:0;overflow-wrap:anywhere}
 .badge.pend{background:var(--pri-l);color:var(--pri-d)}
 .badge.part{background:var(--s2-l);color:var(--s2)}
-.pjudge{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:7px;font-size:var(--fs-sm,.8rem);font-weight:800;color:var(--hero-tx,#fff)}
+.pjudge{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:8px;font-size:var(--fs-sm,.8rem);font-weight:700;color:var(--hero-tx,#fff)}
 .pjudge .pj-warn{color:#ffe08a}
-.pjudge button{min-height:36px;padding:6px 12px;border-radius:18px;border:1.5px solid rgba(255,255,255,.6);background:rgba(8,22,35,.3);color:#fff;font:inherit;font-size:.76rem;cursor:pointer}
+.pjudge>span{min-width:0;overflow-wrap:anywhere}
+.pjudge button{min-height:44px;max-width:100%;white-space:normal;text-align:left;padding:6px 12px;border-radius:var(--r-s);border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.05);color:#fff;font:inherit;font-size:.76rem;cursor:pointer}
+.pjudge button:hover{border-color:var(--hero-acc)}
 @media print{.pjudge button{display:none}}
-.dis.old{background:var(--sub);color:var(--sel-tx)} /* .old の文字色(--sub)と背景が同色になり読めなくなるのを防ぐ */
+.dis.old{background:var(--sub);color:var(--sel-tx)}
 .eenote{font-size:var(--fs-xs);color:var(--sub);font-weight:600;margin-top:4px;line-height:1.4}
 #chNote{margin:0 0 10px}
-.verd.attn{animation:attnBtn .55s ease 4;border-radius:10px;box-shadow:0 0 0 3px var(--pri)}
+.verd.attn{animation:attnBtn .55s ease 4;box-shadow:0 0 0 3px var(--pri)}
 
-/* ---- R5 初回利用の導線：ドライブ保存の状態（試問ヒーロー）・入力漏れの赤枠 ---- */
-.prog .epdrv{display:block;margin-top:6px;padding:0;border:0;background:none;color:var(--hero-dim,rgba(255,255,255,.8));font:inherit;font-size:.74rem;font-weight:700;text-align:left;cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
+/* ---- 初回利用の導線：ドライブ保存の状態（試問ヒーロー）・入力漏れの赤枠 ---- */
+.prog .epdrv{display:block;margin-top:6px;padding:0;border:0;background:none;color:var(--hero-dim,rgba(255,255,255,.8));font:inherit;font-size:.75rem;font-weight:700;text-align:left;cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
 .prog .epdrv[data-st="on"]{text-decoration:none}
 .prog.mini .epdrv{display:none}
 @media print{.prog .epdrv{display:none}}
 input[aria-invalid="true"]{border-color:var(--s1)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--s1) 25%,transparent)}
 
-/* ---- R7 アクセシビリティ ---- */
-/* 採点画面を開いている間：キーボードで移動した先が下部の保存バー（2段で約128px）＋タブ、上部のヘッダーに隠れないよう余白を取る */
+/* ---- アクセシビリティ（R7） ---- */
 html.scoring{
   scroll-padding-top:calc(var(--hdr-h) + 12px);
   scroll-padding-bottom:calc(var(--tabs-h) + 140px + env(safe-area-inset-bottom,0px));
 }
-/* 試問ヒーロー内のドライブ状態：見た目は下線テキストのまま、当たり判定だけ44pxへ（上下の負マージンで配置の高さはほぼ据え置き） */
-.prog .epdrv{display:flex;align-items:center;min-height:44px;padding:0 10px;margin:-9px 0 -7px -10px;max-width:calc(100% + 10px)} /* 上はチップ列の下余白・下はヒーローの下余白(7px)の中に収める */
+.prog .epdrv{display:flex;align-items:center;min-height:44px;padding:0 10px;margin:-9px 0 -7px -10px;max-width:calc(100% + 10px)}
 .prog.mini .epdrv{display:none}
-.pjudge #epNextUnj{min-height:44px;margin:-4px 0} /* 当たり判定44px・負マージンで配置の高さは据え置き */
-/* 「質問しなかった」チェック：行の高さ44px・チェック本体22px */
+.pjudge #epNextUnj{min-height:44px;margin:-4px 0}
 #scDetail .nalbl{display:flex;align-items:center;gap:8px;min-height:44px;padding:8px 0;margin-top:0;font-size:.8rem;color:var(--sub);cursor:pointer}
 #scDetail .nalbl .nachk{width:22px;height:22px;flex:0 0 22px;margin:0;accent-color:var(--btn-pri)}
 
-/* ---- R8 スマホ現場：録音の安全装置 ---- */
-/* 一時停止／再開（録音中だけ・停止＝確定の赤いボタンの隣） */
+/* ---- スマホ現場：録音の安全装置 ---- */
 .recbtn.pausebtn{border-color:var(--sub);color:var(--txt);padding:10px 14px}
 .recbtn.pausebtn .dot{display:none}
 .recbtn.pausebtn.on{background:var(--pri-l);border-color:var(--pri);color:var(--pri-d)}
-#recPill.paused{animation:none;background:var(--sub);color:var(--sel-tx)} /* ダークの --sub は明るい灰＝暗い文字（L-16） */
-/* 停止した録音の後ろに足す（誤って停止しても後半を録れる） */
+#recPill.paused{animation:none;background:var(--sub);color:var(--sel-tx)}
 .rcont{display:inline-flex;align-items:center;min-height:44px;margin-top:8px;padding:6px 14px;font-size:.8rem;flex:0 0 auto}
-/* 画面の自動ロックを止められない端末：録音中は常に表示 */
 #wakeNote{
-  /* 下側（録音ピルの上）に出す：上に出すと試問の進捗パネル（録音数）を覆う（L-26） */
   position:fixed;left:12px;right:12px;margin:0 auto;max-width:560px;bottom:calc(var(--tabs-h) + 70px + env(safe-area-inset-bottom,0px));z-index:205;
-  padding:8px 12px;border-radius:12px;background:var(--toast-bg);color:var(--toast-tx);
+  padding:8px 12px;border-radius:var(--r);background:var(--toast-bg);color:var(--toast-tx);
   font-size:.8rem;font-weight:700;line-height:1.45;text-align:center;box-shadow:var(--sh-lg);pointer-events:none;
 }
-/* 中断された録音の復元（試問タブ・カードの上） */
 #liveRec{border-left:4px solid var(--s1)}
 #liveRec .lrmsg{font-size:.86rem;font-weight:700;line-height:1.6;margin-bottom:10px;overflow-wrap:anywhere}
 #liveRec .lrbtns{display:flex;gap:8px;flex-wrap:wrap}
 #liveRec .lrbtns .b{flex:1 1 140px;text-decoration:none;text-align:center;min-height:44px}
-/* 「元に戻す」は次の操作まで残す→自分で閉じる✕ */
-#undoBar .ubx{background:transparent;color:var(--toast-tx);min-width:38px;padding:7px 10px;border:1px solid rgba(255,255,255,.3)}
+#undoBar .ubx{background:transparent;color:var(--toast-tx);min-width:44px;padding:7px 10px;border:1px solid rgba(128,128,128,.4)}
 
 /* スマホ横向き（高さ500px以下）：固定表示を薄くして内容の見える高さを確保する */
 @media (orientation:landscape) and (max-height:500px){
@@ -947,32 +822,34 @@ html.scoring{
   .prog .pmeta span{line-height:1.1}
   .prog .pmeta,.prog.mini .pmeta{margin:0;flex:0 0 auto;gap:8px}
   .prog .pmeta>span:last-child,.prog.mini .pmeta>span:last-child{font-size:1rem}
-  .prog .pbar,.prog.mini .pbar{flex:1 1 auto;height:6px}
+  .prog .pbar,.prog.mini .pbar{flex:1 1 auto}
   .prog .chips,.prog .pjudge,.prog .epdrv{display:none}
   .stit{scroll-margin-top:48px}
   .tabs button{min-height:44px;padding:4px 2px;gap:0}
   .tabs button span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
-  .tabs button::after{top:7px}
   #wakeNote{top:auto;bottom:calc(var(--tabs-h) + 70px + env(safe-area-inset-bottom,0px));left:auto;max-width:60vw}
   html.scoring{scroll-padding-top:12px}
 }
 
-/* ---- R4 情報設計：試問タブの「出題」1行・出題の選択モーダル・メタ入力の詰め ---- */
-#pgExam .cd.meta{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);column-gap:10px;padding:12px 14px}
+/* ---- 情報設計：試問タブの「出題」1行・出題の選択モーダル・メタ入力の詰め ---- */
+#pgExam .cd.meta{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);column-gap:10px;padding:0 14px 12px}
 #pgExam .meta label[for="fDate"]{grid-column:1;grid-row:1}
 #pgExam .meta label[for="fEr"],#pgExam .meta #fEr{display:none}
 #pgExam .meta #fDate{grid-column:1;grid-row:2;margin-bottom:10px;min-width:0;padding:10px 8px}
 #pgExam .meta label[for="fEe"]{grid-column:2;grid-row:1}
 #pgExam .meta #fEe{grid-column:2;grid-row:2;margin-bottom:10px;min-width:0}
 #pgExam .meta .esbox{grid-column:1 / -1;grid-row:3;margin-top:10px;padding-top:8px;border-top:1px solid var(--bdr)}
-#pgExam .meta .esbox .b{min-height:44px;min-width:44px} /* 「変更」「?」も44px（L-27） */
+#pgExam .meta .esbox .b{min-height:44px;min-width:44px}
 @media (max-width:480px){
-  #pgExam .cd.meta{padding:10px 12px;margin-bottom:10px}
-  #pgExam .meta label{font-size:.76rem;margin-bottom:3px}
+  #pgExam .cd.meta{padding:0 12px 8px;margin-bottom:10px}
+  #pgExam .meta label{margin-bottom:0;padding-bottom:4px}
+  .prog{padding:10px 14px 6px}
+  .prog .pmeta>span:last-child{font-size:2.5rem}
+  .prog .pmeta{margin-bottom:6px}
   #pgExam .meta input{min-height:44px;padding:8px 11px}
-  #pgExam .meta #fDate,#pgExam .meta #fEe{margin-bottom:8px}
+  #pgExam .meta #fDate,#pgExam .meta #fEe{margin-bottom:6px}
   .prog.fresh .chips{display:none}
-  #examCards>.stit:first-child{margin-top:0;padding-top:2px;padding-bottom:6px;margin-bottom:10px}
+  #examCards>.stit:first-child{margin-top:0;padding-top:2px;padding-bottom:6px;margin-bottom:13px}
   #pgExam .meta .esbox{margin-top:8px;padding-top:6px}
   #examCards .qc{padding:12px 14px}
   #examCards .qc .en{float:left;margin:4px 8px 0 0}
@@ -980,12 +857,12 @@ html.scoring{
   #examCards .qc .ed{clear:left;margin-bottom:10px;padding:8px 11px}
 }
 .esl{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.86rem;min-width:0}
-.esl-k{font-size:.74rem;font-weight:800;color:var(--sub);letter-spacing:.04em}
+.esl-k{font-size:.75rem;font-weight:700;color:var(--sub);letter-spacing:.08em}
 .esl-v{font-weight:800;color:var(--txt);min-width:0;overflow-wrap:anywhere}
 .esl-n{font-size:.78rem;color:var(--sub)}
 .esl .b.esl-b{flex:0 0 auto;padding:5px 12px;font-size:.78rem;margin-left:auto}
 .esl .b.esl-q{flex:0 0 auto;padding:5px 11px;font-size:.8rem;font-weight:800}
-.sp-g{font-size:.78rem;font-weight:800;color:var(--sub);margin:14px 0 6px;letter-spacing:.04em}
+.sp-g{font-size:.75rem;font-weight:700;color:var(--sub);margin:14px 0 6px;letter-spacing:.08em}
 .sp-g:first-of-type{margin-top:0}
 .b.setpick{display:flex;width:100%;justify-content:space-between;align-items:center;gap:10px;text-align:left;margin-bottom:6px}
 .setpick .sp-n{flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
@@ -994,39 +871,251 @@ html.scoring{
 .cfghint{font-size:.76rem;color:var(--sub);line-height:1.6;margin-top:6px}
 .hset{font-weight:700}
 
-/* ---- R5b 初回利用の導線：初回カード（手順1行＋ドライブ未設定1行・閉じる1つ）／他の端末へ設定を渡す ---- */
+/* ---- 初回カード／他の端末へ設定を渡す ---- */
 #examHowto.howto{position:relative;padding:8px 46px 8px 12px;margin-bottom:10px;font-size:.8rem;color:var(--sub);line-height:1.6}
 .howto .hw-t{color:var(--txt);font-weight:500}
 .howto .hw-long{margin-top:6px;padding-top:6px;border-top:1px dashed var(--bdr)}
 .howto .hw-link{vertical-align:baseline}
-/* 当たり判定だけ44px（行の高さは負マージンで据え置き・L-27）。「詳しく」は上へ、「ドライブを設定」は下へ広げ、
-   2行の間を14pxあけて、互いの判定が重ならないようにする（重なると後ろの行が下端を奪う）。右端は×に掛けない */
-.howto #howtoMore{padding:24px 2px 0 10px;margin:-24px 0 0 -6px} /* 当たり判定は上へ広げる＝下の行との間を詰められる（V-6） */
+.howto #howtoMore{padding:24px 2px 0 10px;margin:-24px 0 0 -6px}
 .howto #drvHintGo{padding:8px 2px 18px 6px;margin:-8px 0 -18px -4px}
 .howto .hw-drv{margin-top:9px;margin-right:-34px;font-size:.76rem;line-height:1.5}
 .hw-link{background:none;border:0;padding:0 2px;margin:0;font:inherit;display:inline-block;font-weight:700;color:var(--pri);text-decoration:underline;text-underline-offset:2px;cursor:pointer;min-height:0;white-space:nowrap}
 .howto .hw-x{position:absolute;top:2px;right:2px;width:44px;height:44px;border:0;border-radius:var(--r-s);background:transparent;color:var(--sub);font-size:1.25rem;line-height:1;cursor:pointer;font-family:inherit}
-.howto .hw-x:hover{background:var(--pri-l);color:var(--txt)}
+.howto .hw-x:hover{background:var(--card-2);color:var(--txt)}
 .howto .hw-x:focus-visible,.hw-link:focus-visible{outline:2px solid var(--pri);outline-offset:2px}
 .gsetup{display:inline-block;margin:0 0 12px;font-size:.82rem;font-weight:700;color:var(--pri)}
 .gshare{margin-top:12px;padding:10px 12px;border:1px solid var(--bdr);border-radius:var(--r-s);background:var(--card-2)}
 .gshare .gsh-t{font-weight:800;font-size:.86rem;color:var(--txt)}
 .gshare .gsh-n{font-size:.76rem;color:var(--sub);line-height:1.55;margin-top:4px}
 .gshare .gsh-ck{font-size:.8rem;margin-top:8px}
-.gshare #gShareUrl{margin-top:8px;margin-bottom:0;font-size:.74rem;width:100%}
+.gshare #gShareUrl{margin-top:8px;margin-bottom:0;font-size:.75rem;width:100%}
 .gshare .btnrow{margin-top:8px}
-
-/* その場で出題：問題文の入力欄（カード見出しの位置） */
 #examCards .qc .qtx{display:block;width:100%;box-sizing:border-box;margin:4px 0 10px;font-size:1rem;font-weight:700;line-height:1.5;min-height:52px;resize:vertical}
-
-/* V-2：狭い画面の録音中は、固定の録音ピル（右下）が録音中の問の文字起こし欄の右側に重なる→欄の右にピルの幅だけ空ける（文字が隠れない）。
-   空けるのは欄の外（margin）＝点線の枠ごとピルの列から外し、枠の右端がピルの下に入らない（VIS-1） */
 @media (max-width:600px){
   body:has(#recPill) #examCards .qc:has(.recbtn.recording) .live{margin-right:calc(var(--recpill-w,120px) - 6px)}
 }
-/* V-4：360px 前後では試問日の数字とカレンダーの印が密着する→左右の余白と字を少し詰め、印との間を空ける */
 @media (max-width:400px){
   #pgExam .meta #fDate{padding-left:7px;padding-right:6px;font-size:.88rem;letter-spacing:0}
   #pgExam .meta #fDate::-webkit-calendar-picker-indicator{margin-left:6px;padding:0}
   #pgExam .meta #fDate::-webkit-datetime-edit{padding:0}
+}
+
+/* ==============================================================
+   試問画面の入口（2カラムの左＝.exam-side）・ワイド画面（>=1000px）・中間幅のタブ
+   ============================================================== */
+.exam-side{display:contents}
+@media(min-width:700px){
+  .tabs{max-width:480px;margin:0 auto;border:1px solid var(--bdr);border-bottom:0;border-radius:var(--r-card) var(--r-card) 0 0}
+}
+@media(min-width:1000px){
+  .pg{max-width:1040px;padding:28px 32px 8px}
+  /* 左＝入力欄(.exam-side・貼り付き)／右＝進捗・質問カード。進捗は右列の先頭で貼り付く（小型化の判定は1カラムと同じ） */
+  #pgExam.on{display:flow-root;padding-left:444px}
+  .exam-side{display:block;float:left;width:380px;margin-left:-412px;position:sticky;top:calc(var(--hdr-h) + 16px);min-width:0}
+  .hlist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .hlist>.esum,.hlist>.nd{grid-column:1/-1}
+  .esum{grid-template-columns:repeat(3,minmax(0,1fr))}
+  #chArea[style*="block"]{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+  #chArea>.eenote,#chArea>.chb:has(#cvL){grid-column:1/-1}
+  #chArea .chb{margin-bottom:0}
+  body.has-fixbar{padding-bottom:calc(var(--tabs-h) + 28px + env(safe-area-inset-bottom,0px))}
+  .savebar{position:static;box-shadow:none;border:1px solid var(--bdr);border-radius:var(--r);padding:12px 16px;margin-top:16px;background:var(--card)}
+  .savebar::before{display:none}
+  html.scoring .toast{bottom:calc(var(--tabs-h) + 12px + env(safe-area-inset-bottom,0px))}
+}
+/* 設定の並べ替え：先頭の▲・末尾の▼（見えない置き場）は詰め、✕は全行で右端にそろえる */
+.ci-btns{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:44px}
+.ci-btns button[aria-hidden="true"]{display:none}
+/* 極端な条件（320px・文字200%・長い語）でも横にはみ出さない */
+.prog.mini .pjudge{flex:0 1 auto;min-width:0;max-width:62%}
+.prog .chip{max-width:100%;white-space:normal;text-align:left;overflow-wrap:anywhere}
+.verd .vb{flex:1 1 auto;min-width:0;white-space:normal;line-height:1.25}
+.verd{flex:0 1 auto}
+.qc .b{max-width:100%;white-space:normal}
+.prog.mini .pjudge button{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+@media(max-width:359px){
+  .hdr{padding-left:6px;padding-right:6px;gap:4px}
+  .hdr .lsw{padding:0;border:0;gap:0}
+}
+
+/* ==============================================================
+   R2-X5 仕上げ（破壊検証・評価指摘の反映）
+   読みやすさ(最小12px・薄い色の廃止)／はみ出し0(320px・文字200%)／操作の主従／ワイド2列／フォーカスリング
+   ============================================================== */
+:root{--focus:#1d6fff}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--focus:#5b9bff}}
+:root[data-theme=dark]{--focus:#5b9bff}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+::placeholder{color:var(--sub);opacity:1}
+html{scroll-padding-bottom:calc(var(--tabs-h) + 24px + env(safe-area-inset-bottom,0px))}
+
+/* ---- ヘッダー：単色。題名は2段の主従（太字＋字間をしぼる） ---- */
+.hdr h1{font-weight:700;letter-spacing:.02em}
+
+/* ---- ヒーロー・採点詳細ヘッダー：長い名前・大きい文字でも折り返し、はみ出さない ---- */
+#scDetail .cd.meta,#scDetail .cd.meta>div{min-width:0}
+#scHead{min-width:0;max-width:100%;overflow-wrap:anywhere;word-break:break-word}
+.pmeta{flex-wrap:wrap;gap:2px 12px}
+.pmeta>span{min-width:0}
+.prog .pmeta>span:last-child{font-size:min(var(--fs-num),13vw)}
+#scDetail #spCnt{font-size:min(2.75rem,12vw)}
+@media(max-width:480px){.prog .pmeta>span:last-child{font-size:min(2.25rem,11vw)}.prog .pmeta{margin-bottom:4px}.prog{padding-bottom:4px}.prog .epdrv{margin-bottom:-4px}}
+/* ドライブ状態行：進捗バー・ジャッジ行と重ならない（負の余白をやめ、通常の流れで44px確保） */
+.prog .epdrv{height:auto;min-height:44px;padding-top:0;padding-bottom:0;line-height:1.4}
+.prog.fresh .epdrv{margin-top:2px}
+.prog.mini .epdrv{display:none}
+
+/* ---- 履歴：検索欄は幅いっぱい・はみ出さない／スコアは 22px/700 ---- */
+.hctrl{flex-wrap:wrap}
+.hctrl select{min-width:0}
+.hsearch{min-width:0;width:100%;max-width:100%}
+.hi .hia{font-size:1.4rem;font-weight:700}
+.delta .dnum{font-weight:800;margin-right:.35em}
+.hi .hin{overflow-wrap:anywhere}
+
+/* ---- 試問タブ：日付が切れない（左列をやや広く） ---- */
+@media (max-width:400px){
+  #pgExam .cd.meta{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)}
+}
+@media (max-width:359px){
+  #pgExam .meta #fDate{font-size:.8rem}
+}
+
+/* ---- 下部タブ：ラベルを「…」で切らない・デスクトップではドック調 ---- */
+.tabs button{font-size:min(.75rem,3.75vw)}
+.tabs button span{text-overflow:clip;white-space:normal;overflow-wrap:anywhere;text-align:center;line-height:1.15}
+@media(min-width:700px){
+  .tabs{box-shadow:var(--sh-lg)}
+}
+
+/* ---- 試問カードの操作：1行目=録音(最大)／2行目=合否を等幅2分割／「次の未録音へ」は文字ボタン ---- */
+.recrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}
+.recrow .recbtn{order:1;flex:1 1 0;min-width:min(100%,120px);justify-content:center;min-height:52px;font-size:1rem}
+.recrow .recbtn.pausebtn{flex:0 0 auto;min-width:0}
+.recrow .vu{order:2}
+.recrow .rectime{order:2}
+.recrow .recstat{order:4;flex:1 1 calc(100% - 70px);min-width:0;font-size:.8rem}
+.recrow .rectime{flex:0 0 auto}
+.recrow .rectime:empty{display:none}
+.recrow .verd{order:3;flex:1 1 100%;display:flex;max-width:100%}
+.recrow .vold{order:3}
+.recrow .verd .vb{flex:1 1 0;display:flex;align-items:center;justify-content:center;min-height:48px}
+.recrow .nxt{order:5;flex:1 1 100%;justify-content:flex-start;background:none;border:0;color:var(--pri);padding:4px 2px;min-height:44px;font-size:.85rem;font-weight:700;margin:0}
+.recrow .nxt:hover{background:none;text-decoration:underline}
+
+/* ---- 採点ボタン：アイコンと文字は横並び（縦に積まない） ---- */
+.sb.pf{flex-direction:row;align-items:center;justify-content:center;gap:8px;min-height:56px}
+
+/* ---- 設定：テンプレートの2ボタンは縦積み（高さ・幅をそろえる） ---- */
+.qbbtns{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;margin-top:10px}
+.qbbtns .b{min-height:48px;white-space:normal}
+
+/* ---- ワイド（>=1000px）：試問タブは 左=入力＋進捗(貼り付き)／右=質問カード(最大720px) ---- */
+@media(min-width:1000px){
+  #pgExam.on{display:grid;grid-template-columns:380px minmax(0,720px);grid-template-rows:auto 1fr auto;column-gap:32px;align-items:start;justify-content:center;max-width:1240px;padding-left:32px;padding-right:32px}
+  .exam-side{grid-column:1;grid-row:1;float:none;width:auto;margin:0;position:static}
+  #pgExam>.prog{grid-column:1;grid-row:2;align-self:start;margin-bottom:0}
+  #pgExam>#examCards{grid-column:2;grid-row:1 / span 2}
+  #pgExam>.bg{grid-column:2;grid-row:3}
+  #pgExam>*:not(.exam-side):not(.prog):not(#examCards):not(.bg){grid-column:1 / -1}
+}
+
+/* ==============================================================
+   R3 仕上げ（第2周・見た目の根本詰め）
+   アイコン(SVG)／ヘッダー56px／補助文12px以上／ワイドの浮きドック＋フェード／
+   スマホ採点の固定領域を2段(約96px)に圧縮／履歴の点数バッジ／ダークの合否塗りを落ち着かせる
+   ============================================================== */
+
+/* ---- 線アイコン（絵文字の代わり・1.75px線・currentColor） ---- */
+.ic{display:inline-block;width:1.1em;height:1.1em;margin-right:.4em;vertical-align:-.2em;background:currentColor;flex-shrink:0;
+  -webkit-mask:var(--ic) center/100% no-repeat;mask:var(--ic) center/100% no-repeat}
+.ic-warn{--ic:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'><path d='M12 4 2.5 20h19z'/><path d='M12 10v4.5M12 17.4v.1'/></svg>")}
+.ic-cloud{--ic:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'><path d='M7 18a4 4 0 0 1-.6-7.96A5.5 5.5 0 0 1 17 8.5a4.75 4.75 0 0 1 0 9.5z'/></svg>")}
+#btnCatAdd{display:flex;align-items:center;justify-content:center;gap:8px;max-width:420px}
+#btnCatAdd::before{content:'';width:18px;height:18px;background:currentColor;flex-shrink:0;
+  -webkit-mask:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'><path d='M4 5.5A1.5 1.5 0 0 1 5.5 4H19v14H5.5A1.5 1.5 0 0 0 4 19.5z'/><path d='M4 19.5A1.5 1.5 0 0 0 5.5 21H19v-3'/></svg>") center/100% no-repeat;
+  mask:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'><path d='M4 5.5A1.5 1.5 0 0 1 5.5 4H19v14H5.5A1.5 1.5 0 0 0 4 19.5z'/><path d='M4 19.5A1.5 1.5 0 0 0 5.5 21H19v-3'/></svg>") center/100% no-repeat}
+
+/* ---- ヘッダー：題名は長い言語でも2行まで折り返す（「…」で意味を切らない） ---- */
+.hdr h1{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.2;min-width:0}
+/* 選択中の言語：ダークは白塗りをやめ、アクセントの淡い面＋アクセント文字 */
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme=light]) .lsw button.on,:root:not([data-theme=light]) .lsw button.on:hover{background:var(--pri-l);color:var(--pri);box-shadow:none}
+}
+:root[data-theme=dark] .lsw button.on,:root[data-theme=dark] .lsw button.on:hover{background:var(--pri-l);color:var(--pri);box-shadow:none}
+
+/* ---- 採点詳細の見出しは操作対象でない（フォーカスは読み上げ用に移すだけ・枠は出さない） ---- */
+#scHead:focus,#scHead:focus-visible{outline:none}
+
+/* ---- 合否の塗り：ダークは眩しい明色をやめ、白文字4.5:1以上の深い色にする ---- */
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme=light]){--pass-bg:#1a7f3c;--fail-bg:#c03a3a}
+}
+:root[data-theme=dark]{--pass-bg:#1a7f3c;--fail-bg:#c03a3a}
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme=light]) .sb[data-s="pass"].sel,:root:not([data-theme=light]) .sb[data-s="5"].sel,
+  :root:not([data-theme=light]) .verd .vpass.on,:root:not([data-theme=light]) .dis.pf-pass{background:var(--pass-bg);color:#fff}
+  :root:not([data-theme=light]) .sb[data-s="fail"].sel,:root:not([data-theme=light]) .sb[data-s="1"].sel,
+  :root:not([data-theme=light]) .verd .vfail.on,:root:not([data-theme=light]) .dis.pf-fail{background:var(--fail-bg);color:#fff}
+  :root:not([data-theme=light]) .sb[data-s="pass"].sel .sl,:root:not([data-theme=light]) .sb[data-s="fail"].sel .sl{color:#fff}
+}
+:root[data-theme=dark] .sb[data-s="pass"].sel,:root[data-theme=dark] .sb[data-s="5"].sel,:root[data-theme=dark] .verd .vpass.on,:root[data-theme=dark] .dis.pf-pass{background:var(--pass-bg);color:#fff}
+:root[data-theme=dark] .sb[data-s="fail"].sel,:root[data-theme=dark] .sb[data-s="1"].sel,:root[data-theme=dark] .verd .vfail.on,:root[data-theme=dark] .dis.pf-fail{background:var(--fail-bg);color:#fff}
+:root[data-theme=dark] .sb[data-s="pass"].sel .sl,:root[data-theme=dark] .sb[data-s="fail"].sel .sl{color:#fff}
+
+/* ---- 履歴：点数は同じ大きさ(20px)のバッジに。色は合否の意味にだけ ---- */
+.hi .hia{font-size:1.25rem;font-weight:800;line-height:1.2;min-width:60px;padding:4px 12px;border-radius:var(--r-pill);background:var(--pri-l);text-align:center;font-variant-numeric:tabular-nums}
+.hia.a5{background:var(--s5-l)}.hia.a4{background:var(--s4-l)}.hia.a3{background:var(--s3-l)}.hia.a2{background:var(--s2-l)}.hia.a1{background:var(--s1-l)}
+.hia.old,.hi .hia.old{background:var(--card-2)}
+.hi .hia.lng{border-radius:var(--r-s);text-align:right;padding:4px 10px}
+.mgrp{font-size:.8125rem;font-weight:600;color:var(--sub);letter-spacing:.04em}
+
+/* ---- 設定：主操作は1つ・幅は読みやすい長さに止め、副操作は枠だけ ---- */
+.qbbtns .b{max-width:420px}
+.qbbtns .b4{background:transparent;color:var(--txt);border:1px solid var(--bdr-s)}
+.qbbtns .b4:hover{border-color:var(--pri);color:var(--pri);filter:none}
+#btnCatAdd.b4{background:transparent;color:var(--txt);border:1px solid var(--bdr-s)}
+#btnCatAdd.b4:hover{border-color:var(--pri);color:var(--pri)}
+
+/* ---- 下部タブ：単語の途中で折らない ---- */
+.tabs button span{overflow-wrap:normal;word-break:normal;hyphens:none;overflow:hidden;text-overflow:clip}
+
+/* ---- 録音中：エラー/トーストは上へ逃がす（録音警告・ピルと重ならない） ---- */
+#recPill{min-height:44px;padding:8px 16px}
+
+/* ---- ワイド(>=700px)：下部タブは浮きドック。内容が覆われないよう下余白＋フェードを足す ---- */
+@media(min-width:700px) and (min-height:501px){
+  :root{--tabs-h:72px}
+  .tabs{bottom:12px;border-bottom:1px solid var(--bdr);border-radius:20px;padding-bottom:0}
+  .tabs button{min-height:60px}
+  body::after{content:'';position:fixed;left:0;right:0;bottom:0;height:calc(var(--tabs-h) + 24px);pointer-events:none;z-index:90;
+    background:linear-gradient(to bottom,transparent,var(--bg) 72%)}
+  main{padding-bottom:16px}
+  .savebar{z-index:95}
+}
+@media(min-width:1000px){
+  .savebar{position:sticky;bottom:calc(var(--tabs-h) + 8px);box-shadow:var(--sh-lg)}
+  .savebar{display:flex;align-items:center;gap:6px 16px;padding:8px 14px}
+  .savebar .sbhead{flex:0 0 auto;min-height:0;gap:12px}
+  .savebar .autost{position:static;flex:none;margin:0}
+  .savebar>.bg{flex:1 1 auto;flex-wrap:nowrap;margin:0}
+  .savebar .sbsave{order:5;flex:1.6 1 0}
+  .savebar .b{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.2;padding-left:8px;padding-right:8px}
+  .savebar .sbsub{flex:1 1 0}
+}
+@media print{body::after{display:none}}
+
+/* ---- スマホ採点：固定領域を2段(約96px)に。進捗は保存ボタンの中に重ねる ---- */
+@media(max-width:699px) and (min-width:380px){
+  body.has-fixbar{--fixbar-h:100px}
+  html.scoring{scroll-padding-bottom:calc(var(--tabs-h) + 112px + env(safe-area-inset-bottom,0px))}
+  html.scoring .toast{bottom:calc(var(--tabs-h) + 108px + env(safe-area-inset-bottom,0px))}
+  .savebar{padding-top:4px}
+  .savebar .bg{gap:3px 8px}
+  .savebar .sbsave{min-height:44px;padding:8px 13px 8px 112px}
+  .savebar .sbhead{position:absolute;left:0;right:0;top:4px;height:44px;min-height:0;padding:0 16px;align-items:center;pointer-events:none;z-index:1}
+  .savebar #sbCnt{background:var(--btn-pri);border-radius:var(--r-s);padding:2px 6px 2px 0;margin-left:-2px}
+  .savebar #sbCnt,.savebar #sbCnt *{color:#fff!important;font-size:.8125rem}
+  .savebar .autost{position:absolute;right:12px;top:-30px;margin:0;padding:2px 10px;flex:none!important;background:var(--card);border:1px solid var(--bdr);border-radius:var(--r-pill)}
+  .savebar .autost:empty{display:none}
 }

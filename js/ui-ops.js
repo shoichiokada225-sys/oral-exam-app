@@ -138,7 +138,7 @@ function showDraftNote(on){
     const pg=document.getElementById('pgExam');if(!pg)return;
     el=document.createElement('div');el.id='draftNote';el.className='cd';el.setAttribute('role','status');
     el.style.cssText='border:2px solid var(--pri);font-size:.85rem;line-height:1.6';
-    const first=pg.querySelector('.cd');pg.insertBefore(el,first||pg.firstChild);
+    const first=pg.querySelector('.cd');if(first&&first.parentElement)first.parentElement.insertBefore(el,first);else pg.insertBefore(el,pg.firstChild);
   }
   const w=typeof curWork==='function'?curWork():{n:0,m:0};
   const ee=String(cur.examinee||'').trim()||t2('noName'),er=String(cur.examiner||'').trim()||t2('noName');
@@ -320,7 +320,7 @@ function applyRename(id){
    ============================================================== */
 function orphanHtml(rec){
   const o=rec&&Array.isArray(rec.driveOrphan)?rec.driveOrphan:[];
-  return o.map(x=>`<div class="orph" style="font-size:.75rem;font-weight:700;color:var(--s2,#c60);margin-top:6px;line-height:1.5">⚠ ${esc(t2('orphMsg').replace('{f}',x.folder||'').replace('{n}',x.name||''))}</div>`).join('');
+  return o.map(x=>`<div class="orph" style="font-size:.75rem;font-weight:700;color:var(--s2,#c60);margin-top:6px;line-height:1.5"><i class="ic ic-warn" aria-hidden="true"></i>${esc(t2('orphMsg').replace('{f}',x.folder||'').replace('{n}',x.name||''))}</div>`).join('');
 }
 function allOrphans(){
   const out=[];
@@ -334,9 +334,9 @@ function renderDrvOrphans(){
   if(!list.length){if(el)el.remove();return}
   if(!el){el=document.createElement('div');el.id='drvOrphans';el.setAttribute('role','note');st.insertAdjacentElement('afterend',el)}
   el.style.cssText='border:1px solid var(--s2,#c60);border-radius:8px;padding:8px 10px;margin:8px 0;font-size:.78rem;line-height:1.6';
-  el.innerHTML=`<div style="font-weight:700;color:var(--s2,#c60)">⚠ ${esc(t2('orphHead').replace('{n}',list.length))}</div><ul style="margin:4px 0 6px 18px;padding:0">`
+  el.innerHTML=`<div style="font-weight:700;color:var(--s2,#c60)"><i class="ic ic-warn" aria-hidden="true"></i>${esc(t2('orphHead').replace('{n}',list.length))}</div><ul style="margin:4px 0 6px 18px;padding:0">`
     +list.slice(0,30).map(o=>`<li>${esc(o.x.folder||'')} / ${esc(o.x.name||'')}</li>`).join('')+(list.length>30?'<li>…</li>':'')
-    +`</ul><button type="button" class="b b3" id="orphClr" style="padding:6px 10px;font-size:.74rem" onclick="clearDrvOrphans()">${esc(t2('orphClr'))}</button>`;
+    +`</ul><button type="button" class="b b3" id="orphClr" style="padding:6px 10px;font-size:.75rem" onclick="clearDrvOrphans()">${esc(t2('orphClr'))}</button>`;
 }
 /* 手で消し終えたら案内を消す（消すのは案内の記録 driveOrphan だけ。録音・合否・送信先の情報は触らない） */
 function clearDrvOrphans(){

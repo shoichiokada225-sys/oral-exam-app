@@ -16,7 +16,8 @@ function chartTheme(){
   // 評価5段階の色（セクション別バーを点数で色分けするために使う）
   const sc=[1,2,3,4,5].map(i=>(cs.getPropertyValue('--s'+i)||'#888').trim());
   const pick=v=>v>=100?sc[4]:v>=50?sc[2]:sc[0]; // 合格率(%)→色：全問合格=緑/半分以上=黄/それ未満=赤
-  return{acc,fill:acc+'26',grid,txt,pick}; // fill=アクセントの15%透過（8桁hex）
+  const selTx=(cs.getPropertyValue('--sel-tx')||'#fff').trim(),ink=(cs.getPropertyValue('--txt')||'#000').trim();
+  return{acc,fill:acc+'26',grid,txt,pick,selTx,ink}; // fill=アクセントの15%透過（8桁hex）
 }
 /* Chart.js の読み込みが終わった（成功・失敗とも）：グラフタブを開いていれば描き直す */
 function chartReady(){const pg=document.getElementById('pgCh');if(pg&&pg.classList.contains('on')&&typeof drawCharts==='function')drawCharts()}
@@ -45,6 +46,7 @@ function drawCharts(){
   const unc=mine.filter(e=>e.status!=='scored'&&hasPF(e));
   const pendMsg=[unc.some(e=>judgeState(e).full)?t2('chPending'):'',unc.some(e=>!judgeState(e).full)?t2('chPartial'):''].filter(Boolean);
   notes.push(...pendMsg);
+  if(all.length&&all.length<3)notes.push(t2('chFew'));
   if(!all.length){
     area.style.display='none';none.style.display='block';
     const oldOnly=mine.some(e=>e.status==='scored'&&oldCount(e));
@@ -62,10 +64,9 @@ function drawCharts(){
   document.getElementById('cvL').setAttribute('aria-label',t2('chRate')+': '+all.map(e=>e.date+' '+passRate(e)+'%').join(', '));
   if(cL)cL.destroy();
   // 塗りは上→下へ消えるグラデーション（面の主張を抑えて線を立てる）
-  const g=document.getElementById('cvL').getContext('2d').createLinearGradient(0,0,0,280);
-  g.addColorStop(0,th.acc+'4d');g.addColorStop(1,th.acc+'05');
+  const g=c=>{const a=c.chart.chartArea;if(!a)return th.acc+'00';const gr=c.chart.ctx.createLinearGradient(0,a.top,0,a.bottom);gr.addColorStop(0,th.acc+'2e');gr.addColorStop(1,th.acc+'00');return gr}; // 面=アクセント18%→0%
   // x.offset：点が1つでも左の軸に重ならないよう両端に余白（L-19）。clip:false＋上の余白：100%の点が上端で半分に欠けない（V-5）
-  cL=new Chart(document.getElementById('cvL'),{type:'line',data:{labels:all.map(e=>e.date),datasets:[{label:t2('chRate'),data:all.map(e=>passRate(e)),borderColor:th.acc,borderWidth:2.5,backgroundColor:g,fill:true,tension:.3,pointRadius:5,pointHoverRadius:7,pointBackgroundColor:th.acc,pointBorderColor:'#fff',pointBorderWidth:1.5,clip:false}]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:8}},scales:{x:{offset:true},y:{min:0,max:100,ticks:{stepSize:25}}},plugins:{legend:{display:false}}}});
+  cL=new Chart(document.getElementById('cvL'),{type:'line',data:{labels:all.map(e=>e.date),datasets:[{label:t2('chRate'),data:all.map(e=>passRate(e)),borderColor:th.acc,borderWidth:2,borderJoinStyle:'round',borderCapStyle:'round',backgroundColor:g,fill:true,tension:.25,pointRadius:3,pointHoverRadius:5,pointBackgroundColor:th.acc,pointBorderColor:th.acc,pointBorderWidth:1,clip:false}]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:8}},scales:{x:{offset:true,grid:{display:false},ticks:{font:{size:12}}},y:{min:0,max:100,ticks:{stepSize:25,font:{size:12}}}},plugins:{legend:{display:false}}}});
   const lat=all[all.length-1];
   // 軸・分野は「その試問が受けた出題と問題文」で作る（今の出題を切り替えても過去の試問のグラフは変わらない・M-10）
   const axes=sessAxes(lat);
@@ -76,7 +77,12 @@ function drawCharts(){
   const secLabels=[...secMap.keys()],secData=secLabels.map(k=>{const vs=secMap.get(k);return Math.round(vs.filter(x=>x==='pass').length/vs.length*100)});
   document.getElementById('cvS').setAttribute('aria-label',t('chSec')+': '+secLabels.map((l,i)=>l+' '+secData[i]).join(', '));
   if(cS)cS.destroy();
-  cS=new Chart(document.getElementById('cvS'),{type:'bar',data:{labels:secLabels,datasets:[{data:secData,backgroundColor:secData.map(v=>th.pick(v)+'cc'),borderRadius:6,barThickness:22}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,scales:{x:{min:0,max:100,ticks:{stepSize:25}}},plugins:{legend:{display:false}}}});
+  cS=new Chart(document.getElementById('cvS'),{type:'bar',data:{labels:secLabels,datasets:[{data:secData,backgroundColor:secData.map(v=>th.pick(v)),borderRadius:3,barThickness:22}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,scales:{x:{min:0,max:100,ticks:{stepSize:25,font:{size:12}}},y:{grid:{display:false}}},plugins:{legend:{display:false}}},plugins:[{id:'barVals',afterDatasetsDraw(ch){ // 値ラベル：棒の内側右端（棒が短ければ外側）
+    const c=ch.ctx,m=ch.getDatasetMeta(0);c.save();c.font='700 12px '+Chart.defaults.font.family;c.textBaseline='middle';
+    m.data.forEach((b,i)=>{const v=secData[i],txt=v+'%',w=c.measureText(txt).width;
+      if(b.x-b.base>=w+14){c.fillStyle=th.selTx;c.textAlign='right';c.fillText(txt,b.x-7,b.y)}
+      else{c.fillStyle=th.ink;c.textAlign='left';c.fillText(txt,b.x+6,b.y)}});
+    c.restore()}}]});
   // 合否の付いていない設問（質問しなかった・未採点・旧5段階）は0点=不合格と区別して欠損(null)で描く
   const latV=axes.map(pfOf(lat));
   document.getElementById('cvR').setAttribute('aria-label',t('chRadar')+': '+axes.map((a,i)=>a.name+' '+(latV[i]!=null?t2(lat.items[a.id].score):t2('notAsked').trim())).join(', '));
@@ -86,12 +92,12 @@ function drawCharts(){
   const pm=new Map();
   if(prev)sessAxes(prev).forEach(a=>{const v=pfOf(prev)(a);if(a.qk&&v!=null&&!pm.has(a.qk))pm.set(a.qk,v)});
   const prevV=axes.map(a=>a.qk&&pm.has(a.qk)?pm.get(a.qk):null);
-  const rDatasets=[{label:lat.date,data:latV,spanGaps:true,borderColor:th.acc,backgroundColor:th.fill,pointBackgroundColor:th.acc}];
+  const rDatasets=[{label:lat.date,data:latV,spanGaps:true,borderColor:th.acc,backgroundColor:th.fill,pointBackgroundColor:th.acc,borderWidth:2,pointRadius:3}];
   if(prevV.some(v=>v!=null))rDatasets.push({label:(t2('prevLbl'))+' '+prev.date,data:prevV,spanGaps:true,borderColor:th.acc+'80',backgroundColor:'transparent',borderDash:[6,4],borderWidth:1.5,pointBackgroundColor:th.acc+'80',pointRadius:2});
   // ラベル：長い問題文は省略し、「未実施」は2行目に。スマホ幅で左右にはみ出すなら短くする（L-18）
   let max=lang==='ja'?6:14,fs=11;
   const mkLabels=()=>axes.map((a,i)=>{const n=a.name.length>max?a.name.slice(0,max)+'…':a.name;return latV[i]==null?[n,t2('notAsked').trim()]:n});
-  cR=new Chart(document.getElementById('cvR'),{type:'radar',data:{labels:mkLabels(),datasets:rDatasets},options:{responsive:true,maintainAspectRatio:false,scales:{r:{min:0,max:100,ticks:{stepSize:50,font:{size:10}},pointLabels:{font:{size:fs}},grid:{color:th.grid},angleLines:{color:th.grid}}},plugins:{legend:{display:true,position:'bottom'}}}});
+  cR=new Chart(document.getElementById('cvR'),{type:'radar',data:{labels:mkLabels(),datasets:rDatasets},options:{responsive:true,maintainAspectRatio:false,scales:{r:{min:0,max:100,ticks:{stepSize:50,font:{size:12},backdropColor:'transparent',color:th.txt},pointLabels:{font:{size:fs}},grid:{color:th.grid},angleLines:{color:th.grid}}},plugins:{legend:{display:true,position:'bottom',labels:{usePointStyle:true,pointStyle:'line',boxWidth:22,font:{size:12}}}}}});
   fitRadarLabels(cR,()=>{if(max>3){max=Math.max(3,max-(lang==='ja'?1:3));cR.data.labels=mkLabels();return true}if(fs>9){fs--;cR.options.scales.r.pointLabels.font.size=fs;return true}return false});
 }
 /* レーダーの軸ラベルが描画領域の左右からはみ出していれば shrink() で短くして描き直す（shrink が false＝これ以上縮めない） */

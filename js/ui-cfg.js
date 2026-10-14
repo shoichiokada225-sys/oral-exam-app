@@ -146,7 +146,7 @@ function catPickWork(workId){
   const isDup=q=>!!(sec&&cfg.items.some(it=>it.secId===sec.id&&(it.name===q.nameJa||it.name===q.name))); // 原文（日本語）で照合＝言語を変えても追加済みと分かる
   box.innerHTML=qaQuestions(w).map(q=>{
     const dup=isDup(q);
-    return `<label class="qa-check"><input type="checkbox" value="${esc(q.key)}" ${dup?'':'checked'}><div class="qat"><div class="qan">${esc(q.name)}${dup?` <span style="font-size:.68rem;color:var(--pri);font-weight:700;border:1px solid var(--pri);border-radius:4px;padding:0 4px">${esc(t2('added'))}</span>`:''}</div><div class="qaq">${esc(q.desc)}</div><div class="qaa">${lang!=='ja'?esc(t('ansJaNote'))+' ':''}${esc(q.ans)}</div></div></label>`;
+    return `<label class="qa-check"><input type="checkbox" value="${esc(q.key)}" ${dup?'':'checked'}><div class="qat"><div class="qan">${esc(q.name)}${dup?` <span style="font-size:.75rem;color:var(--pri);font-weight:700;border:1px solid var(--pri);border-radius:4px;padding:0 4px">${esc(t2('added'))}</span>`:''}</div><div class="qaq">${esc(q.desc)}</div><div class="qaa">${lang!=='ja'?esc(t('ansJaNote'))+' ':''}${esc(q.ans)}</div></div></label>`;
   }).join('');
 }
 function addFromCatalog(){
@@ -245,7 +245,7 @@ function renderQsetUI(){
   if(qbankAvailable()){
     h+=`<select id="qbSel" style="width:100%" onchange="qbShowDesc()"><option value="">${t('selPh')}</option>${qbankPresets().map(p=>`<option value="${esc(sanitizeId(p.id))}">${esc(p.name)}</option>`).join('')}</select>`;
     h+=`<div id="qbDesc" style="font-size:.78rem;color:var(--sub);margin-top:6px"></div>`;
-    h+=`<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button type="button" class="b b1" style="flex:1 1 140px" onclick="applyQbank(false)">${esc(t2('qbReplace'))}</button><button type="button" class="b b4" style="flex:1 1 140px" onclick="applyQbank(true)">${esc(t2('qbAppend'))}</button></div>`;
+    h+=`<div class="qbbtns"><button type="button" class="b b1" onclick="applyQbank(false)">${esc(t2('qbReplace'))}</button><button type="button" class="b b4" onclick="applyQbank(true)">${esc(t2('qbAppend'))}</button></div>`;
   }else{
     h+=`<div style="font-size:.78rem;color:var(--sub)">${esc(t2('qbNone'))}</div>`;
   }

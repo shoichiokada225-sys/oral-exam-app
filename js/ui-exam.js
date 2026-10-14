@@ -28,7 +28,7 @@ function buildExamCards(){
           <span class="rectime" id="rt-${iid}"></span>
           <span class="recstat${has?' ok':''}" id="rs-${iid}">${has?'● '+t('recDone'):t('recReady')}</span>
           <span class="verd" role="group" aria-label="${esc(t2('pfLbl'))}"><button type="button" class="vb vpass${rec&&rec.score==='pass'?' on':''}" id="vp-${iid}" aria-pressed="${rec&&rec.score==='pass'?'true':'false'}" onclick="setVerdict('${iid}','pass')">○ ${esc(t2('pass'))}</button><button type="button" class="vb vfail${rec&&rec.score==='fail'?' on':''}" id="vf-${iid}" aria-pressed="${rec&&rec.score==='fail'?'true':'false'}" onclick="setVerdict('${iid}','fail')">× ${esc(t2('fail'))}</button></span>${rec&&isOld(rec.score)?`<span class="vold" id="vo-${iid}">${esc(scoreTxt(rec.score))}</span>`:''}
-          <button type="button" class="b b3" id="nx-${iid}" style="display:${has?'inline-block':'none'};flex:0 0 auto;padding:6px 10px;font-size:.74rem;margin-left:auto" onclick="gotoNextUnrec('${iid}')">${esc(t2('nextUnrec'))} ▾</button>
+          <button type="button" class="b b3 nxt" id="nx-${iid}" style="display:${has?'inline-flex':'none'}" onclick="gotoNextUnrec('${iid}')">${esc(t2('nextUnrec'))} ▾</button>
         </div>
         <audio id="au-${iid}" controls style="display:${has?'block':'none'}"></audio>
         <button type="button" class="b b3 rcont" id="rc-${iid}" style="display:${has?'inline-flex':'none'}" onclick="contRec('${iid}')">＋ ${esc(t2('recCont'))}</button>
@@ -105,13 +105,13 @@ function updateDriveUi(){
     if(st!=='none'||(off&&!(inCard&&drvHintAsked))){h.style.display='none';return}
     h.style.display='';
     if(inCard){
-      h.innerHTML=`☁ ${esc(t2('drvHintS'))} <button type="button" class="hw-link" id="drvHintGo" onclick="gotoCfgPart('gUrl')">${esc(t2('drvHintGo'))} ›</button>`;
+      h.innerHTML=`<i class="ic ic-cloud" aria-hidden="true"></i>${esc(t2('drvHintS'))} <button type="button" class="hw-link" id="drvHintGo" onclick="gotoCfgPart('gUrl')">${esc(t2('drvHintGo'))} ›</button>`;
       return;
     }
     h.innerHTML=`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.8rem;color:var(--sub);line-height:1.6">
       <span style="flex:1 1 200px">${esc(t2('drvHint'))}</span>
-      <button type="button" class="b b3" id="drvHintGo" style="flex:0 0 auto;padding:6px 10px;font-size:.74rem" onclick="gotoCfgPart('gUrl')">${esc(t2('drvHintGo'))}</button>
-      <button type="button" class="b b4" id="drvHintX" style="flex:0 0 auto;padding:6px 10px;font-size:.74rem" onclick="dismissDrvHint()" aria-label="${esc(t('btnClose'))}">${esc(t('btnClose'))}</button></div>`;
+      <button type="button" class="b b3" id="drvHintGo" style="flex:0 0 auto;padding:6px 10px;font-size:.75rem" onclick="gotoCfgPart('gUrl')">${esc(t2('drvHintGo'))}</button>
+      <button type="button" class="b b4" id="drvHintX" style="flex:0 0 auto;padding:6px 10px;font-size:.75rem" onclick="dismissDrvHint()" aria-label="${esc(t('btnClose'))}">${esc(t('btnClose'))}</button></div>`;
   }
 }
 /* 初回カードの「詳しく」：使い方の全文を開く／畳む */
@@ -154,7 +154,8 @@ function progMiniCheck(){
   const p=document.getElementById('examProg'),c=document.getElementById('examCards');if(!p||!c)return;
   const on=p.classList.contains('mini');
   let want=false;
-  if(p.style.display!=='none'&&p.getClientRects().length&&c.getClientRects().length){
+  // ワイド（左列に貼り付く配置）では本文と重ならないので小型化しない
+  if(!(window.matchMedia&&matchMedia('(min-width:1000px)').matches)&&p.style.display!=='none'&&p.getClientRects().length&&c.getClientRects().length){
     const cs=getComputedStyle(p),top=parseFloat(cs.top)||0;
     // 流れの中の本来の上端＝カードの上端−（今の高さ＋今の下余白）。小型の間も下余白で元の高さを保つので、どちらの状態でも同じ値
     const nat=c.getBoundingClientRect().top-p.offsetHeight-(parseFloat(cs.marginBottom)||0);
@@ -192,13 +193,13 @@ function updateExamProgInner(box){
   box.classList.toggle('fresh',!n); // まだ1問も録音していない：スマホではセクションのチップを畳んで1問目を最初の画面に出す
   const j=items.filter(it=>examRecd(it)&&examJudged(it)).length;
   // 録音完了直後（media.jsのonstopから呼ばれる）に「次の未録音へ」ボタンを出す
-  items.forEach(it=>{const b=document.getElementById('nx-'+sanitizeId(it.id));if(b)b.style.display=examRecd(it)?'inline-block':'none'});
+  items.forEach(it=>{const b=document.getElementById('nx-'+sanitizeId(it.id));if(b)b.style.display=examRecd(it)?'inline-flex':'none'});
   // 停止した録音の後ろに足す「続きを録音」（誤って停止しても後半を録れる）。その問を録音している間は隠す
   items.forEach(it=>{const b=document.getElementById('rc-'+sanitizeId(it.id));if(b)b.style.display=examRecd(it)&&!(typeof active!=='undefined'&&active&&active.itemId===it.id)?'inline-flex':'none'});
   // カード右上の✓も進捗バー・チップと同じ基準（録音と○×の両方）で付け外しする
   items.forEach(it=>{const c=document.getElementById('q-'+sanitizeId(it.id));if(c){c.classList.toggle('done',done(it));const sc=cur&&cur.items[it.id]?cur.items[it.id].score:null;c.classList.toggle('v-pass',done(it)&&sc==='pass');c.classList.toggle('v-fail',done(it)&&sc==='fail')}});
   document.getElementById('epLbl').textContent=t('progRec');
-  document.getElementById('epCnt').textContent=n+' / '+m;
+  document.getElementById('epCnt').innerHTML=n+' <span class="sl">/</span> '+m;
   document.getElementById('epBar').style.width=Math.round(n/m*100)+'%';
   const allDone=items.every(done);
   box.classList.toggle('complete',allDone); // 全問の録音と合否がそろったら完了色（中立の濃紺）
@@ -288,7 +289,7 @@ async function checkStorage(){
 function renderStoWarn(){
   const el=document.getElementById('stoWarn');if(!el)return;
   if(!stoLow){el.style.display='none';el.innerHTML='';return}
-  el.innerHTML=`<div style="font-weight:800;color:var(--s1);margin-bottom:4px">⚠ ${esc(t2('stoLowT'))}</div>
+  el.innerHTML=`<div style="font-weight:800;color:var(--s1);margin-bottom:4px"><i class="ic ic-warn" aria-hidden="true"></i>${esc(t2('stoLowT'))}</div>
     <div style="font-size:.85rem;line-height:1.6;margin-bottom:10px">${esc(t2('stoLow'))}</div>
     <button type="button" class="b b3" id="stoBk" onclick="gotoCfgPart('bkExportBtn')">${esc(t2('stoBackup'))}</button>`;
   el.style.display='block';

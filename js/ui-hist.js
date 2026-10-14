@@ -27,13 +27,13 @@ function eeSummaryHtml(filterName){
   let sums=_eeSums.map((s,i)=>({...s,idx:i}));
   if(filterName)sums=sums.filter(s=>s.name===filterName);
   if(!sums.length)return'';
-  return `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">`+sums.map(s=>{
+  return `<div class="esum">`+sums.map(s=>{
     const arrow=(s.oldOnly||s.prev==null)?'':s.last>s.prev?'▲':s.last<s.prev?'▼':'→';
-    const col=arrow==='▲'?'var(--s4)':arrow==='▼'?'var(--s1)':'var(--sub)';
-    return `<button type="button" class="cd" style="flex:1 1 150px;min-width:140px;text-align:left;cursor:pointer;padding:10px 12px;margin:0" onclick="eeFilterIdx(${s.idx})">
-      <div style="font-weight:700;font-size:.9rem">${esc(s.name)}</div>
-      <div style="font-size:.74rem;color:var(--sub)">${s.count}${esc((s.count===1&&(TX2[lang]||{}).sumTimes1)||t2('sumTimes'))}${s.setName?' · '+esc(t2('examSetLbl'))+': '+esc(s.setName):''}</div>
-      <div class="eelast" style="font-size:${s.oldOnly?'.9rem':'1.05rem'};font-weight:800;margin-top:2px"><span class="${s.lastCls}">${esc(s.lastLbl)}</span>${arrow?` <span style="font-size:.8rem;font-weight:700;color:${col}">${arrow} ${esc(t2('prevLbl'))} ${esc(s.prevLbl)}</span>`:''}</div>
+    const dcls=arrow==='▲'?'up':arrow==='▼'?'down':'flat';
+    return `<button type="button" class="cd esb" onclick="eeFilterIdx(${s.idx})">
+      <div class="esn">${esc(s.name)}</div>
+      <div class="esc">${s.count}${esc((s.count===1&&(TX2[lang]||{}).sumTimes1)||t2('sumTimes'))}${s.setName?' · '+esc(t2('examSetLbl'))+': '+esc(s.setName):''}</div>
+      <div class="eelast${s.oldOnly?' eeold':''}"><span class="${s.lastCls}">${esc(s.lastLbl)}</span>${arrow?` <span class="delta ${dcls}"><b class="dnum">${arrow} ${(s.last-s.prev>0?'+':'')+Math.round(s.last-s.prev)}</b> ${esc(t2('prevLbl'))} ${esc(s.prevLbl)}</span>`:''}</div>
       ${s.oldOnly?`<div class="eenote">${esc(t2('oldOnly'))}</div>`:s.mixed?`<div class="eenote">${esc(t2('mixNote'))}</div>`:''}
     </button>`;
   }).join('')+'</div>';
@@ -53,7 +53,7 @@ function drawHist(){
     const ym=String(r.date||'').slice(0,7);
     if(ym&&ym!==pm){h+=`<div class="mgrp">${esc(fmtMonth(ym))}</div>`;pm=ym}
     const x=rowRes(r);
-    h+=`<button type="button" class="hi" onclick="showDet('${sanitizeId(r.id)}')"><span class="hii"><span class="hid">${esc(r.date)} · <span class="hset">${esc(setLbl(r))}</span></span><span class="hin">${esc(r.examinee)}</span>${x.badge}</span><span class="hia ${x.cls}">${esc(x.lbl)}</span></button>`;
+    h+=`<button type="button" class="hi" onclick="showDet('${sanitizeId(r.id)}')"><span class="hii"><span class="hid">${esc(r.date)}${(r.setId==null&&r.setName==null)?'':' · <span class="hset">'+esc(setLbl(r))+'</span>'}</span><span class="hin">${esc(r.examinee)}</span>${x.badge}</span><span class="hia ${x.cls}">${esc(x.lbl)}</span></button>`;
   });
   c.innerHTML=h;
 }

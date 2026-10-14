@@ -18,9 +18,11 @@ const S = (id, ee, status, items) => ({ id, date: '2026-09-20', examiner: '岡�
   await p.goto(env.URL); await p.waitForTimeout(300);
   const ids = await p.evaluate(() => getItems().map(i => i.id));
   const tab = async pg => { await p.click(`.tabs button[data-pg="${pg}"]`); await p.waitForTimeout(250); };
-  const bgImg = sel => p.evaluate(s => getComputedStyle(document.querySelector(s)).backgroundImage, sel);
-  const isGreen = g => /rgb\(14, 84, 32\)|rgb\(13, 58, 23\)/.test(g);
-  const isRed = g => /rgb\(92, 16, 16\)|rgb\(66, 11, 11\)/.test(g);
+  // R2-X: ヒーローは暗面固定＝合否は「上辺のアクセント線」の色(--hero-ok/--hero-ng)で示す（旧: 面のグラデ色）
+  const bgImg = sel => p.evaluate(s => getComputedStyle(document.querySelector(s)).borderTopColor, sel);
+  const heroTok = await p.evaluate(() => { const probe = v => { const d = document.createElement('i'); d.style.color = v; document.body.appendChild(d); const c = getComputedStyle(d).color; d.remove(); return c; }; const cs = getComputedStyle(document.documentElement); return { ok: probe(cs.getPropertyValue('--hero-ok').trim()), ng: probe(cs.getPropertyValue('--hero-ng').trim()) }; });
+  const isGreen = g => g === heroTok.ok;
+  const isRed = g => g === heroTok.ng;
 
   console.log('[1] 試問ヒーロー：完了色は合否に連動');
   await p.evaluate(() => { getItems().forEach(it => { cur.items[it.id] = { hasAudio: true }; }); buildExamCards(); });
@@ -42,13 +44,13 @@ const S = (id, ee, status, items) => ({ id, date: '2026-09-20', examiner: '岡�
   for (const theme of ['light', 'dark']) {
     await p.evaluate(t => document.documentElement.setAttribute('data-theme', t), theme);
     await p.click('#vf-' + ids[0]); await p.waitForTimeout(150); // q1=不合格・q2=合格
-    const r = await p.evaluate(([a, bId]) => {
+    const r = await p.evaluate(([a, bId, th]) => {
       const cs = s => getComputedStyle(document.querySelector(s));
-      const sbPass = getComputedStyle(document.documentElement).getPropertyValue('--s5').trim();
-      const sbFail = getComputedStyle(document.documentElement).getPropertyValue('--s1').trim();
+      const sbPass = getComputedStyle(document.documentElement).getPropertyValue(th === 'dark' ? '--pass-bg' : '--s5').trim(); // R3: ダークの塗りは眩しさを抑えた専用色
+      const sbFail = getComputedStyle(document.documentElement).getPropertyValue(th === 'dark' ? '--fail-bg' : '--s1').trim();
       const probe = v => { const d = document.createElement('i'); d.style.color = v; document.body.appendChild(d); const c = getComputedStyle(d).color; d.remove(); return c; };
       return { pBg: cs('#vp-' + bId).backgroundColor, pTx: cs('#vp-' + bId).color, fBg: cs('#vf-' + a).backgroundColor, fTx: cs('#vf-' + a).color, s5: probe(sbPass), s1: probe(sbFail) };
-    }, [ids[0], ids[1]]);
+    }, [ids[0], ids[1], theme]);
     T.ok(`${theme}: ○合格ON=--s5（${r.pBg}）`, r.pBg === r.s5);
     T.ok(`${theme}: ×不合格ON=--s1（${r.fBg}）`, r.fBg === r.s1);
     T.ok(`${theme}: ○合格の文字コントラスト ${ratio(r.pBg, r.pTx).toFixed(2)} ≥ 4.5`, ratio(r.pBg, r.pTx) >= 4.5);

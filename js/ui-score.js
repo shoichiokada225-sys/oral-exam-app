@@ -33,7 +33,9 @@ async function openScore(id){
 /* 採点画面を開いている間だけ html.scoring（scroll-padding で保存バー・タブ・ヘッダーの下にフォーカスを隠さない） */
 function syncScoringClass(){
   const det=document.getElementById('scDetail'),pg=document.getElementById('pgScore');
-  document.documentElement.classList.toggle('scoring',!!(det&&pg&&pg.classList.contains('on')&&det.style.display!=='none'));
+  const on=!!(det&&pg&&pg.classList.contains('on')&&det.style.display!=='none');
+  document.documentElement.classList.toggle('scoring',on);
+  document.body.classList.toggle('has-fixbar',on); // 固定の保存バー分の下余白（CSS body.has-fixbar）
 }
 /* 一覧へ戻ったとき、直前に開いていた受験者の行へフォーカスを戻す（無ければ絞り込み→先頭行の順に代替） */
 function focusScoreRow(id){
@@ -99,7 +101,7 @@ function updateScoreProg(){
   const n=ids.filter(id=>document.querySelector('.sb[data-id="'+id+'"].sel')||isOld(curScore.items[id].score)).length;
   const nOld=ids.filter(id=>!document.querySelector('.sb[data-id="'+id+'"].sel')&&isOld(curScore.items[id].score)).length;
   const c=document.getElementById('spCnt'),b=document.getElementById('spBar');
-  if(c)c.textContent=n+' / '+scorable;
+  if(c)c.innerHTML=n+' <span class="sl">/</span> '+scorable;
   const card=b?b.closest('.cd'):null;
   if(b){b.style.width=(scorable?Math.round(n/scorable*100):0)+'%';if(card)card.classList.toggle('complete',scorable>0&&n===scorable)}
   // 採点中のリアルタイム平均（1つ以上採点したら表示・評価色つき）
@@ -119,7 +121,7 @@ function updateScoreProg(){
   // savebar常時表示の進捗+合否（表示のみの複製・保存形式に影響なし）。合否の数は評価色（spavgと同じ a5/a1/a3）
   const sb2=document.getElementById('sbCnt');
   if(sb2){
-    sb2.textContent=n+' / '+scorable;
+    sb2.innerHTML=n+' <span class="sl">/</span> '+scorable;
     if(av&&av.textContent){const r=document.createElement('span');r.className='sbres '+av.className.replace(/\bspavg\b/,'').trim();r.textContent=av.textContent;sb2.appendChild(r)}
   }
 }

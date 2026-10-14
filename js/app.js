@@ -515,7 +515,7 @@ function showSaveErr(on,noScroll){
     const bg=document.querySelector('#pgExam > .bg');
     if(bg&&bg.parentElement)bg.parentElement.insertBefore(el,bg);else return;
   }
-  el.innerHTML=`<div>⚠ ${esc(t2('saveErrMsg'))}</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button type="button" class="b b1" style="flex:1 1 140px" onclick="exportBackup()">${esc(t('bkExport'))}</button><button type="button" class="b b3" style="flex:1 1 140px" onclick="saveSession()">${esc(t2('retrySave'))}</button></div>`;
+  el.innerHTML=`<div><i class="ic ic-warn" aria-hidden="true"></i>${esc(t2('saveErrMsg'))}</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button type="button" class="b b1" style="flex:1 1 140px" onclick="exportBackup()">${esc(t('bkExport'))}</button><button type="button" class="b b3" style="flex:1 1 140px" onclick="saveSession()">${esc(t2('retrySave'))}</button></div>`;
   if(!noScroll)el.scrollIntoView({behavior:'smooth',block:'center'});
 }
 /* 現在の試問で、端末(IndexedDB)に書けずメモリ上にだけ残っている録音のキー（failedTakesはmedia.js） */

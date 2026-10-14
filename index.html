@@ -10,8 +10,8 @@
 <meta property="og:url" content="https://shoichiokada225-sys.github.io/oral-exam-app/">
 <meta property="og:image" content="https://shoichiokada225-sys.github.io/oral-exam-app/icon-512.png">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#2e5d7d" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#132c3d" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#0b1020" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b1118" media="(prefers-color-scheme: dark)">
 <script>/* 手動テーマの初回ペイント前適用（FOUC防止・CSSより先に実行） */
 try{var _th=localStorage.getItem('oral_exam_theme');if(_th==='light'||_th==='dark')document.documentElement.dataset.theme=_th}catch(e){}</script>
 <style>/* 短い題名（X-3：更新直後に古い styles.css が残っても題名が二重にならないよう、ここに置く） */.hdr h1 .ts{display:none}@media(max-width:519px){.hdr h1 .tl{display:none}.hdr h1 .ts{display:inline}}</style>
@@ -19,9 +19,6 @@ try{var _th=localStorage.getItem('oral_exam_theme');if(_th==='light'||_th==='dar
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>口頭試問 評価システム</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap">
 <!-- グラフ部品は async（CDNが遅い／取れないときに画面全体の表示を止めない）。読めたらグラフタブを描き直す -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" integrity="sha384-vsrfeLOOY6KuIYKDlmVH5UiBmgIdB1oEf7p01YgWHuqmOHfZr374+odEv96n9tNC" crossorigin="anonymous" referrerpolicy="no-referrer" async onload="window.__chartSt='ok';if(typeof chartReady==='function')chartReady()" onerror="window.__chartSt='err';if(typeof chartReady==='function')chartReady()"></script>
 <link rel="stylesheet" href="styles.css">
@@ -30,7 +27,7 @@ try{var _th=localStorage.getItem('oral_exam_theme');if(_th==='light'||_th==='dar
 
 <header class="hdr">
   <div class="brand" aria-hidden="true">
-    <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z"/><path stroke-linecap="round" stroke-linejoin="round" d="M18 11a6 6 0 0 1-12 0M12 17v3"/></svg>
+    <svg viewBox="0 0 24 24"><path d="M5 4.5h14a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2h-6.5L8 20.5V17H5a2 2 0 0 1-2-2V6.5a2 2 0 0 1 2-2z"/><path d="M8 10.8l2.7 2.7 5.3-5.6"/></svg>
   </div>
   <h1><span class="tl" data-t="appTitle">口頭試問 評価システム</span><span class="ts" id="appTitleS">口頭試問</span></h1>
   <button class="thbtn" id="thBtn" onclick="cycleTheme()" aria-label="Theme" title="Theme"></button>
@@ -45,6 +42,7 @@ try{var _th=localStorage.getItem('oral_exam_theme');if(_th==='light'||_th==='dar
 <main>
 <!-- 試問（録音） -->
 <div id="pgExam" class="pg on">
+  <div class="exam-side">
   <div id="stoWarn" class="cd" role="alert" style="display:none;border:2px solid var(--s1)"></div>
   <div class="cd meta">
     <label for="fDate" data-t="labelDate">試問日</label>
@@ -54,6 +52,7 @@ try{var _th=localStorage.getItem('oral_exam_theme');if(_th==='light'||_th==='dar
     <input type="text" id="fEr" data-ph="phEr" placeholder="例：山田太郎" hidden tabindex="-1" aria-hidden="true">
     <label for="fEe" data-t="labelExaminee">受験者名</label>
     <input type="text" id="fEe" data-ph="phEe" placeholder="例：佐藤花子">
+  </div>
   </div>
   <div class="prog" id="examProg" style="display:none">
     <div class="pmeta"><span id="epLbl"></span><span id="epCnt"></span></div>
@@ -97,9 +96,9 @@ try{var _th=localStorage.getItem('oral_exam_theme');if(_th==='light'||_th==='dar
     <select id="chSel" onchange="drawCharts()"><option value="" data-t="selPh">-- 選択してください --</option></select>
   </div>
   <div id="chArea">
-    <div class="chb"><h2 data-t="chLine">合格率の推移（%）</h2><canvas id="cvL" role="img"></canvas></div>
-    <div class="chb"><h2 data-t="chSec">分野別の合格率（直近・%）</h2><canvas id="cvS" role="img"></canvas></div>
-    <div class="chb"><h2 data-t="chRadar">設問別の合否（直近・合格=100）</h2><canvas id="cvR" role="img"></canvas></div>
+    <div class="chb"><div class="chb-h"><h2 data-t="chLine">合格率の推移（%）</h2></div><canvas id="cvL" role="img"></canvas></div>
+    <div class="chb"><div class="chb-h"><h2 data-t="chSec">分野別の合格率（直近・%）</h2></div><canvas id="cvS" role="img"></canvas></div>
+    <div class="chb"><div class="chb-h"><h2 data-t="chRadar">設問別の合否（直近・合格=100）</h2></div><canvas id="cvR" role="img"></canvas></div>
   </div>
   <div id="chNone" class="nd" style="display:none"></div>
 </div>
@@ -107,7 +106,7 @@ try{var _th=localStorage.getItem('oral_exam_theme');if(_th==='light'||_th==='dar
 <!-- 設定 -->
 <div id="pgCfg" class="pg">
   <div class="stit" data-t="cfgItemsTitle">試問項目</div>
-  <button class="b b4 wfull mb16" id="btnCatAdd" onclick="openCatalog()" data-t="catAdd">📚 作業カタログから質問を追加</button>
+  <button class="b b4 wfull mb16" id="btnCatAdd" onclick="openCatalog()" data-t="catAdd">作業カタログから質問を追加</button>
   <div id="cfgArea"></div>
   <div class="cfg-add">
     <button onclick="addSection()" data-t="addSec">＋ セクション追加</button>

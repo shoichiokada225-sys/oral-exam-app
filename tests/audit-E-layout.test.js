@@ -185,6 +185,8 @@ const colors = (p, sel) => p.evaluate(s => { const e = document.querySelector(s)
     const { p, errors, ctx } = await open(bf, { howtoOff: true });
     // 出-2 の録音ボタンをタブバーの裏に置き、その前の問題文の欄から Tab で移る
     await p.evaluate(() => {
+      // 画面の圧縮で出-2が最初から上に来るため、手前に高さ600pxの余白を入れて「タブバーの裏に置く」前提を作る（検査の中身は不変）
+      const sp = document.createElement('div'); sp.style.height = '600px'; document.getElementById('q-f2').parentElement.insertBefore(sp, document.getElementById('q-f2'));
       document.getElementById('qt-f2').focus({ preventScroll: true });
       const tb = document.querySelector('.tabs').getBoundingClientRect().top, r = document.getElementById('rb-f2').getBoundingClientRect();
       window.scrollBy(0, r.top - (tb + 4));

@@ -232,7 +232,8 @@ async function ctxOf(b, vp, extra) {
     };
     for (let y = 3; y <= end; y += 3) await step(y);
     for (let y = end - 3; y >= 0; y -= 3) await step(y);
-    c.ok(tag + ' スクロールの途中で小型になる', sawMini);
+    // R2-X: 1000px以上は進捗パネルを左列に貼り付ける配置＝質問カードと重ならないので小型化しない（<1000pxは従来どおり小型になる）
+    c.ok(tag + (v.vp.width >= 1000 ? ' ワイドでは小型にならず左列に貼り付く' : ' スクロールの途中で小型になる'), v.vp.width >= 1000 ? !sawMini : sawMini);
     c.ok(tag + ' 先頭へ戻ると元の大きさ', !prev.mini);
     c.ok(tag + ' 元の大きさのパネルが1問目の上端を覆わない ' + covered.slice(0, 8).join(' '), !covered.length);
     c.ok(tag + ' カードが跳ばない（3pxずつ） ' + jumps.slice(0, 8).join(' '), !jumps.length);

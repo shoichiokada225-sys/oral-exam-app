@@ -14,7 +14,8 @@ let pass=0,fail=0;const ok=(n,c)=>{c?pass++:fail++;console.log((c?'  OK ':'  NG 
   await p.fill('#fEe','テスト太郎');
   ok('合否ボタンが各カードにある',await p.locator('#examCards .verd').count()===await p.locator('#examCards .qc').count());
   const box=await p.locator('#vp-q1').boundingBox(),rb=await p.locator('#rb-q1').boundingBox();
-  ok('録音ボタンと同じ行',Math.abs((box.y+box.height/2)-(rb.y+rb.height/2))<30);
+  /* R2-X: 操作の主従（1行目=録音・2行目=合否）。合否は録音ボタンの直下（同じカード内・90px以内）に並ぶ */
+  ok('録音ボタンの直下に合否',box.y>=rb.y+rb.height-1&&(box.y-(rb.y+rb.height))<90&&Math.abs((box.x+box.width/2)-(rb.x+rb.width/2))<rb.width);
   // 録音→判定なしで送信
   await p.click('#rb-q1');await p.waitForTimeout(1000);await p.click('#rb-q1');await p.waitForTimeout(2300); // 停止後の送信は1.5秒待ってから（M-16）
   ok('判定前の送信名=未判定: '+posts[0]?.name,posts[0]?.name.includes('_未判定_'));
